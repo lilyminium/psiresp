@@ -13,7 +13,7 @@ env:
     - PIP_DEPENDENCIES="duecredit"
 
   matrix:
-    - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} --cov=psiresp"
+    - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} -m 'not slow' --cov=psiresp"
 
 stages:
   - test
