@@ -3,7 +3,7 @@ os: linux
 
 env:
   global:
-    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50 --maxfail=1"
+    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
     - PYTEST_LIST="tests"
     - MAIN_CMD="pytest ${PYTEST_LIST}"
     - SETUP_CMD="${PYTEST_FLAGS}"
