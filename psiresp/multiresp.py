@@ -505,8 +505,8 @@ class MultiResp(object):
             intra_chrconstr=[], intra_chrequiv=[], inter_chrconstr=[],
             inter_chrequiv=[], n_orient=0, orient=[], n_rotate=0, rotate=[],
             n_translate=0, translate=[], equal_methyls=False, basis='6-31g*',
-            method='scf', psi4_options={}, hyp_a=0.0005, load_files=False,
-            **kwargs):
+            method='scf', psi4_options={}, hyp_a1=0.0005, hyp_a2=0.001,
+            load_files=False, **kwargs):
         """
         Parameters
         ----------
@@ -585,9 +585,10 @@ class MultiResp(object):
             Method for QM
         psi4_options: dict (optional)
             additional Psi4 options
-        hyp_a: float (optional)
-            scale factor of asymptote limits of hyperbola for first stage. 
-            It is doubled for the second stage.
+        hyp_a1: float (optional)
+            scale factor of asymptote limits of hyperbola for first stage.
+        hyp_a2: float (optional)
+            scale factor of asymptote limits of hyperbola for second stage.
         load_files: bool (optional)
             If ``True``, tries to load ESP and grid data from file.
         **kwargs:
