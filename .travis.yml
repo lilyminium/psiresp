@@ -3,7 +3,7 @@ os: linux
 
 env:
   global:
-    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
+    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50 -m fast"
     - PYTEST_LIST="tests"
     - MAIN_CMD="pytest ${PYTEST_LIST}"
     - SETUP_CMD="${PYTEST_FLAGS}"
@@ -24,64 +24,42 @@ stages:
 
 matrix:
   fast_finish: true
-  # allow_failures:
-  #   - env: NAME="osx python 3.6 optimize"
-  #   - env: NAME="osx python 3.6 RESP2"
-  #   - env: NAME="python 3.6 optimize"
-  #   - env: NAME="python 3.6 RESP2"
+  allow_failures:
+    - env: NAME="linux_2.7_fast"
+           PYTHON_VERSION=2.7
+    - os: osx
+      env: NAME="OSX_2.7_fast"
+           PYTHON_VERSION=2.7
+
 
   include:
     # Extra includes for OSX since python language is not available by default on OSX
+    # only run fast tests; optimize and RESP2 tests will time out
     # - stage: test
-    # - os: osx
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="osx python 3.6 fast"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-    # - os: osx
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="osx python 3.6 optimize"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m optimize"
-    # - os: osx
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="osx python 3.6 RESP2"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m resp2"
-    # - os: osx
-    #   env: PYTHON_VERSION=3.8
-    #     NAME="osx python 3.8 fast"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="python 3.6 fast"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="python 3.6 full"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.7
-    #     NAME="python 3.7 fast"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.8
-    #     NAME="python 3.8 fast"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="python 3.6 optimize"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m optimize"
-    # - os: linux
-    #   env: PYTHON_VERSION=3.6
-    #     NAME="python 3.6 RESP2"
-    #     PYTEST_FLAGS="${PYTEST_FLAGS} -m resp2"
+    - env: NAME="linux_3.8_fast"
+           PYTHON_VERSION=3.8
+    - env: NAME="linux_3.7_fast"
+           PYTHON_VERSION=3.7
+    - env: NAME="linux_3.6_fast"
+           PYTHON_VERSION=3.6
     - env: SETUP_CMD="build_sphinx"
-        NAME="Docs"
-        PYTHON_VERSION=3.7
-        MAIN_CMD="python setup.py"
-        SETUP_CMD="build_sphinx"
-        BUILD_DOCS=true
-        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
-        BUILD_CMD="python setup.py install"
-        CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES} sphinx==1.8.5"
-        PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap sphinx_rtd_theme"
+            NAME="Docs"
+            PYTHON_VERSION=3.7
+            MAIN_CMD="python setup.py"
+            SETUP_CMD="build_sphinx"
+            BUILD_DOCS=true
+            BUILD_CMD="python setup.py install"
+            CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES} sphinx==1.8.5"
+            PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap sphinx_rtd_theme"
+    - os: osx
+      env: NAME="OSX_3.8_fast"
+           PYTHON_VERSION=3.8
+    - os: osx
+      env: NAME="OSX_3.7_fast"
+           PYTHON_VERSION=3.7
+    - os: osx
+      env: NAME="OSX_3.6_fast"
+           PYTHON_VERSION=3.6
 
     - stage: deploy
       # name: Docs

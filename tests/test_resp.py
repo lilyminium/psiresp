@@ -79,6 +79,7 @@ class TestRespNoOpt(object):
     molfile = '{molname}_opt_c{conf}.xyz'
     chargefile = '{molname}_c{n_conf}_o{n_orient}_{name}.dat'
     opt = False
+    load_files = False
 
     def load_mols(self, molname, nconf):
         fns = [self.molfile.format(molname=molname, conf=i+1) for i in range(nconf)]
@@ -91,23 +92,29 @@ class TestRespNoOpt(object):
 
     def test_resp_single_conf(self, stage_2, a, redname):
         confs = self.load_mols('dmso', 1)
-        r = psiresp.Resp.from_molecules(confs, charge=0)
+        r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso',
+                                        load_files=self.load_files,
+                                        grid_name='data/test_resp/grid.dat',
+                                        esp_name='data/test_resp/grid_esp.dat')
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
-                        equal_methyls=True, n_orient=2)
-        ref = self.load_charges('dmso', 1, 2, redname)
+                        equal_methyls=True, n_orient=2, save_files=False)
+        ref = self.load_charges('dmso', 1, 2, redname,)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
     def test_resp_multi_conf(self, stage_2, a, redname):
         confs = self.load_mols('ethanol', 2)
-        r = psiresp.Resp.from_molecules(confs, charge=0,
+        r = psiresp.Resp.from_molecules(confs, charge=0, name='ethanol',
                                         orient=[(1, 5, 8), (8, 5, 1),
-                                                (9, 8, 5), (5, 8, 9)])
+                                                (9, 8, 5), (5, 8, 9)],
+                                        load_files=self.load_files,
+                                        grid_name='data/test_resp/grid.dat',
+                                        esp_name='data/test_resp/grid_esp.dat')
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
         else:
             chrequiv = []
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                        chrequiv=chrequiv)
+                        chrequiv=chrequiv, save_files=False)
         ref = self.load_charges('ethanol', 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
@@ -126,13 +133,19 @@ class TestRespNoOpt(object):
         confs = self.load_mols('nme2ala2', 2)
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
-        r = psiresp.Resp.from_molecules(confs, charge=0)
+        r = psiresp.Resp.from_molecules(confs, charge=0, name='nme2ala2',
+                                        load_files=self.load_files,
+                                        grid_name='data/test_resp/grid.dat',
+                                        esp_name='data/test_resp/grid_esp.dat')
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                         equal_methyls=False, chrequiv=chrequiv,
-                        chrconstr=chrconstr, orient=orient)
+                        chrconstr=chrconstr, orient=orient, save_files=False)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
+@pytest.mark.fast
+class TestLoadNoOpt(TestRespNoOpt):
+    load_files = True
 
 @pytest.mark.optimize
 @pytest.mark.slow

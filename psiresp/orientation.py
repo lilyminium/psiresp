@@ -70,8 +70,8 @@ class Orientation(object):
         self.molecule = molecule
         self._grid_name = grid_name
         self._esp_name = esp_name
-        self.grid_filename = '{}_{}'.format(self.name, grid_name)
-        self.esp_filename = '{}_{}'.format(self.name, esp_name)
+        self.grid_filename = self._prepend_name_to_file(grid_name)
+        self.esp_filename = self._prepend_name_to_file(esp_name)
         self._grid = self._esp = self._r_inv = None
 
         # try to read from files
@@ -79,14 +79,23 @@ class Orientation(object):
             try:
                 self.grid = np.loadtxt(self.grid_filename)
             except OSError:
-                pass
+                warnings.warn('Could not read data from {}'.format(self.grid_filename))
             else:
                 if self.bohr:
                     self.grid *= BOHR_TO_ANGSTROM
+                log.info('Read grid from {}'.format(self.grid_filename))
             try:
                 self.esp = np.loadtxt(self.esp_filename)
             except OSError:
-                pass
+                warnings.warn('Could not read data from {}'.format(self.esp_filename))
+            else:
+                log.info('Read esp from {}'.format(self.esp_filename))
+
+    def _prepend_name_to_file(self, filename):
+        head, tail = os.path.split(filename)
+        if head and not head.endswith(r'/'):
+            head += '/'
+        return '{}{}_{}'.format(head, self.name, tail)
 
     @property
     def grid(self):

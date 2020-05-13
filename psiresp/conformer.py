@@ -40,6 +40,10 @@ class Conformer(object):
         List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
         e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the 
         x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
+    grid_name: str (optional)
+            template for grid filename for each Orientation.
+    esp_name: str (optional)
+        template for ESP filename for each Orientation.
     load_files: bool (optional)
         If ``True``, tries to load ESP and grid data from file.
 
@@ -57,7 +61,8 @@ class Conformer(object):
     """
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
-                 orient=[], rotate=[], translate=[], load_files=False):
+                 orient=[], rotate=[], translate=[], load_files=False,
+                 grid_name='grid.dat', esp_name='grid_esp.dat'):
         if name and name != molecule.name():
             molecule.set_name(name)
         self.name = molecule.name()
@@ -74,6 +79,8 @@ class Conformer(object):
         self._rotate = rotate[:]
         self._translate = translate[:]
         self._load_files = load_files
+        self._grid_name = grid_name
+        self._esp_name = esp_name
         self._orientations = []
         self._orientation = Orientation(self.molecule, symbols=self.symbols)
 
@@ -122,7 +129,9 @@ class Conformer(object):
                          multiplicity=self.multiplicity,
                          orient=self._orient, rotate=self._rotate,
                          translate=self._translate,
-                         load_files=self._load_files)
+                         load_files=self._load_files,
+                         grid_name=self._grid_name,
+                         esp_name=self._esp_name)
         return new
 
     def _gen_orientations(self, orient=[], translate=[], rotate=[],
@@ -174,7 +183,9 @@ class Conformer(object):
         cmol.update_geometry()
         cmol.set_name('{}_o{}'.format(self.name, len(self._orientations)+1))
         self._orientations.append(Orientation(cmol, symbols=self.symbols,
-                                              load_files=load_files))
+                                              load_files=load_files,
+                                              grid_name=self._grid_name,
+                                              esp_name=self._esp_name))
 
     def add_orientations(self, orient=[], translate=[], rotate=[],
                          load_files=False):

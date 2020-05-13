@@ -19,6 +19,7 @@ from .utils import mol_from_file, charges_from_red_file
 ])
 class TestMultiRespNoOptNoOrient(object):
     opt = False
+    load_files = False
     nme2ala2_names = ['nme2ala2_opt_c1.xyz', 'nme2ala2_opt_c2.xyz']
     methylammonium_names = ['methylammonium_opt_c1.xyz']
     n_orient = 0
@@ -34,13 +35,21 @@ class TestMultiRespNoOptNoOrient(object):
     @pytest.fixture()
     def nme2ala2(self):
         mols = [mol_from_file(f) for f in self.nme2ala2_names]
-        resp = psiresp.Resp.from_molecules(mols, charge=0, orient=self.orient[1])
+        resp = psiresp.Resp.from_molecules(mols, charge=0, orient=self.orient[1], 
+                                           name='nme2ala2', 
+                                           load_files=self.load_files, 
+                                           grid_name='data/test_multiresp/grid.dat', 
+                                           esp_name='data/test_multiresp/grid_esp.dat')
         return resp
 
     @pytest.fixture()
     def methylammonium(self):
         mols = [mol_from_file(f) for f in self.methylammonium_names]
-        resp = psiresp.Resp.from_molecules(mols, charge=1, orient=self.orient[0])
+        resp = psiresp.Resp.from_molecules(mols, charge=1, orient=self.orient[0],
+                                           name='methylammonium', 
+                                           load_files=self.load_files, 
+                                           grid_name='data/test_multiresp/grid.dat', 
+                                           esp_name='data/test_multiresp/grid_esp.dat')
         return resp
 
     @pytest.fixture()
@@ -59,7 +68,7 @@ class TestMultiRespNoOptNoOrient(object):
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                         intra_chrequiv=self.intra_chrequiv[1:],
                         intra_chrconstr=self.intra_chrconstr[1:],
-                        n_orient=self.n_orient)
+                        n_orient=self.n_orient, save_files=False)
         assert_allclose(charges[0], nme2ala2_charges, rtol=0.01, atol=1e-4)
 
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
@@ -69,10 +78,13 @@ class TestMultiRespNoOptNoOrient(object):
                         inter_chrconstr=self.inter_chrconstr,
                         intra_chrequiv=self.intra_chrequiv,
                         intra_chrconstr=self.intra_chrconstr,
-                        n_orient=self.n_orient)
+                        n_orient=self.n_orient, save_files=False)
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=0.01, atol=1e-4)
 
+@pytest.mark.fast
+class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
+    load_files = True
 
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
     n_orient = 4
