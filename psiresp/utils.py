@@ -82,9 +82,9 @@ def rotate_z(n, coords):
 
 def orient_rigid(i, j, k, coords):
     """
-    Rigid-body reorientation such that the ``i``th coordinate
-    is the new origin; the ``j``th coordinate defines the new 
-    x-axis; and the ``k``th coordinate defines the XY plane.
+    Rigid-body reorientation such that the ``i`` th coordinate
+    is the new origin; the ``j` `th coordinate defines the new 
+    x-axis; and the ``k`` th coordinate defines the XY plane.
 
     ``i``, ``j``, and ``k`` should all be different. They are 
     indexed from 0.
@@ -118,8 +118,8 @@ def orient_rigid(i, j, k, coords):
 
 def rotate_rigid(i, j, k, coords):
     """
-    Rigid-body rotation such that the ``i``th and ``j``th coordinate 
-    define a vector parallel to the x-axis; and the ``k``th coordinate 
+    Rigid-body rotation such that the ``i`` th and ``j`` th coordinate 
+    define a vector parallel to the x-axis; and the ``k`` th coordinate 
     defines a plane parallel to the XY plane.
 
     ``i``, ``j``, and ``k`` should all be different. They are 

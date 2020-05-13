@@ -1,2 +1,0 @@
-.. automodule:: psiresp.utils
-   :members:

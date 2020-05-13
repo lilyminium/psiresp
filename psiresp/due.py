@@ -4,12 +4,16 @@
 """
 Stub file for a guaranteed safe import of duecredit constructs:  if duecredit
 is not available.
-To use it, place it into your project codebase to be imported, e.g. copy as
+To use it, place it into your project codebase to be imported, e.g. copy as::
+
     cp stub.py /path/tomodule/module/due.py
+
 Note that it might be better to avoid naming it duecredit.py to avoid shadowing
 installed duecredit.
-Then use in your code as
+Then use in your code as::
+
     from .due import due, Doi, BibTeX, Text
+    
 See  https://github.com/duecredit/duecredit/blob/master/README.md for examples.
 Origin:     Originally a part of the duecredit
 Copyright:  2015-2019  DueCredit developers

@@ -4,7 +4,7 @@ os: linux
 env:
   global:
     - PYTEST_FLAGS="--disable-pytest-warnings --durations=50 --maxfail=1"
-    - PYTEST_LIST="psiresp/tests"
+    - PYTEST_LIST="tests"
     - MAIN_CMD="pytest ${PYTEST_LIST}"
     - SETUP_CMD="${PYTEST_FLAGS}"
     - BUILD_CMD="pip install -e ."
@@ -76,9 +76,10 @@ matrix:
         NAME="Docs"
         PYTHON_VERSION=3.7
         BUILD_DOCS=true
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
         BUILD_CMD="cd ${TRAVIS_BUILD_DIR} && python setup.py install"
-        CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES sphinx==1.8.5 sphinx_rtd_theme}"
-        PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap"
+        CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES} sphinx==1.8.5"
+        PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap sphinx_rtd_theme"
 
     - stage: deploy
       # name: Docs
@@ -91,7 +92,7 @@ matrix:
           branch: master
           python: "3.6"
         project_name: psiresp
-        local_dir: docs/build/
+        local_dir: docs/build
 
 before_install:
   # Additional info about the build
@@ -115,7 +116,7 @@ install:
   - eval $BUILD_CMD
 
 script:
-  # - pytest -v --cov=psiresp psiresp/tests/
+  # - pytest -v --cov=psiresp tests/
   - cd ${TRAVIS_BUILD_DIR}
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
   - echo $MAIN_CMD $SETUP_CMD

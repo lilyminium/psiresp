@@ -12,15 +12,7 @@ Welcome to psiresp's documentation!
 
    getting_started
    api
-   resp
-   multiresp
-   configs
-   resp2
-   conformer
-   orientation
-   utils
-   vdwradii
-
+   
 
 
 

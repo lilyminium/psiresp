@@ -131,11 +131,14 @@ class MultiResp(object):
             molecule, whereas atoms 3, 4, and 5 combine to a charge of 0.2 in 
             the second molecule.
         intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule.
-            e.g. [
+            Lists of atoms with equivalent charges within each molecule. e.g. ::
+            
+                [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
-                 ] mean that atoms 1 and 2 in the first molecule have equal 
+                 ] 
+                 
+            mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
             charges.
@@ -252,7 +255,6 @@ class MultiResp(object):
             A[(x, ix[1:])] = A[(ix[1:], x)] = 1
 
         edges = [[i, i+m.n_atoms] for (i, _), m in zip(edges, self.molecules)]
-        print(edges)
         return A, B, np.array(edges), np.array(nmol)
 
     def fit(self, restraint=True, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
@@ -373,11 +375,14 @@ class MultiResp(object):
             The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]] 
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule.
-            e.g. [
+            Lists of atoms with equivalent charges within each molecule. e.g. ::
+            
+                [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
-                 ] mean that atoms 1 and 2 in the first molecule have equal 
+                 ] 
+                 
+            mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
             charges.
@@ -523,11 +528,14 @@ class MultiResp(object):
             The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]] 
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule.
-            e.g. [
+            Lists of atoms with equivalent charges within each molecule. e.g. ::
+            
+                [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
-                 ] mean that atoms 1 and 2 in the first molecule have equal 
+                 ] 
+                 
+            mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
             charges.
