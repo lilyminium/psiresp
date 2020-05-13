@@ -12,9 +12,6 @@ env:
     - CONDA_CHANNEL_PRIORITY=True
     - PIP_DEPENDENCIES="duecredit"
 
-  matrix:
-    - CODECOV="true" SETUP_CMD="--disable-pytest-warnings --durations=50 -m 'not slow' --cov=psiresp"
-
 stages:
   - test
   - name: deploy
@@ -35,7 +32,11 @@ matrix:
   include:
     # Extra includes for OSX since python language is not available by default on OSX
     # only run fast tests; optimize and RESP2 tests will time out
-    # - stage: test
+    - stage: test
+    - env: NAME="linux_3.7_not_slow"
+           PYTHON_VERSION=3.7
+           SETUP_CMD="--disable-pytest-warnings --durations=50 -m 'not slow' --cov=psiresp"
+           CODECOV="true"
     - env: NAME="linux_3.8_fast"
            PYTHON_VERSION=3.8
     - env: NAME="linux_3.7_fast"
