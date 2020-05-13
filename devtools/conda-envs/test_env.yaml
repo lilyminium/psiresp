@@ -13,7 +13,7 @@ dependencies:
 
   # program
   - numpy
-  - psi4
+  - psi4=1.3.2
   - qcelemental
 
   # Pip-only installs
