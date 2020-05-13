@@ -116,9 +116,11 @@ class Conformer(object):
         if name is None:
             name = self.name+'_copy'
         charge = self.charge
-        mult = self.multiplicity
-        new = type(self)(self.molecule.clone(), name=name, charge=charge,
-                         mult=mult, orient=self._orient, rotate=self._rotate,
+
+        new = type(self)(self.molecule.clone(), name=name,
+                         charge=self.charge,
+                         multiplicity=self.multiplicity,
+                         orient=self._orient, rotate=self._rotate,
                          translate=self._translate,
                          load_files=self._load_files)
         return new
