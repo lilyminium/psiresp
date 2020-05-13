@@ -3,8 +3,8 @@ os: linux
 
 env:
   global:
-    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
-    - PYTEST_LIST="psiresp/tests/test_config_resp.py"
+    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50 --maxfail=1"
+    - PYTEST_LIST="psiresp/tests"
     - MAIN_CMD="pytest ${PYTEST_LIST}"
     - SETUP_CMD="${PYTEST_FLAGS}"
     - BUILD_CMD="pip install -e ."
@@ -99,8 +99,8 @@ before_install:
   - df -h
   - ulimit -a
   # Install the Python environment
-  - source devtools/travis-ci/before_install.sh
-  - python -V
+  # - source devtools/travis-ci/before_install.sh
+  # - python -V
 
 install:
   #   # Create test environment for package
@@ -111,6 +111,7 @@ install:
   # - python setup.py develop --no-deps
   - git clone git://github.com/astropy/ci-helpers.git
   - source ci-helpers/travis/setup_conda.sh
+  - conda list
   - eval $BUILD_CMD
 
 script:
