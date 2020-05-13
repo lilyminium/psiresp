@@ -10,5 +10,5 @@ dependencies:
   - python
   - qcelemental
   # Pip-only installs
-#   - pip:
-#   - package
+  - pip:
+      - duecredit

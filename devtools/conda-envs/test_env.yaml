@@ -15,3 +15,7 @@ dependencies:
   - numpy
   - psi4
   - qcelemental
+
+  # Pip-only installs
+  - pip:
+      - duecredit
