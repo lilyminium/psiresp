@@ -151,7 +151,7 @@ class Resp2(object):
         opt: bool (optional)
             Whether to optimise the geometry of each conformer
         save_opt_geometry: bool (optional)
-            if ``True``, writes optimised geometries to an XYZ file
+            if ``True`` , writes optimised geometries to an XYZ file
         delta: float (optional)
             mixing parameter for aqueous and gaseous charges. delta=0.6 
             generates charges from 60% aqueous and 40% gaseous charges.
@@ -404,7 +404,7 @@ class MultiResp2(object):
             outer boundary of shell to keep grid points from. If < 0,
             all points are selected.
         save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed ESP
+            if ``True`` , Psi4 files are saved and the computed ESP
             and grids are written to files.
         n_orient: int (optional)
             If this is greater than 0 and ``orient`` is not given,

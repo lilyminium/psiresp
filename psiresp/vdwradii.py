@@ -68,6 +68,7 @@ ALVAREZ_RADII = {
     'Cm': 3.05, 'Bk': 3.4, 'Cf': 3.05, 'Es': 2.7,
 }
 
+#: radii keywords and options
 options = {
     'bondi_orig': BONDI_RADII,
     'bondi': HMANTINA_RADII,

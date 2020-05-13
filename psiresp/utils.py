@@ -122,7 +122,7 @@ def rotate_rigid(i, j, k, coords):
     define a vector parallel to the x-axis; and the ``k`` th coordinate 
     defines a plane parallel to the XY plane.
 
-    ``i``, ``j``, and ``k`` should all be different. They are 
+    ``i`` , ``j`` , and ``k`` should all be different. They are 
     indexed from 0.
 
     Adapted from R.E.D. in perl.

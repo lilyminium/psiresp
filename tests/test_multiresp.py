@@ -60,7 +60,7 @@ class TestMultiRespNoOptNoOrient(object):
                         intra_chrequiv=self.intra_chrequiv[1:],
                         intra_chrconstr=self.intra_chrconstr[1:],
                         n_orient=self.n_orient)
-        assert_allclose(charges[0], nme2ala2_charges, rtol=0.05, atol=1e-4)
+        assert_allclose(charges[0], nme2ala2_charges, rtol=0.01, atol=1e-4)
 
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
                        multifit_charges):
@@ -75,7 +75,7 @@ class TestMultiRespNoOptNoOrient(object):
 
 
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
-    n_orient = 0
+    n_orient = 4
     orient = [[], []]
 
 

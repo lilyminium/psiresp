@@ -1,3 +1,5 @@
+import functools
+
 from .resp import Resp
 from .multiresp import MultiResp
 from .due import due, Doi
@@ -19,6 +21,7 @@ def resp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
                 solvent=None):
     """Make analogous classes to R.E.D. options."""
     def wrapper(cls):
+        @functools.wraps(cls)
         class Config(cls):
             @clean_kwargs
             def run(self, opt=False, save_opt_geometry=False,
