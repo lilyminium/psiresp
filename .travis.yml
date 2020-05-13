@@ -13,7 +13,7 @@ env:
     - PIP_DEPENDENCIES="duecredit"
 
 stages:
-  - test
+  - build_and_test
   - name: deploy
     if: branch = master
 
@@ -21,18 +21,18 @@ stages:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: NAME="linux_2.7_fast"
-           PYTHON_VERSION=2.7
-    - os: osx
-      env: NAME="OSX_2.7_fast"
-           PYTHON_VERSION=2.7
+  # allow_failures:
+  #   - env: NAME="linux_2.7_fast"
+  #          PYTHON_VERSION=2.7
+  #   - os: osx
+  #     env: NAME="OSX_2.7_fast"
+  #          PYTHON_VERSION=2.7
 
 
   include:
     # Extra includes for OSX since python language is not available by default on OSX
     # only run fast tests; optimize and RESP2 tests will time out
-    - stage: test
+    - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
            SETUP_CMD="--disable-pytest-warnings --durations=50 -m 'not slow' --cov=psiresp"
@@ -43,8 +43,8 @@ matrix:
            PYTHON_VERSION=3.7
     - env: NAME="linux_3.6_fast"
            PYTHON_VERSION=3.6
-    - env: SETUP_CMD="build_sphinx"
-            NAME="Docs"
+    - env: NAME="Docs"
+            SETUP_CMD="build_sphinx"
             PYTHON_VERSION=3.7
             MAIN_CMD="python setup.py"
             SETUP_CMD="build_sphinx"
