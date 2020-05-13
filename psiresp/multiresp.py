@@ -77,7 +77,7 @@ class MultiResp(object):
         """
         values = utils.iter_single(values)
         try:
-            if len(values) != self.values:
+            if len(values) != self.n_molecules:
                 err = ('{} must be a list with the '
                        'same length as the number of molecules, '
                        'where each element is a {}')

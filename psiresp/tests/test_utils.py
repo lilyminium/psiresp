@@ -4,7 +4,7 @@ import numpy as np
 
 from psiresp import utils
 from numpy.testing import assert_almost_equal
-from .utils import coordinates_from_xyz
+from .utils import coordinates_from_xyz, datafile
 
 
 @pytest.mark.parametrize('molname,onum,orient', [
@@ -53,7 +53,7 @@ def test_scale_radii(factor, radii_name, scaled):
 @pytest.mark.parametrize('n', [3, 10, 29, 44, 48, 64])
 def test_gen_unit_sphere(n):
     points = utils.gen_unit_sphere(n)
-    fn = 'data/surface_n{}.dat'.format(n)
+    fn = datafile('surface_n{}.dat'.format(n))
     ref = np.loadtxt(fn, comments='!')
     assert_almost_equal(points, ref, decimal=5)
     assert len(points) <= n
