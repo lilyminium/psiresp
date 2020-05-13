@@ -9,7 +9,7 @@ import sys
 import numpy as np
 
 from numpy.testing import assert_almost_equal, assert_allclose
-from .utils import mol_from_file, charges_from_red_file
+from .utils import mol_from_file, charges_from_red_file, datafile
 
 
 class TestNoOrient:
@@ -94,8 +94,8 @@ class TestRespNoOpt(object):
         confs = self.load_mols('dmso', 1)
         r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso',
                                         load_files=self.load_files,
-                                        grid_name='data/test_resp/grid.dat',
-                                        esp_name='data/test_resp/grid_esp.dat')
+                                        grid_name=datafile('test_resp/grid.dat'),
+                                        esp_name=datafile('test_resp/grid_esp.dat'))
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
                         equal_methyls=True, n_orient=2, save_files=False)
         ref = self.load_charges('dmso', 1, 2, redname,)
@@ -107,8 +107,8 @@ class TestRespNoOpt(object):
                                         orient=[(1, 5, 8), (8, 5, 1),
                                                 (9, 8, 5), (5, 8, 9)],
                                         load_files=self.load_files,
-                                        grid_name='data/test_resp/grid.dat',
-                                        esp_name='data/test_resp/grid_esp.dat')
+                                        grid_name=datafile('test_resp/grid.dat'),
+                                        esp_name=datafile('test_resp/grid_esp.dat'))
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
         else:

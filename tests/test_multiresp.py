@@ -38,8 +38,8 @@ class TestMultiRespNoOptNoOrient(object):
         resp = psiresp.Resp.from_molecules(mols, charge=0, orient=self.orient[1], 
                                            name='nme2ala2', 
                                            load_files=self.load_files, 
-                                           grid_name='data/test_multiresp/grid.dat', 
-                                           esp_name='data/test_multiresp/grid_esp.dat')
+                                           grid_name=datafile('test_multiresp/grid.dat'), 
+                                           esp_name=datafile('test_multiresp/grid_esp.dat'))
         return resp
 
     @pytest.fixture()
@@ -48,8 +48,8 @@ class TestMultiRespNoOptNoOrient(object):
         resp = psiresp.Resp.from_molecules(mols, charge=1, orient=self.orient[0],
                                            name='methylammonium', 
                                            load_files=self.load_files, 
-                                           grid_name='data/test_multiresp/grid.dat', 
-                                           esp_name='data/test_multiresp/grid_esp.dat')
+                                           grid_name=datafile('test_multiresp/grid.dat'), 
+                                           esp_name=datafile('test_multiresp/grid_esp.dat'))
         return resp
 
     @pytest.fixture()
