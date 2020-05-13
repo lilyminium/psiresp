@@ -39,8 +39,8 @@ class TestMultiRespNoOptNoOrient(object):
 
     @pytest.fixture()
     def methylammonium(self):
-        mols = [mol_from_file(f) for f in self.nme2ala2_names]
-        resp = psiresp.Resp.from_molecules(mols, charge=0, orient=self.orient[0])
+        mols = [mol_from_file(f) for f in self.methylammonium_names]
+        resp = psiresp.Resp.from_molecules(mols, charge=1, orient=self.orient[0])
         return resp
 
     @pytest.fixture()
@@ -60,17 +60,19 @@ class TestMultiRespNoOptNoOrient(object):
                         intra_chrequiv=self.intra_chrequiv[1:],
                         intra_chrconstr=self.intra_chrconstr[1:],
                         n_orient=self.n_orient)
-        assert_allclose(charges, nme2ala2_charges, rtol=0.01, atol=1e-4)
+        assert_allclose(charges[0], nme2ala2_charges, rtol=0.01, atol=1e-4)
 
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
                        multifit_charges):
-
+        print(methylammonium.conformers[0].molecule.molecular_charge())
         r = psiresp.MultiResp([methylammonium, nme2ala2])
         charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                         inter_chrconstr=self.inter_chrconstr,
                         intra_chrequiv=self.intra_chrequiv,
                         intra_chrconstr=self.intra_chrconstr,
                         n_orient=self.n_orient)
+        print(charges)
+        print(len(charges), len(multifit_charges))
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=0.01, atol=1e-4)
 

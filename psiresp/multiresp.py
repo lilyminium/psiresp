@@ -202,7 +202,7 @@ class MultiResp(object):
                                              weights=w, **kwargs)
             a_s.append(a)
             b_s.append(b)
-            nmol.extend([m.n_mol]*len(b))
+            nmol.extend([m.n_structures]*len(b))
 
         mol_edges = np.r_[0, np.cumsum([len(b) for b in b_s])].astype(int)
         edges = list(zip(mol_edges[:-1], mol_edges[1:]))
@@ -233,7 +233,7 @@ class MultiResp(object):
         n_equiv = equiv_edges[-1]
 
         ndim = n_intra+n_equiv+n_constr
-        nmol.extend([self.n_mol]*(n_equiv+n_constr))
+        nmol.extend([self.n_structures]*(n_equiv+n_constr))
 
         A = np.zeros((ndim, ndim))
         B = np.zeros(ndim)
@@ -252,6 +252,7 @@ class MultiResp(object):
             A[(x, ix[1:])] = A[(ix[1:], x)] = 1
 
         edges = [[i, i+m.n_atoms] for (i, _), m in zip(edges, self.molecules)]
+        print(edges)
         return A, B, np.array(edges), np.array(nmol)
 
     def fit(self, restraint=True, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
