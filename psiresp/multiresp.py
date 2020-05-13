@@ -630,7 +630,7 @@ class MultiResp(object):
                       intra_chrequiv=intra_chrequiv,
                       inter_chrconstr=inter_chrconstr,
                       inter_chrequiv=inter_chrequiv,
-                      basis=basis, method=method, hyp_a=hyp_a,
+                      basis=basis, method=method, hyp_a=hyp_a1,
                       **kwargs)
         if stage_2:
             cs = self.get_stage2_constraints(qs, equal_methyls=equal_methyls,
@@ -640,5 +640,5 @@ class MultiResp(object):
             qs = self.fit(intra_chrconstr=intra_c,
                           intra_chrequiv=intra_e,
                           basis=basis, method=method,
-                          hyp_a=hyp_a*2, **kwargs)
+                          hyp_a=hyp_a2, **kwargs)
         return qs
