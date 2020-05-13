@@ -4,7 +4,7 @@ os: linux
 env:
   global:
     - PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
-    - PYTEST_LIST="psiresp/tests"
+    - PYTEST_LIST="psiresp/tests/test_config_resp.py"
     - MAIN_CMD="pytest ${PYTEST_LIST}"
     - SETUP_CMD="${PYTEST_FLAGS}"
     - BUILD_CMD="pip install -e ."
@@ -35,50 +35,50 @@ matrix:
     - stage: test
     - os: osx
       env: PYTHON_VERSION=3.6
-            NAME="osx python 3.6 fast"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+        NAME="osx python 3.6 fast"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: osx
       env: PYTHON_VERSION=3.6
-            NAME="osx python 3.6 optimize"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
+        NAME="osx python 3.6 optimize"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
     - os: osx
       env: PYTHON_VERSION=3.6
-            NAME="osx python 3.6 RESP2"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
+        NAME="osx python 3.6 RESP2"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
     - os: osx
       env: PYTHON_VERSION=3.8
-            NAME="osx python 3.8 fast"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+        NAME="osx python 3.8 fast"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
       env: PYTHON_VERSION=3.6
-            NAME="python 3.6 fast"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+        NAME="python 3.6 fast"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
       env: PYTHON_VERSION=3.6
-            NAME="python 3.6 full"
+        NAME="python 3.6 full"
     - os: linux
       env: PYTHON_VERSION=3.7
-            NAME="python 3.7 fast"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+        NAME="python 3.7 fast"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
       env: PYTHON_VERSION=3.8
-            NAME="python 3.8 fast"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+        NAME="python 3.8 fast"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
       env: PYTHON_VERSION=3.6
-            NAME="python 3.6 optimize"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
+        NAME="python 3.6 optimize"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
     - os: linux
       env: PYTHON_VERSION=3.6
-            NAME="python 3.6 RESP2"
-            PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
+        NAME="python 3.6 RESP2"
+        PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
     - env: SETUP_CMD="build_sphinx"
-            NAME="Docs"
-            PYTHON_VERSION=3.7
-            BUILD_DOCS=true
-            BUILD_CMD="cd ${TRAVIS_BUILD_DIR} && python setup.py install"
-            CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES sphinx==1.8.5 sphinx_rtd_theme}"
-            PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap"
+        NAME="Docs"
+        PYTHON_VERSION=3.7
+        BUILD_DOCS=true
+        BUILD_CMD="cd ${TRAVIS_BUILD_DIR} && python setup.py install"
+        CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES sphinx==1.8.5 sphinx_rtd_theme}"
+        PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap"
 
     - stage: deploy
       # name: Docs
@@ -89,7 +89,7 @@ matrix:
         github_token: $GITHUB_TOKEN
         on:
           branch: master
-          python: '3.6'
+          python: "3.6"
         project_name: psiresp
         local_dir: docs/build/
 
