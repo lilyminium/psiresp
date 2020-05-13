@@ -1,0 +1,14 @@
+name: psiresp
+channels:
+  - conda-forge
+  - psi4
+
+dependencies:
+  - numpy
+  - pip
+  - psi4
+  - python
+  - qcelemental
+  # Pip-only installs
+#   - pip:
+#   - package

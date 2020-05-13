@@ -1,51 +1,141 @@
 language: python
 
+os:
+  linux
+
+env:
+  global:
+    - secure:
+    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50"
+    - PYTEST_LIST="psiresp/tests"
+    - MAIN_CMD="pytest ${PYTEST_LIST}"
+    - SETUP_CMD="${PYTEST_FLAGS}"
+    - BUILD_CMD="pip install -e setup.py"
+    - CONDA_ENVIRONMENT="devtools/conda-envs/test_env.yaml"
+    - CONDA_CHANNEL_PRIORITY=True
+    # - PIP_DEPENDENCIES="duecredit"
+  
+    matrix:
+      - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} --cov=psiresp"
+
+stages:
+  - test
+  - name: deploy
+    if: branch = master
+
 # Run jobs on container-based infrastructure, can be overridden per job
 
 matrix:
+  fast_finish: true
+  allow_failures:
+    - env: NAME="osx python 3.6 optimize"
+    - env: NAME="osx python 3.6 RESP2"
+    - env: NAME="python 3.6 optimize"
+    - env: NAME="python 3.6 RESP2"
   include:
     # Extra includes for OSX since python language is not available by default on OSX
+    - stage: test
     - os: osx
       language: generic
-      env: PYTHON_VER=3.6
+      env: PYTHON_VERSION=3.6
+           NAME="osx python 3.6 fast"
+           PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: osx
       language: generic
-      env: PYTHON_VER=3.7
-
-
+      env: PYTHON_VERSION=3.6
+          NAME="osx python 3.6 optimize"
+          PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
+    - os: osx
+      language: generic
+      env: PYTHON_VERSION=3.6
+          NAME="osx python 3.6 RESP2"
+          PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
+    - os: osx
+      language: generic
+      env: PYTHON_VERSION=3.8
+           NAME="osx python 3.8 fast"
+           PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
-      language: generic  # No need to set Python version since its conda
-      env: PYTHON_VER=3.6
+      language: generic # No need to set Python version since its conda
+      env: PYTHON_VERSION=3.6
+           NAME="python 3.6 fast"
+           PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+    - os: linux
+    language: generic
+    env: PYTHON_VERSION=3.6
+        NAME="python 3.6 full"
+    - os: linux
+    language: generic
+    env: PYTHON_VERSION=3.7
+          NAME="python 3.7 fast"
+          PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
     - os: linux
       language: generic
-      env: PYTHON_VER=3.7
-
+      env: PYTHON_VERSION=3.8
+           NAME="python 3.8 fast"
+           PYTEST_FLAGS="${PYTEST_FLAGS} -m 'not slow'"
+    - os: linux
+      language: generic
+      env: PYTHON_VERSION=3.6
+          NAME="python 3.6 optimize"
+          PYTEST_FLAGS="${PYTEST_FLAGS} -m 'optimize'"
+    - os: linux
+      language: generic
+      env: PYTHON_VERSION=3.6
+          NAME="python 3.6 RESP2"
+          PYTEST_FLAGS="${PYTEST_FLAGS} -m 'resp2'"
+    - env: SETUP_CMD="build_sphinx"
+           NAME="Docs"
+           PYTHON_VERSION=3.7
+           BUILD_DOCS=true
+           BUILD_CMD="cd ${TRAVIS_BUILD_DIR} && python setup.py install"
+           CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES sphinx==1.8.5 sphinx_rtd_theme}"
+           PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap"
+    - stage: deploy
+      name: Docs
+      env: SETUP_CMD="build_sphinx"
+      deploy:
+        provider: pages
+        skip_cleanup: true
+        github_token: $GITHUB_TOKEN
+        on:
+          branch: master
+          python: '3.6'
+        project_name: psiresp
+        local_dir: docs/build/
+    
 
 before_install:
-    # Additional info about the build
+  # Additional info about the build
   - uname -a
   - df -h
   - ulimit -a
-
     # Install the Python environment
-  - source devtools/travis-ci/before_install.sh
-  - python -V
+  # - source devtools/travis-ci/before_install.sh
+  # - python -V
 
 install:
-
-    # Create test environment for package
-  - python devtools/scripts/create_conda_env.py -n=test -p=$PYTHON_VER devtools/conda-envs/test_env.yaml
-    # Activate the test environment
-  - conda activate test
-    # Build and install package
-  - python setup.py develop --no-deps
-
+  #   # Create test environment for package
+  # - python devtools/scripts/create_conda_env.py -n=test -p=$PYTHON_VERSION devtools/conda-envs/test_env.yaml
+  #   # Activate the test environment
+  # - conda activate test
+  #   # Build and install package
+  # - python setup.py develop --no-deps
+  - git clone git://github.com/astropy/ci-helpers.git
+  - source ci-helpers/travis/setup_conda.sh
+  - eval $BUILD_CMD
 
 script:
-  - pytest -v --cov=psiresp psiresp/tests/
+  # - pytest -v --cov=psiresp psiresp/tests/
+  - cd ${TRAVIS_BUILD_DIR}
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
+  - echo $MAIN_CMD $SETUP_CMD
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then pip install pytest; fi
+  - eval $MAIN_CMD $SETUP_CMD
 
 notifications:
-    email: false
+  email: false
 
 after_success:
   - codecov
+
