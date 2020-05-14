@@ -10,7 +10,8 @@ import numpy as np
 
 from numpy.testing import assert_almost_equal, assert_allclose
 from .utils import (mol_from_file, mol_from_mol2, charges_from_mol2,
-                    charges_from_red_file, charges_from_itp_file)
+                    charges_from_red_file, charges_from_itp_file,
+                    datafile)
 
 
 @pytest.fixture()
@@ -165,9 +166,7 @@ class TestResp2Charges:
             charges = r.run(opt=False, n_orient=4, delta=delta)
         assert_almost_equal(charges, ref, decimal=3)
 
-
-@pytest.mark.resp2
-class TestResp2Ethanol:
+class BaseTestResp2Ethanol:
     """Charges from ethanol example in MSchauperl/resp2.
 
     Assert almost equal with decimal=3 because not sure when values are rounded.
@@ -186,12 +185,23 @@ class TestResp2Ethanol:
     def test_ethanol_no_opt(self, tmpdir):
         mols = [mol_from_file('ethanol_resp2_opt_c1.xyz'),
                 mol_from_file('ethanol_resp2_opt_c2.xyz')]
-        r = psiresp.Resp2.from_molecules(mols, charge=0)
+        r = psiresp.Resp2.from_molecules(mols, charge=0, name='resp2_ethanol',
+                                         load_files=self.load_files,
+                                         grid_name=datafile('test_resp2/grid.dat'), 
+                                         esp_name=datafile('test_resp2/grid_esp.dat'))
         with tmpdir.as_cwd():
             charges = r.run(opt=False, n_orient=0, delta=0.5)
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
+
+@pytest.mark.fast
+class TestLoadResp2Ethanol(BaseTestResp2Ethanol):
+    load_files = True
+
+@pytest.mark.resp2
+class TestResp2Ethanol(TestLoadResp2Ethanol):
+    load_files = False
 
     @pytest.mark.slow
     def test_ethanol_opt(self, tmpdir):

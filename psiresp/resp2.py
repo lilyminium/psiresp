@@ -49,8 +49,8 @@ class Resp2(object):
 
     @classmethod
     def from_molecules(cls, molecules, charge=0, multiplicity=1, name=None,
-                       orient=[], rotate=[], translate=[], chrconstr=[],
-                       chrequiv=[]):
+                       orient=[], rotate=[], translate=[], grid_name='grid.dat',
+                       esp_name='grid_esp.dat', load_files=False, **kwargs):
         """
         Create Resp class from Psi4 molecules.
 
@@ -83,6 +83,14 @@ class Resp2(object):
             Corresponds to REMARK TRANSLATE in R.E.D.
             e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
             x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
+        grid_name: str (optional)
+            template for grid filename for each Orientation.
+        esp_name: str (optional)
+            template for ESP filename for each Orientation.
+        load_files: bool (optional)
+            If ``True``, tries to load data from file for each Orientation.
+        **kwargs:
+            arguments passed to ``Resp2.__init__()``.
 
         Returns
         -------
@@ -101,10 +109,12 @@ class Resp2(object):
             conformers.append(Conformer(mol.clone(), name=name, charge=charge,
                                         multiplicity=multiplicity,
                                         orient=orient, rotate=rotate,
-                                        translate=translate))
+                                        translate=translate, 
+                                        grid_name=grid_name,
+                                        esp_name=esp_name,
+                                        load_files=load_files))
 
-        return cls(conformers, name=name,
-                   chrconstr=chrconstr, chrequiv=chrequiv)
+        return cls(conformers, name=name, **kwargs)
 
     def __init__(self, conformers, name=None, chrconstr=[],
                  chrequiv=[]):

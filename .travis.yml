@@ -24,12 +24,12 @@ stages:
 
 matrix:
   fast_finish: true
-  # allow_failures:
-  #   - env: NAME="linux_2.7_fast"
-  #          PYTHON_VERSION=2.7
-  #   - os: osx
-  #     env: NAME="OSX_2.7_fast"
-  #          PYTHON_VERSION=2.7
+  allow_failures:
+    - env: NAME="linux_2.7_fast"
+           PYTHON_VERSION=2.7
+    - os: osx
+      env: NAME="OSX_2.7_fast"
+           PYTHON_VERSION=2.7
 
 
   include:
