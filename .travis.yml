@@ -3,7 +3,7 @@ os: linux
 
 env:
   global:
-    - PYTEST_FLAGS="-v --disable-pytest-warnings --durations=50 --cov=psiresp"
+    - PYTEST_FLAGS="-v --disable-pytest-warnings --durations=50"
     - PYTEST_SEL="-m fast"
     - BUILD_CMD="python setup.py develop --no-deps"
     - CONDAENV="test_env"
@@ -24,7 +24,7 @@ matrix:
     - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
-           PYTEST_SEL="-m 'not slow'"
+           PYTEST_SEL="-m 'not slow' --cov=psiresp"
            CODECOV="true"
     # - env: NAME="linux_3.8_fast"  # currently incompatible
     #        PYTHON_VERSION=3.8
