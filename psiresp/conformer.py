@@ -122,7 +122,6 @@ class Conformer(object):
         """
         if name is None:
             name = self.name+'_copy'
-        charge = self.charge
 
         new = type(self)(self.molecule.clone(), name=name,
                          charge=self.charge,
@@ -263,7 +262,7 @@ class Conformer(object):
         psi4.set_options(psi4_options)
         logfile = self.name+'_opt.log'
         psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
-        e = psi4.optimize(method, molecule=self.molecule)
+        psi4.optimize(method, molecule=self.molecule)
         psi4.core.clean()
         self._orientations = []
 

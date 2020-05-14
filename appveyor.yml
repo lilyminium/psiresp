@@ -1,4 +1,11 @@
+clone_depth: 50
+max_jobs: 100
+
 environment:
+  global:
+    APPVEYOR_SAVE_CACHE_ON_ERROR: true
+    APPVEYOR_SKIP_FINALIZE_ON_EXIT: true
+    TEST_TIMEOUT: 1000
 
   matrix:
     - PYTHON: "C:\\Miniconda36-x64"
@@ -8,7 +15,7 @@ environment:
     - PYTHON: "C:\\Miniconda37-x64"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
-  
+
 
 install:
     # Make sure pip is around
