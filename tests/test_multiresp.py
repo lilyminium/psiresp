@@ -99,10 +99,10 @@ class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
 
 
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
-    n_orient = 4
+    n_orient = 8
     orient = [[], []]
     rtol = 0.1  # will have different orientations
-    atol = 1e-3
+    atol = 5e-3
 
 
 @pytest.mark.optimize
