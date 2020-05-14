@@ -1,0 +1,16 @@
+name: psiresp-docs
+channels:
+  - conda-forge
+  - psi4
+
+dependencies:
+  - numpy
+  - pip
+  - psi4=1.3.2
+  - python
+  - qcelemental
+  # Pip-only installs
+  - pip:
+      - duecredit
+      - sphinx
+      - sphinx_rtd_theme

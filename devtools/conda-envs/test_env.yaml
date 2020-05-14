@@ -1,16 +1,21 @@
 name: test
 channels:
+  - conda-forge
+  - psi4
 dependencies:
-    # Base depends
+  # Base depends
   - python
   - pip
-
     # Testing
   - pytest
   - pytest-cov
   - codecov
 
-    # Pip-only installs
-  #- pip:
-  #  - codecov
+  # program
+  - numpy
+  - psi4=1.3.2
+  - qcelemental
 
+  # Pip-only installs
+  - pip:
+      - duecredit
