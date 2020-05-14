@@ -1,7 +1,5 @@
 from __future__ import division, absolute_import
 import itertools
-import tempfile
-import os
 
 import numpy as np
 
@@ -362,11 +360,9 @@ def asiterable(obj):
 
 def empty(obj):
     """Returns if ``obj`` is Falsy"""
-    try:
-        return not obj
-    except ValueError:  # numpy array
-        pass
-    return True
+    if isinstance(obj, np.ndarray):
+        return True
+    return not obj
 
 
 def iter_single(obj):

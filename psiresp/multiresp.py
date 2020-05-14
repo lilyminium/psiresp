@@ -4,7 +4,6 @@ import itertools
 
 import numpy as np
 
-from .resp import Resp
 from . import utils
 
 
@@ -656,7 +655,8 @@ class MultiResp(object):
                       **kwargs)
         if stage_2:
             cs = self.get_stage2_constraints(qs, equal_methyls=equal_methyls,
-                                             intra_chrequiv=stage_2_equiv, inter_chrconstr=inter_chrconstr,
+                                             intra_chrequiv=stage_2_equiv, 
+                                             inter_chrconstr=inter_chrconstr,
                                              intra_chrconstr=intra_chrconstr)
             intra_c, intra_e = cs
             qs = self.fit(intra_chrconstr=intra_c,

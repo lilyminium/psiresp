@@ -1,13 +1,12 @@
 from __future__ import division, absolute_import
 import warnings
 import itertools
-import functools
 import logging
 
 import numpy as np
 
 from .conformer import Conformer
-from . import utils, vdwradii
+from . import utils
 
 log = logging.getLogger(__name__)
 
@@ -200,6 +199,8 @@ class Resp(object):
             All the atoms specified here combine for a charge of ``charge``. 
         """
         atom_ids = utils.asiterable(atom_ids)
+        if not all(isinstance(x, int) for x in atom_ids):
+            raise ValueError('atom_ids must be an iterable of integer atom numbers')
         for a in atom_ids:
             if a not in self.atom_ids:
                 raise ValueError('Atom number not found: {}'.format(a))

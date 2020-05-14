@@ -6,6 +6,7 @@ env:
     - PYTEST_FLAGS="-v --disable-pytest-warnings --durations=50"
     - PYTEST_SEL="-m fast"
     - BUILD_CMD="python setup.py develop --no-deps"
+    - CODECOV=""
     - CONDAENV="test_env"
     - PYTHON_VERSION=3.7
 
@@ -24,9 +25,8 @@ matrix:
     - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
-           PYTEST_SEL="-m 'not slow' --cov=psiresp"
-           CODECOV="true"
-           CONDAENV="docs_env"
+           PYTEST_SEL="-m 'not slow'"
+           CODECOV="--cov=psiresp"
     # - env: NAME="linux_3.8_fast"  # currently incompatible
     #        PYTHON_VERSION=3.8
     - env: NAME="linux_3.6_fast"
@@ -75,7 +75,7 @@ install:
   - conda list
 
 script:
-  - RUN_CMD="pytest ${PYTEST_FLAGS} ${PYTEST_SEL} tests/"
+  - RUN_CMD="pytest ${PYTEST_FLAGS} ${PYTEST_SEL} ${CODECOV} tests/"
   - echo $RUN_CMD
   - eval $RUN_CMD
 

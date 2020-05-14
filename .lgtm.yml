@@ -1,5 +1,6 @@
 # Configure LGTM for this package
-
+queries:
+  - exclude:  py/procedure-return-value-used  # blame duecredit
 extraction:
   python:  # Configure Python
     python_setup:  # Configure the setup
