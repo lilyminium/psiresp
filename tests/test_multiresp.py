@@ -101,7 +101,7 @@ class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
     n_orient = 8
     orient = [[], []]
-    rtol = 0.1  # will have different orientations
+    rtol = 0.2  # will have different orientations
     atol = 5e-3
 
 
