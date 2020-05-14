@@ -87,11 +87,14 @@ install:
   #   # Activate the test environment
   - conda activate test
   #   # Build and install package
+  - echo $BUILD_CMD
   - eval $BUILD_CMD
   - conda list
 
 script:
-  - pytest ${PYTEST_FLAGS} ${PYTEST_SEL} tests/
+  - RUN_CMD="pytest ${PYTEST_FLAGS} ${PYTEST_SEL} tests/"
+  - echo $RUN_CMD
+  - eval $RUN_CMD
   - cd ${TRAVIS_BUILD_DIR}
   # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
   # - echo $MAIN_CMD $SETUP_CMD
