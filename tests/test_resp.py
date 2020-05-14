@@ -129,10 +129,11 @@ class TestRespNoOpt(object):
               (-0.4157, [7]), (0.2719, [8]),
               (0.5973, [18]), (-0.5679, [19]),
               ]),
-        ('_multifit_constr', {
-            0: [20, 21, 22, 23, 24, 25],
-            0.6163: [18],
-            -0.5722: [19]}),
+        # # skip this b/c tests are timing out and it's replicated in MultiResp
+        # ('_multifit_constr', {
+        #     0: [20, 21, 22, 23, 24, 25],
+        #     0.6163: [18],
+        #     -0.5722: [19]}),
     ])
     def test_intra_constraints(self, chrconstr, chargename, stage_2, a, redname,
                                tmpdir):

@@ -26,10 +26,8 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: NAME="linux_2.7_fast"
-           PYTHON_VERSION=2.7
-    - os: osx
-      env: NAME="OSX_2.7_fast"
-           PYTHON_VERSION=2.7
+    - env: NAME="OSX_2.7_fast"
+    - env: NAME="OSX_3.8_fast"  # just hangs after duecredit installs?
 
 
   include:
@@ -55,6 +53,11 @@ matrix:
             BUILD_CMD="python setup.py install"
             CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES} sphinx==1.8.5"
             PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap sphinx_rtd_theme"
+    - env: NAME="linux_2.7_fast"
+           PYTHON_VERSION=2.7
+    - os: osx
+      env: NAME="OSX_2.7_fast"
+           PYTHON_VERSION=2.7
     - os: osx
       env: NAME="OSX_3.8_fast"
            PYTHON_VERSION=3.8

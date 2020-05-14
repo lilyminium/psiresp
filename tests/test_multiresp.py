@@ -34,6 +34,8 @@ class TestMultiRespNoOptNoOrient(object):
 
     GRID = datafile('test_multiresp/grid.dat')
     ESP = datafile('test_multiresp/grid_esp.dat')
+    rtol = 0.01
+    atol = 1e-4
 
     @pytest.fixture()
     def nme2ala2(self):
@@ -75,7 +77,8 @@ class TestMultiRespNoOptNoOrient(object):
                             intra_chrequiv=self.intra_chrequiv[1:],
                             intra_chrconstr=self.intra_chrconstr[1:],
                             n_orient=self.n_orient, save_files=False)
-        assert_allclose(charges[0], nme2ala2_charges, rtol=0.01, atol=1e-4)
+        assert_allclose(charges[0], nme2ala2_charges, rtol=self.rtol, 
+                        atol=self.atol)
 
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
                        multifit_charges, tmpdir):
@@ -87,7 +90,7 @@ class TestMultiRespNoOptNoOrient(object):
                             intra_chrconstr=self.intra_chrconstr,
                             n_orient=self.n_orient, save_files=False)
         for charge, ref in zip(charges, multifit_charges):
-            assert_allclose(charge, ref, rtol=0.01, atol=1e-4)
+            assert_allclose(charge, ref, rtol=self.rtol, atol=self.atol)
 
 
 @pytest.mark.fast
@@ -98,6 +101,8 @@ class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
     n_orient = 4
     orient = [[], []]
+    rtol = 0.1  # will have different orientations
+    atol = 1e-3
 
 
 @pytest.mark.optimize
