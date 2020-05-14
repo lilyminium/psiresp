@@ -38,7 +38,7 @@ matrix:
     - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
-           PYTEST_FLAGS="--disable-pytest-warnings --durations=50 -m 'not slow'"
+           SETUP_CMD="--disable-pytest-warnings --durations=50 -m 'not slow'"
            CODECOV="true"
     - env: NAME="linux_3.8_fast"
            PYTHON_VERSION=3.8
