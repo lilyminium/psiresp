@@ -12,7 +12,7 @@ env:
     - CONDA_CHANNEL_PRIORITY=True
     - PIP_DEPENDENCIES="duecredit"
 
-  - matrix:
+  matrix:
     - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} --cov=psiresp"
 
 stages:
