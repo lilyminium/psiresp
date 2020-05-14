@@ -7,6 +7,7 @@ env:
     - PYTEST_SEL="-m fast"
     - BUILD_CMD="python setup.py develop --no-deps"
     - CONDAENV="test_env"
+    - PYTHON_VERSION=3.7
 
   matrix:
     - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} --cov=psiresp"
@@ -20,12 +21,6 @@ stages:
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: NAME="linux_2.7_fast"
-    - env: NAME="OSX_2.7_fast"
-    - env: NAME="OSX_3.8_fast"  # just hangs after duecredit installs?
-
-
   include:
     # Extra includes for OSX since python language is not available by default on OSX
     # only run fast tests; optimize and RESP2 tests will time out
@@ -34,8 +29,8 @@ matrix:
            PYTHON_VERSION=3.7
            PYTEST_SEL="-m 'not slow'"
            CODECOV="true"
-    - env: NAME="linux_3.8_fast"
-           PYTHON_VERSION=3.8
+    # - env: NAME="linux_3.8_fast"  # currently incompatible
+    #        PYTHON_VERSION=3.8
     - env: NAME="linux_3.7_fast"
            PYTHON_VERSION=3.7
     - env: NAME="linux_3.6_fast"
@@ -44,14 +39,6 @@ matrix:
            BUILD_CMD="python setup.py build_sphinx"
            PYTHON_VERSION=3.7
            CONDAENV="docs_env"
-    - env: NAME="linux_2.7_fast"
-           PYTHON_VERSION=2.7
-    - os: osx
-      env: NAME="OSX_2.7_fast"
-           PYTHON_VERSION=2.7
-    - os: osx
-      env: NAME="OSX_3.8_fast"
-           PYTHON_VERSION=3.8
     - os: osx
       env: NAME="OSX_3.7_fast"
            PYTHON_VERSION=3.7
@@ -95,11 +82,6 @@ script:
   - RUN_CMD="pytest ${PYTEST_FLAGS} ${PYTEST_SEL} tests/"
   - echo $RUN_CMD
   - eval $RUN_CMD
-  - cd ${TRAVIS_BUILD_DIR}
-  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
-  # - echo $MAIN_CMD $SETUP_CMD
-  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then pip install pytest; fi
-  # - eval $MAIN_CMD $SETUP_CMD
 
 after_success:
   - codecov
