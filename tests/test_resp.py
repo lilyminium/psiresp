@@ -81,6 +81,9 @@ class TestRespNoOpt(object):
     opt = False
     load_files = False
 
+    GRID = datafile('test_resp/grid.dat')
+    ESP = datafile('test_resp/grid_esp.dat')
+
     def load_mols(self, molname, nconf):
         fns = [self.molfile.format(molname=molname, conf=i+1) for i in range(nconf)]
         return [mol_from_file(f) for f in fns]
@@ -94,8 +97,8 @@ class TestRespNoOpt(object):
         confs = self.load_mols('dmso', 1)
         r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso',
                                         load_files=self.load_files,
-                                        grid_name=datafile('test_resp/grid.dat'),
-                                        esp_name=datafile('test_resp/grid_esp.dat'))
+                                        grid_name=self.GRID,
+                                        esp_name=self.ESP)
         with tmpdir.as_cwd():
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
                             equal_methyls=True, n_orient=2, save_files=False)
@@ -108,8 +111,8 @@ class TestRespNoOpt(object):
                                         orient=[(1, 5, 8), (8, 5, 1),
                                                 (9, 8, 5), (5, 8, 9)],
                                         load_files=self.load_files,
-                                        grid_name=datafile('test_resp/grid.dat'),
-                                        esp_name=datafile('test_resp/grid_esp.dat'))
+                                        grid_name=self.GRID,
+                                        esp_name=self.ESP)
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
         else:
@@ -138,19 +141,21 @@ class TestRespNoOpt(object):
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
         r = psiresp.Resp.from_molecules(confs, charge=0, name='nme2ala2',
                                         load_files=self.load_files,
-                                        grid_name=datafile('test_resp/grid.dat'),
-                                        esp_name=datafile('test_resp/grid_esp.dat'))
+                                        grid_name=self.GRID,
+                                        esp_name=self.ESP)
         with tmpdir.as_cwd():
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             equal_methyls=False, chrequiv=chrequiv,
-                            chrconstr=chrconstr, orient=orient, 
+                            chrconstr=chrconstr, orient=orient,
                             save_files=False)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
+
 @pytest.mark.fast
 class TestLoadNoOpt(TestRespNoOpt):
     load_files = True
+
 
 @pytest.mark.optimize
 @pytest.mark.slow

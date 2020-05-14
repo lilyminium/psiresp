@@ -3,8 +3,11 @@ import pytest
 import os
 import numpy as np
 
-from numpy.testing import assert_almost_equal, assert_equal, assert_allclose
-from .utils import mol_from_file, esp_from_gamess_file, coordinates_from_xyz
+from numpy.testing import (assert_almost_equal, assert_equal,
+                           assert_allclose)
+from .utils import (mol_from_file, esp_from_gamess_file,
+                    coordinates_from_xyz)
+
 
 class BaseTestOrientation:
 
@@ -42,9 +45,11 @@ class BaseTestOrientation:
         epot = opt_orientation.esp
         assert_almost_equal(epot, ref, decimal=4)
 
+
 @pytest.mark.fast
 class TestOrientationDMSO0(BaseTestOrientation):
     orientname = 'dmso_opt_c1'
+
 
 @pytest.mark.fast
 class TestOrientationDMSO1(BaseTestOrientation):
@@ -67,6 +72,7 @@ class TestOrientationDMSO1(BaseTestOrientation):
         assert orientation.grid is None
         assert orientation.esp is None
         assert orientation.r_inv is None
+
 
 @pytest.mark.fast
 class TestOrientationDMSO2(TestOrientationDMSO1):

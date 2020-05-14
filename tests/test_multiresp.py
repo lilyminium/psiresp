@@ -32,24 +32,29 @@ class TestMultiRespNoOptNoOrient(object):
     intra_chrequiv = [[[6, 7, 8]], [[10, 14], [11, 12, 13, 15, 16, 17]]]
     inter_chrconstr = {0: [(1, [1, 2, 3, 4]), (2, [1, 2, 3, 4, 5, 6, 7, 8])]}
 
+    GRID = datafile('test_multiresp/grid.dat')
+    ESP = datafile('test_multiresp/grid_esp.dat')
+
     @pytest.fixture()
     def nme2ala2(self):
         mols = [mol_from_file(f) for f in self.nme2ala2_names]
-        resp = psiresp.Resp.from_molecules(mols, charge=0, orient=self.orient[1], 
-                                           name='nme2ala2', 
-                                           load_files=self.load_files, 
-                                           grid_name=datafile('test_multiresp/grid.dat'), 
-                                           esp_name=datafile('test_multiresp/grid_esp.dat'))
+        resp = psiresp.Resp.from_molecules(mols, charge=0,
+                                           orient=self.orient[1],
+                                           name='nme2ala2',
+                                           load_files=self.load_files,
+                                           grid_name=self.GRID,
+                                           esp_name=self.ESP)
         return resp
 
     @pytest.fixture()
     def methylammonium(self):
         mols = [mol_from_file(f) for f in self.methylammonium_names]
-        resp = psiresp.Resp.from_molecules(mols, charge=1, orient=self.orient[0],
-                                           name='methylammonium', 
-                                           load_files=self.load_files, 
-                                           grid_name=datafile('test_multiresp/grid.dat'), 
-                                           esp_name=datafile('test_multiresp/grid_esp.dat'))
+        resp = psiresp.Resp.from_molecules(mols, charge=1,
+                                           orient=self.orient[0],
+                                           name='methylammonium',
+                                           load_files=self.load_files,
+                                           grid_name=self.GRID,
+                                           esp_name=self.ESP)
         return resp
 
     @pytest.fixture()
@@ -84,9 +89,11 @@ class TestMultiRespNoOptNoOrient(object):
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=0.01, atol=1e-4)
 
+
 @pytest.mark.fast
 class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
     load_files = True
+
 
 class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
     n_orient = 4

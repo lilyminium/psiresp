@@ -113,7 +113,7 @@ class Conformer(object):
         Parameters
         ----------
         name: str (optional)
-            If not given, the new Conformer instance has '_copy' appended 
+            If not given, the new Conformer instance has '_copy' appended
             to its name
 
         Returns

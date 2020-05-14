@@ -62,7 +62,7 @@ class Resp(object):
 
     @classmethod
     def from_molecules(cls, molecules, charge=0, multiplicity=1, name=None,
-                       orient=[], rotate=[], translate=[], 
+                       orient=[], rotate=[], translate=[],
                        grid_name='grid.dat', esp_name='grid_esp.dat',
                        load_files=False, **kwargs):
         """

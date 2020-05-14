@@ -120,7 +120,7 @@ class BaseTestATBResp:
     def test_resp_noopt(self, tmpdir, resp, ref):
         with tmpdir.as_cwd():
             charges = resp.run(opt=False, n_orient=2, equal_methyls=True,
-                            vdw_point_density=1, solvent='water')
+                               vdw_point_density=1, solvent='water')
         # no idea which point density ATB uses
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
@@ -146,6 +146,7 @@ class TestATBRespIsopropanol(BaseTestATBResp):
 class TestATBRespDMSO(BaseTestATBResp):
     molname = 'dmso'
 
+
 @pytest.mark.skip(reason='Fails? Are the mol2 geometries not minimised?')
 @pytest.mark.resp2
 @pytest.mark.slow
@@ -165,6 +166,7 @@ class TestResp2Charges:
             r = psiresp.Resp2.from_molecules(mols, charge=0)
             charges = r.run(opt=False, n_orient=4, delta=delta)
         assert_almost_equal(charges, ref, decimal=3)
+
 
 class BaseTestResp2Ethanol:
     """Charges from ethanol example in MSchauperl/resp2.
@@ -187,7 +189,7 @@ class BaseTestResp2Ethanol:
                 mol_from_file('ethanol_resp2_opt_c2.xyz')]
         r = psiresp.Resp2.from_molecules(mols, charge=0, name='resp2_ethanol',
                                          load_files=self.load_files,
-                                         grid_name=datafile('test_resp2/grid.dat'), 
+                                         grid_name=datafile('test_resp2/grid.dat'),
                                          esp_name=datafile('test_resp2/grid_esp.dat'))
         with tmpdir.as_cwd():
             charges = r.run(opt=False, n_orient=0, delta=0.5)
@@ -195,12 +197,14 @@ class BaseTestResp2Ethanol:
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
 
+
 @pytest.mark.fast
 class TestLoadResp2Ethanol(BaseTestResp2Ethanol):
     load_files = True
 
+
 @pytest.mark.resp2
-class TestResp2Ethanol(TestLoadResp2Ethanol):
+class TestResp2Ethanol(BaseTestResp2Ethanol):
     load_files = False
 
     @pytest.mark.slow

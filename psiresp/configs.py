@@ -108,7 +108,7 @@ def resp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
                 if ``True``, saves optimised geometries to XYZ file
             """
             return super(cls, self).optimize_geometry(method=method, basis=basis,
-                                                        psi4_options=psi4_options, save_opt_geometry=save_opt_geometry)
+                                                      psi4_options=psi4_options, save_opt_geometry=save_opt_geometry)
 
         @clean_kwargs
         def fit(self, hyp_a=0.0005, tol=1e-6, maxiter=50, **kwargs):
@@ -158,10 +158,10 @@ def resp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
             """
 
             return super(cls, self).iter_solve(q, a, b, hyp_a=hyp_a,
-                                                hyp_b=hyp_b,
-                                                ihfree=ihfree,
-                                                tol=tol,
-                                                maxiter=maxiter)
+                                               hyp_b=hyp_b,
+                                               ihfree=ihfree,
+                                               tol=tol,
+                                               maxiter=maxiter)
 
         @clean_kwargs
         def get_constraint_matrices(self, chrconstr=[], chrequiv=[],
@@ -612,18 +612,18 @@ def multiresp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
             charges: list of ndarrays
             """
             super(cls, self).run(opt=opt, save_opt_geometry=save_opt_geometry,
-                                    intra_chrconstr=intra_chrconstr,
-                                    intra_chrequiv=intra_chrequiv,
-                                    inter_chrconstr=inter_chrconstr,
-                                    inter_chrequiv=inter_chrequiv,
-                                    psi4_options=psi4_options,
-                                    n_orient=n_orient, orient=orient,
-                                    n_rotate=n_rotate, rotate=rotate,
-                                    n_translate=n_translate, translate=translate,
-                                    equal_methyls=equal_methyls, stage_2=stage_2,
-                                    hyp_a1=hyp_a1, hyp_a2=hyp_a2, hyp_b=hyp_b,
-                                    restraint=restraint, basis=basis, solvent=solvent,
-                                    method=method, ihfree=ihfree, **kwargs)
+                                 intra_chrconstr=intra_chrconstr,
+                                 intra_chrequiv=intra_chrequiv,
+                                 inter_chrconstr=inter_chrconstr,
+                                 inter_chrequiv=inter_chrequiv,
+                                 psi4_options=psi4_options,
+                                 n_orient=n_orient, orient=orient,
+                                 n_rotate=n_rotate, rotate=rotate,
+                                 n_translate=n_translate, translate=translate,
+                                 equal_methyls=equal_methyls, stage_2=stage_2,
+                                 hyp_a1=hyp_a1, hyp_a2=hyp_a2, hyp_b=hyp_b,
+                                 restraint=restraint, basis=basis, solvent=solvent,
+                                 method=method, ihfree=ihfree, **kwargs)
 
         def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
             """
@@ -637,8 +637,8 @@ def multiresp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
                 if ``True``, saves optimised geometries to XYZ file
             """
             super(cls, self).optimize_geometry(method=method, basis=basis,
-                                                psi4_options=psi4_options,
-                                                save_opt_geometry=save_opt_geometry)
+                                               psi4_options=psi4_options,
+                                               save_opt_geometry=save_opt_geometry)
 
         @clean_kwargs
         def fit(self, tol=1e-6, maxiter=50, **kwargs):
@@ -659,7 +659,7 @@ def multiresp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
             charges: ndarray
             """
             super(cls, self).fit(hyp_b=hyp_b, restraint=restraint, basis=basis,
-                                    method=method, ihfree=ihfree, **kwargs)
+                                 method=method, ihfree=ihfree, **kwargs)
 
         @clean_kwargs
         def get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
@@ -726,13 +726,13 @@ def multiresp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
             """
 
             super(cls, self).get_constraint_matrices(intra_chrconstr=intra_chrconstr,
-                                                        intra_chrequiv=intra_chrequiv,
-                                                        inter_chrconstr=inter_chrconstr,
-                                                        inter_chrequiv=inter_chrequiv,
-                                                        solvent=solvent, weights=weights,
-                                                        method=method, basis=basis,
-                                                        use_radii=use_radii,
-                                                        **kwargs)
+                                                     intra_chrequiv=intra_chrequiv,
+                                                     inter_chrconstr=inter_chrconstr,
+                                                     inter_chrequiv=inter_chrequiv,
+                                                     solvent=solvent, weights=weights,
+                                                     method=method, basis=basis,
+                                                     use_radii=use_radii,
+                                                     **kwargs)
             cls.run = run
             cls.optimize_geometry = optimize_geometry
             cls.fit = fit

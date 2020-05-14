@@ -37,6 +37,18 @@ class MultiResp(object):
         self._restrained_charges = None
 
     def clone(self, suffix='_copy'):
+        """Clone into another instance of MultiResp
+
+        Parameters
+        ----------
+        suffix: str (optional)
+            This is appended to each of the names of the molecule Resps
+            in the MultiResp
+
+        Returns
+        -------
+        MultiResp
+        """
         names = [r.name+suffix for r in self.molecules]
         resps = [m.clone(name=n) for n, m in zip(names, self.molecules)]
         return type(self)(resps)
@@ -132,12 +144,12 @@ class MultiResp(object):
             the second molecule.
         intra_chrequiv: list of lists (optional)
             Lists of atoms with equivalent charges within each molecule. e.g. ::
-            
+
                 [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
                  ] 
-                 
+
             mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
@@ -376,12 +388,12 @@ class MultiResp(object):
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
             Lists of atoms with equivalent charges within each molecule. e.g. ::
-            
+
                 [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
                  ] 
-                 
+
             mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
@@ -529,12 +541,12 @@ class MultiResp(object):
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
             Lists of atoms with equivalent charges within each molecule. e.g. ::
-            
+
                 [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
                  ] 
-                 
+
             mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 

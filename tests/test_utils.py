@@ -6,6 +6,7 @@ from psiresp import utils
 from numpy.testing import assert_almost_equal
 from .utils import coordinates_from_xyz, datafile
 
+
 @pytest.mark.fast
 @pytest.mark.parametrize('molname,onum,orient', [
     ('dmso_opt_c1', 1, (1, 5, 6)),
@@ -18,6 +19,7 @@ def test_orient_rigid(molname, onum, orient):
     ref = coordinates_from_xyz('{}_o{}.xyz'.format(molname, onum))
     assert_almost_equal(oriented, ref, decimal=5)
 
+
 @pytest.mark.fast
 @pytest.mark.parametrize('molname,onum,rotate', [
     ('dmso_opt_c1', 3, (1, 5, 6)),
@@ -29,6 +31,7 @@ def test_rotate_rigid(molname, onum, rotate):
     oriented = utils.rotate_rigid(i, j, k, original)
     ref = coordinates_from_xyz('{}_o{}.xyz'.format(molname, onum))
     assert_almost_equal(oriented, ref, decimal=5)
+
 
 @pytest.mark.fast
 @pytest.mark.parametrize('factor,radii_name,scaled', [
@@ -49,6 +52,7 @@ def test_scale_radii(factor, radii_name, scaled):
     for k, refv in ref.items():
         assert_almost_equal(radii[k], refv)
 
+
 @pytest.mark.fast
 @pytest.mark.parametrize('n', [3, 10, 29, 44, 48, 64])
 def test_gen_unit_sphere(n):
@@ -57,6 +61,7 @@ def test_gen_unit_sphere(n):
     ref = np.loadtxt(fn, comments='!')
     assert_almost_equal(points, ref, decimal=5)
     assert len(points) <= n
+
 
 @pytest.mark.fast
 @pytest.mark.parametrize('scaled,density,n_points', [
@@ -75,6 +80,7 @@ def test_gen_connolly_spheres(scaled, density, n_points):
     point_arr = np.asarray(n_points)[[1, 0, 2, 0, 1, 1]]
     for pt, n in zip(points, point_arr):
         assert len(pt) <= n and len(pt) >= 0.85*n
+
 
 @pytest.mark.fast
 @pytest.mark.parametrize('vdw_radii,scale_factors,density,radii,n_points', [

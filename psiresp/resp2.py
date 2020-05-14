@@ -6,6 +6,7 @@ from .multiresp import MultiResp
 from . import utils
 from .due import due, Doi
 
+
 @due.dcite(
     Doi('10.1038/s42004-020-0291-4'),
     description='RESP2',
@@ -94,7 +95,7 @@ class Resp2(object):
 
         Returns
         -------
-        resp: Resp
+        resp2: Resp2
         """
         molecules = utils.asiterable(molecules)
         if name is not None:
@@ -109,7 +110,7 @@ class Resp2(object):
             conformers.append(Conformer(mol.clone(), name=name, charge=charge,
                                         multiplicity=multiplicity,
                                         orient=orient, rotate=rotate,
-                                        translate=translate, 
+                                        translate=translate,
                                         grid_name=grid_name,
                                         esp_name=esp_name,
                                         load_files=load_files))
@@ -294,6 +295,7 @@ class Resp2(object):
         self._charges = delta*self.solv_charges + (1-delta)*self.gas_charges
         return self._charges
 
+
 @due.dcite(
     Doi('10.1038/s42004-020-0291-4'),
     description='RESP2 multi-molecule fit',
@@ -372,12 +374,12 @@ class MultiResp2(object):
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
             Lists of atoms with equivalent charges within each molecule. e.g. ::
-            
+
                 [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
                  ] 
-                 
+
             mean that atoms 1 and 2 in the first molecule have equal 
             charges; atoms 3, 4, and 5 in the first molecule have 
             equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 

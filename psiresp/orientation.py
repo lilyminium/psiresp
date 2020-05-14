@@ -77,10 +77,11 @@ class Orientation(object):
 
         # try to read from files
         if load_files:
+            fail = 'Could not read data from {}'
             try:
                 self.grid = np.loadtxt(self.grid_filename)
             except OSError:
-                warnings.warn('Could not read data from {}'.format(self.grid_filename))
+                warnings.warn(fail.format(self.grid_filename))
             else:
                 if self.bohr:
                     self.grid *= BOHR_TO_ANGSTROM
@@ -88,7 +89,7 @@ class Orientation(object):
             try:
                 self.esp = np.loadtxt(self.esp_filename)
             except OSError:
-                warnings.warn('Could not read data from {}'.format(self.esp_filename))
+                warnings.warn(fail.format(self.esp_filename))
             else:
                 log.info('Read esp from {}'.format(self.esp_filename))
 

@@ -4,7 +4,8 @@ import pytest
 import os
 import numpy as np
 
-from numpy.testing import assert_almost_equal, assert_equal, assert_allclose
+from numpy.testing import (assert_almost_equal, assert_equal,
+                           assert_allclose)
 from .utils import mol_from_file
 
 
@@ -111,4 +112,3 @@ class TestConformer:
         assert new.multiplicity == 1
         assert len(new.orientations) == len(conformer.orientations)
         assert_equal(new._orient, conformer._orient)
-
