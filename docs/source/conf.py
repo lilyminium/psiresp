@@ -17,7 +17,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
-import psiresp
+# import psiresp
 
 
 # -- Project information -----------------------------------------------------
@@ -28,9 +28,9 @@ copyright = ("2020, Lily Wang. Project structure based on the "
 author = 'Lily Wang'
 
 # The short X.Y version
-version = ''
+version = '0.1'
 # The full version, including alpha/beta/rc tags
-release = ''
+release = '0.1-unstable'
 
 
 # -- General configuration ---------------------------------------------------
@@ -50,7 +50,13 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
+    'sphinxcontrib.bibtex',
+    'sphinx.ext.todo',
+    'sphinx_sitemap',
+    'sphinx_rtd_theme',
 ]
+
+mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
 
 autosummary_generate = True
 napoleon_google_docstring = False
@@ -84,6 +90,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'default'
 
+autoclass_content = 'both'
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -96,7 +104,18 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': False,
+    'style_nav_header_background': 'white',
+    # Toc options
+    'collapse_navigation': True,
+    'sticky_navigation': True,
+    'navigation_depth': 4,
+    'includehidden': True,
+    'titles_only': False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
