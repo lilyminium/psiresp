@@ -100,7 +100,7 @@ class TestMultiRespNoOptNoOrient(BaseTestMultiRespNoOptNoOrient):
     (True, 0.0005, 'respA1'),
     (False, 0.0, 'espA1')
 ])
-class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
+class TestLoadMultiResp(BaseTestMultiRespNoOptNoOrient):
     load_files = True
 
 @pytest.mark.parametrize('stage_2,a,redname', [
@@ -108,7 +108,7 @@ class TestLoadMultiResp(TestMultiRespNoOptNoOrient):
     (True, 0.0005, 'respA1'),
     (False, 0.0, 'espA1')
 ])
-class TestMultiRespNoOptAutoOrient(TestMultiRespNoOptNoOrient):
+class TestMultiRespNoOptAutoOrient(BaseTestMultiRespNoOptNoOrient):
     n_orient = 4
     orient = [[], []]
     rtol = 0.15  # will have different orientations
