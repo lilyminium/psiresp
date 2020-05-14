@@ -3,14 +3,10 @@ os: linux
 
 env:
   global:
-    - PYTEST_FLAGS="--disable-pytest-warnings --durations=50 -m fast"
-    - PYTEST_LIST="tests"
-    - MAIN_CMD="pytest ${PYTEST_LIST}"
-    - SETUP_CMD="${PYTEST_FLAGS}"
-    - BUILD_CMD="pip install -e ."
-    - CONDA_ENVIRONMENT="devtools/conda-envs/test_env.yaml"
-    - CONDA_CHANNEL_PRIORITY=True
-    - PIP_DEPENDENCIES="duecredit"
+    - PYTEST_FLAGS="-v --disable-pytest-warnings --durations=50"
+    - PYTEST_SEL="-m fast"
+    - BUILD_CMD="python setup.py develop --no-deps"
+    - CONDAENV="test_env"
 
   matrix:
     - CODECOV="true" SETUP_CMD="${PYTEST_FLAGS} --cov=psiresp"
@@ -36,7 +32,7 @@ matrix:
     - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
-           SETUP_CMD="--disable-pytest-warnings --durations=50 -m 'not slow'"
+           PYTEST_SEL="-m 'not slow'"
            CODECOV="true"
     - env: NAME="linux_3.8_fast"
            PYTHON_VERSION=3.8
@@ -45,14 +41,9 @@ matrix:
     - env: NAME="linux_3.6_fast"
            PYTHON_VERSION=3.6
     - env: NAME="Docs"
-            SETUP_CMD="build_sphinx"
-            PYTHON_VERSION=3.7
-            MAIN_CMD="python setup.py"
-            SETUP_CMD="build_sphinx"
-            BUILD_DOCS=true
-            BUILD_CMD="python setup.py install"
-            CONDA_DEPENDENCIES="${CONDA_DEPENDENCIES} sphinx==1.8.5"
-            PIP_DEPENDENCIES="${PIP_DEPENDENCIES} sphinx-sitemap sphinx_rtd_theme"
+           BUILD_CMD="python setup.py build_sphinx"
+           PYTHON_VERSION=3.7
+           CONDAENV="docs_env"
     - env: NAME="linux_2.7_fast"
            PYTHON_VERSION=2.7
     - os: osx
@@ -70,7 +61,7 @@ matrix:
 
     - stage: deploy
       # name: Docs
-      env: SETUP_CMD="build_sphinx"
+      env: BUILD_CMD="python setup.py build_sphinx"
       deploy:
         provider: pages
         skip_cleanup: true
@@ -87,28 +78,25 @@ before_install:
   - df -h
   - ulimit -a
   # Install the Python environment
-  # - source devtools/travis-ci/before_install.sh
-  # - python -V
+  - source devtools/travis-ci/before_install.sh
+  - python -V
 
 install:
   #   # Create test environment for package
-  # - python devtools/scripts/create_conda_env.py -n=test -p=$PYTHON_VERSION devtools/conda-envs/test_env.yaml
+  - python devtools/scripts/create_conda_env.py -n=test -p=$PYTHON_VERSION devtools/conda-envs/${CONDAENV}.yaml
   #   # Activate the test environment
-  # - conda activate test
+  - conda activate test
   #   # Build and install package
-  # - python setup.py develop --no-deps
-  - git clone git://github.com/astropy/ci-helpers.git
-  - source ci-helpers/travis/setup_conda.sh
-  - conda list
   - eval $BUILD_CMD
+  - conda list
 
 script:
-  # - pytest -v --cov=psiresp tests/
+  - pytest ${PYTEST_FLAGS} ${PYTEST_SEL} tests/
   - cd ${TRAVIS_BUILD_DIR}
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
-  - echo $MAIN_CMD $SETUP_CMD
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then pip install pytest; fi
-  - eval $MAIN_CMD $SETUP_CMD
+  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then ulimit -S -n 2048; fi
+  # - echo $MAIN_CMD $SETUP_CMD
+  # - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then pip install pytest; fi
+  # - eval $MAIN_CMD $SETUP_CMD
 
 after_success:
-  - if [[ $CODECOV == 'true' ]]; then codecov; fi
+  - codecov
