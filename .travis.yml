@@ -26,6 +26,7 @@ matrix:
            PYTHON_VERSION=3.7
            PYTEST_SEL="-m 'not slow' --cov=psiresp"
            CODECOV="true"
+           CONDAENV: "docs_env.yaml"
     # - env: NAME="linux_3.8_fast"  # currently incompatible
     #        PYTHON_VERSION=3.8
     - env: NAME="linux_3.6_fast"
