@@ -90,18 +90,19 @@ class TestRespNoOpt(object):
                                             n_orient=n_orient, name=name)
         return charges_from_red_file(chargefile)
 
-    def test_resp_single_conf(self, stage_2, a, redname):
+    def test_resp_single_conf(self, stage_2, a, redname, tmpdir):
         confs = self.load_mols('dmso', 1)
         r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso',
                                         load_files=self.load_files,
                                         grid_name=datafile('test_resp/grid.dat'),
                                         esp_name=datafile('test_resp/grid_esp.dat'))
-        charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
-                        equal_methyls=True, n_orient=2, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
+                            equal_methyls=True, n_orient=2, save_files=False)
         ref = self.load_charges('dmso', 1, 2, redname,)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
-    def test_resp_multi_conf(self, stage_2, a, redname):
+    def test_resp_multi_conf(self, stage_2, a, redname, tmpdir):
         confs = self.load_mols('ethanol', 2)
         r = psiresp.Resp.from_molecules(confs, charge=0, name='ethanol',
                                         orient=[(1, 5, 8), (8, 5, 1),
@@ -113,8 +114,9 @@ class TestRespNoOpt(object):
             chrequiv = [[2, 3, 4], [6, 7]]
         else:
             chrequiv = []
-        charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                        chrequiv=chrequiv, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
+                            chrequiv=chrequiv, save_files=False)
         ref = self.load_charges('ethanol', 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
@@ -129,17 +131,20 @@ class TestRespNoOpt(object):
             0.6163: [18],
             -0.5722: [19]}),
     ])
-    def test_intra_constraints(self, chrconstr, chargename, stage_2, a, redname):
+    def test_intra_constraints(self, chrconstr, chargename, stage_2, a, redname,
+                               tmpdir):
         confs = self.load_mols('nme2ala2', 2)
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
         r = psiresp.Resp.from_molecules(confs, charge=0, name='nme2ala2',
                                         load_files=self.load_files,
-                                        grid_name='data/test_resp/grid.dat',
-                                        esp_name='data/test_resp/grid_esp.dat')
-        charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                        equal_methyls=False, chrequiv=chrequiv,
-                        chrconstr=chrconstr, orient=orient, save_files=False)
+                                        grid_name=datafile('test_resp/grid.dat'),
+                                        esp_name=datafile('test_resp/grid_esp.dat'))
+        with tmpdir.as_cwd():
+            charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
+                            equal_methyls=False, chrequiv=chrequiv,
+                            chrconstr=chrconstr, orient=orient, 
+                            save_files=False)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 

@@ -6,7 +6,6 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_equal, assert_allclose
 from .utils import mol_from_file, esp_from_gamess_file, coordinates_from_xyz
 
-
 class BaseTestOrientation:
 
     molname = None
@@ -36,7 +35,6 @@ class BaseTestOrientation:
         grid = opt_orientation.get_grid()
         assert_almost_equal(grid, ref, decimal=4)
 
-    # fails: how does Psi4 get its potential?
     def test_get_esp_gas(self, opt_orientation, esp, tmpdir):
         ref = esp[:, 0]
         with tmpdir.as_cwd():
@@ -44,11 +42,11 @@ class BaseTestOrientation:
         epot = opt_orientation.esp
         assert_almost_equal(epot, ref, decimal=4)
 
-
+@pytest.mark.fast
 class TestOrientationDMSO0(BaseTestOrientation):
     orientname = 'dmso_opt_c1'
 
-
+@pytest.mark.fast
 class TestOrientationDMSO1(BaseTestOrientation):
     molname = 'dmso_c1'
     orientname = 'dmso_opt_c1_o1'
@@ -70,6 +68,6 @@ class TestOrientationDMSO1(BaseTestOrientation):
         assert orientation.esp is None
         assert orientation.r_inv is None
 
-
+@pytest.mark.fast
 class TestOrientationDMSO2(TestOrientationDMSO1):
     orientname = 'dmso_opt_c1_o2'

@@ -117,8 +117,9 @@ class BaseTestATBResp:
         return charges_from_itp_file(self.chargefile)
 
     def test_resp_noopt(self, tmpdir, resp, ref):
-        charges = resp.run(opt=False, n_orient=2, equal_methyls=True,
-                           vdw_point_density=1, solvent='water')
+        with tmpdir.as_cwd():
+            charges = resp.run(opt=False, n_orient=2, equal_methyls=True,
+                            vdw_point_density=1, solvent='water')
         # no idea which point density ATB uses
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
@@ -155,12 +156,13 @@ class TestResp2Charges:
     See dataset for more: https://doi.org/10.5281/zenodo.3593762
     """
 
-    def test_resp2_noopt(self, name, delta):
+    def test_resp2_noopt(self, name, delta, tmpdir):
         fn = '{}_R2_{:d}.mol2'.format(name, int(delta*100))
         mols = [mol_from_mol2(fn)]
         ref = charges_from_mol2(fn)
-        r = psiresp.Resp2.from_molecules(mols, charge=0)
-        charges = r.run(opt=False, n_orient=4, delta=delta)
+        with tmpdir.as_cwd():
+            r = psiresp.Resp2.from_molecules(mols, charge=0)
+            charges = r.run(opt=False, n_orient=4, delta=delta)
         assert_almost_equal(charges, ref, decimal=3)
 
 
@@ -181,21 +183,23 @@ class TestResp2Ethanol:
     ref = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
                     0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
 
-    def test_ethanol_no_opt(self):
+    def test_ethanol_no_opt(self, tmpdir):
         mols = [mol_from_file('ethanol_resp2_opt_c1.xyz'),
                 mol_from_file('ethanol_resp2_opt_c2.xyz')]
         r = psiresp.Resp2.from_molecules(mols, charge=0)
-        charges = r.run(opt=False, n_orient=0, delta=0.5, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(opt=False, n_orient=0, delta=0.5)
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
 
     @pytest.mark.slow
-    def test_ethanol_opt(self):
+    def test_ethanol_opt(self, tmpdir):
         mols = [mol_from_file('ethanol_resp2_c1.xyz'),
                 mol_from_file('ethanol_resp2_c2.xyz')]
         r = psiresp.Resp2.from_molecules(mols, charge=0)
-        charges = r.run(opt=True, n_orient=0, delta=0.5, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(opt=True, n_orient=0, delta=0.5)
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)

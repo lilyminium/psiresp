@@ -63,22 +63,24 @@ class TestMultiRespNoOptNoOrient(object):
         return charges_from_red_file(fn)
 
     def test_single_mol_in_multiresp(self, stage_2, a, nme2ala2,
-                                     nme2ala2_charges):
+                                     nme2ala2_charges, tmpdir):
         r = psiresp.MultiResp([nme2ala2])
-        charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                        intra_chrequiv=self.intra_chrequiv[1:],
-                        intra_chrconstr=self.intra_chrconstr[1:],
-                        n_orient=self.n_orient, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
+                            intra_chrequiv=self.intra_chrequiv[1:],
+                            intra_chrconstr=self.intra_chrconstr[1:],
+                            n_orient=self.n_orient, save_files=False)
         assert_allclose(charges[0], nme2ala2_charges, rtol=0.01, atol=1e-4)
 
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
-                       multifit_charges):
+                       multifit_charges, tmpdir):
         r = psiresp.MultiResp([methylammonium, nme2ala2])
-        charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                        inter_chrconstr=self.inter_chrconstr,
-                        intra_chrequiv=self.intra_chrequiv,
-                        intra_chrconstr=self.intra_chrconstr,
-                        n_orient=self.n_orient, save_files=False)
+        with tmpdir.as_cwd():
+            charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
+                            inter_chrconstr=self.inter_chrconstr,
+                            intra_chrequiv=self.intra_chrequiv,
+                            intra_chrconstr=self.intra_chrconstr,
+                            n_orient=self.n_orient, save_files=False)
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=0.01, atol=1e-4)
 

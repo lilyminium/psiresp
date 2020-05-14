@@ -22,6 +22,7 @@ class TestConformer:
     def conformer(self, geometry):
         return psiresp.Conformer(geometry)
 
+    @pytest.mark.fast
     def test_init_conformer_defaults(self, conformer):
         assert conformer.name == 'default'
         assert conformer.charge == 0
@@ -33,6 +34,7 @@ class TestConformer:
         assert len(conformer.orientations) == 1
         assert len(conformer._orientations) == 0
 
+    @pytest.mark.fast
     def test_init_conformer_options(self, geometry):
         orient = [(5, 18, 19), (19, 18, 5)]
         conformer = psiresp.Conformer(geometry, name='nme2ala2', charge=2,
@@ -50,6 +52,7 @@ class TestConformer:
         assert conformer.orientations[0].name == 'nme2ala2_o1'
         assert conformer.orientations[1].name == 'nme2ala2_o2'
 
+    @pytest.mark.fast
     def test_add_orientations(self, conformer):
         assert len(conformer.orientations) == 1  # original molecule
         conformer.add_orientations(orient=[(5, 18, 19), (19, 18, 5)])
@@ -97,6 +100,7 @@ class TestConformer:
             else:
                 assert not os.path.exists(xyz)
 
+    @pytest.mark.fast
     def test_clone(self, conformer):
         new = conformer.clone()
         assert new.molecule is not conformer.molecule
