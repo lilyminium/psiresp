@@ -10,10 +10,10 @@ env:
     - CONDAENV="test_env"
     - PYTHON_VERSION=3.7
 
-stages:
-  - build_and_test
-  - name: deploy
-    if: branch = master
+# stages:
+#   - build_and_test
+#   - name: deploy
+#     if: branch = master
 
 # Run jobs on container-based infrastructure, can be overridden per job
 
@@ -22,7 +22,7 @@ matrix:
   include:
     # Extra includes for OSX since python language is not available by default on OSX
     # only run fast tests; optimize and RESP2 tests will time out
-    - stage: build_and_test
+    # - stage: build_and_test
     - env: NAME="linux_3.7_not_slow"
            PYTHON_VERSION=3.7
            PYTEST_SEL="-m 'not slow'"
@@ -42,18 +42,18 @@ matrix:
       env: NAME="OSX_3.6_fast"
            PYTHON_VERSION=3.6
 
-    - stage: deploy
-      # name: Docs
-      env: BUILD_CMD="python setup.py build_sphinx"
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        on:
-          branch: master
-          python: "3.6"
-        project_name: psiresp
-        local_dir: docs/build
+    # - stage: deploy
+    #   # name: Docs
+    #   env: BUILD_CMD="python setup.py build_sphinx"
+    #   deploy:
+    #     provider: pages
+    #     skip_cleanup: true
+    #     github_token: $GITHUB_TOKEN
+    #     on:
+    #       branch: master
+    #       python: "3.6"
+    #     project_name: psiresp
+    #     local_dir: docs/build
 
 before_install:
   # Additional info about the build
