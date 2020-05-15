@@ -9,11 +9,10 @@ author = "Lily Wang"
 author-email = "lily.wang@anu.edu.au"
 home-page = "https://github.com/lilyminium/psiresp"
 classifiers = [
-    "License :: OSI Approved :: LGPL-3.0-or-later License", 
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)", 
     "Programming Language :: Python :: 3",]
 requires-python = ">=3.6"
 requires = ["numpy", "qcelemental", "duecredit"]
-keywords = ["psi4", "resp"]
 
 [tool.flit.metadata.requires-extra]
 test = [
