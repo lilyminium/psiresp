@@ -153,7 +153,9 @@ class Resp2(object):
             basis='aug-cc-pV(D+d)Z', vdw_radii={}, psi4_options={},
             rmin=1.3, rmax=2.1, save_files=False, n_orient=0, orient=[],
             n_rotate=0, rotate=[], n_translate=0, translate=[],
-            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False):
+            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False,
+            vdw_point_density=2.5, vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+            use_radii='bondi'):
         """
         Perform a 2-stage RESP2 fit.
 
@@ -260,9 +262,9 @@ class Resp2(object):
         self._gas_charges = self.gas.run(stage_2=True, opt=False,
                                          chrconstr=chrconstr,
                                          chrequiv=chrequiv,
-                                         weights=weights, use_radii='bondi',
-                                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                                         vdw_point_density=2.5,
+                                         weights=weights, use_radii=use_radii,
+                                         vdw_scale_factors=vdw_scale_factors,
+                                         vdw_point_density=vdw_point_density,
                                          vdw_radii=vdw_radii,
                                          rmin=rmin, rmax=rmax, method=method,
                                          basis=basis, solvent=None,
@@ -277,9 +279,9 @@ class Resp2(object):
         self._solv_charges = self.solv.run(stage_2=True, opt=False,
                                            chrconstr=chrconstr,
                                            chrequiv=chrequiv,
-                                           weights=weights, use_radii='bondi',
-                                           vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                                           vdw_point_density=2.5,
+                                           weights=weights, use_radii=use_radii,
+                                           vdw_scale_factors=vdw_scale_factors,
+                                           vdw_point_density=vdw_point_density,
                                            vdw_radii=vdw_radii,
                                            rmin=rmin, rmax=rmax,
                                            method=method,
@@ -354,7 +356,9 @@ class MultiResp2(object):
             basis='aug-cc-pV(D+d)Z', vdw_radii={}, psi4_options={},
             rmin=1.3, rmax=2.1, save_files=False, n_orient=0, orient=[],
             n_rotate=0, rotate=[], n_translate=0, translate=[],
-            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False):
+            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False,
+            vdw_point_density=2.5, vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+            use_radii='bondi',):
         """
         Perform a 2-stage RESP2 fit.
 
@@ -455,7 +459,12 @@ class MultiResp2(object):
             maximum number of iterations in fitting
         load_files: bool (optional)
             If ``True``, tries to load ESP and grid data from file.
-
+        use_radii: str (optional)
+            which set of van der Waals' radii to use
+        vdw_scale_factors: iterable of floats (optional)
+            scale factors
+        vdw_point_density: float (optional)
+            point density
         Returns
         -------
         charges: ndarray
@@ -480,9 +489,10 @@ class MultiResp2(object):
                                          intra_chrequiv=intra_chrequiv,
                                          inter_chrconstr=inter_chrconstr,
                                          inter_chrequiv=inter_chrequiv,
-                                         weights=weights, use_radii='bondi',
-                                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                                         vdw_point_density=2.5, vdw_radii=vdw_radii,
+                                         weights=weights, use_radii=use_radii,
+                                         vdw_scale_factors=vdw_scale_factors,
+                                         vdw_point_density=vdw_point_density,
+                                         vdw_radii=vdw_radii,
                                          rmin=rmin, rmax=rmax, method=method,
                                          basis=basis, solvent=None, restraint=True,
                                          psi4_options=psi4_options, hyp_a1=0.0005,
@@ -496,9 +506,10 @@ class MultiResp2(object):
                                            intra_chrequiv=intra_chrequiv,
                                            inter_chrconstr=inter_chrconstr,
                                            inter_chrequiv=inter_chrequiv,
-                                           weights=weights, use_radii='bondi',
-                                           vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                                           vdw_point_density=2.5, vdw_radii=vdw_radii,
+                                           weights=weights, use_radii=use_radii,
+                                           vdw_scale_factors=vdw_scale_factors,
+                                           vdw_point_density=vdw_point_density,
+                                           vdw_radii=vdw_radii,
                                            rmin=rmin, rmax=rmax, method=method,
                                            basis=basis, solvent='water', restraint=True,
                                            psi4_options=psi4_options, hyp_a1=0.0005,
