@@ -22,6 +22,28 @@ A RESP plugin for Psi4.
 * 1-stage ESP, B3LYP/6-31G* in implicit solvent with MSK radii. Unknown point density? (convenience class: psiresp.Multi/ATBResp)
 * RESP2: PW6B95/aug-cc-pV(D+d)Z in vacuum and solvent with Bondi radii, density=2.5 (convenience class: psiresp.Multi/Resp2)
 
+### Installation
+
+To build from source, clone this repository:
+
+```
+git clone https://github.com/lilyminium/psiresp.git
+cd psiresp
+```
+
+Create a new conda environment with dependencies:
+
+```
+conda env create -f devtools/conda-envs/resp_env.yaml
+conda activate psiresp
+```
+
+And build the package.
+
+```
+python setup.py install
+```
+
 ### Example
 
 For example, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993) as standard in AMBER 
