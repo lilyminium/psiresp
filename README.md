@@ -7,6 +7,7 @@
 [![codecov](https://codecov.io/gh/lilyminium/psiresp/branch/master/graph/badge.svg)](https://codecov.io/gh/lilyminium/psiresp/branch/master)
 [![Documentation Status](https://readthedocs.org/projects/psiresp/badge/?version=latest)](https://psiresp.readthedocs.io/en/latest/?badge=latest)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/lilyminium/psiresp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/lilyminium/psiresp/context:python)
+[![PyPI version](https://badge.fury.io/py/psiresp.svg)](https://badge.fury.io/py/psiresp)
       
 
 A RESP plugin for Psi4.
@@ -23,6 +24,13 @@ A RESP plugin for Psi4.
 * RESP2: PW6B95/aug-cc-pV(D+d)Z in vacuum and solvent with Bondi radii, density=2.5 (convenience class: psiresp.Multi/Resp2)
 
 ### Installation
+
+The package is on Pypi, so you can install with `pip`. Note that you will need to install `psi4` separately with `conda`.
+
+```
+conda install -c psi4 psi4
+pip install psiresp
+```
 
 To build from source, clone this repository:
 
