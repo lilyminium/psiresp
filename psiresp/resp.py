@@ -460,6 +460,7 @@ class Resp(object):
                                                    use_radii=use_radii,
                                                    scale_factors=vdw_scale_factors,
                                                    density=vdw_point_density)
+            print(len(vdw_points), vdw_point_density)
         else:
             vdw_points = []
 

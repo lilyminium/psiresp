@@ -39,7 +39,7 @@ def mol_from_file(file):
 def mol_from_mol2(file):
     with open(molfile(file), 'r') as f:
         atoms = f.read().split('@<TRIPOS>ATOM\n')[1]
-        atoms = atoms.split('\n@<TRIPOS>BOND')[0]
+        atoms = atoms.split('\n@<TRIPOS>')[0]
     arr = np.loadtxt(StringIO(atoms), usecols=(1, 2, 3, 4), dtype=object)
     arr[:, 0] = [re.sub(r'\d+', '', x) for x in arr[:, 0]]
     rows = [' '.join(row) for row in arr]
@@ -53,7 +53,7 @@ def mol_from_mol2(file):
 def charges_from_mol2(file):
     with open(molfile(file), 'r') as f:
         atoms = f.read().split('@<TRIPOS>ATOM\n')[1]
-        atoms = atoms.split('\n@<TRIPOS>BOND')[0]
+        atoms = atoms.split('\n@<TRIPOS>')[0]
     arr = np.loadtxt(StringIO(atoms), usecols=8)
     return arr
 

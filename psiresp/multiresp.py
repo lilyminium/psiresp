@@ -630,13 +630,6 @@ class MultiResp(object):
                               n_translate=n_translate,
                               translate=translate, load_files=load_files)
 
-        intra_chrconstr = self._nmol_values(intra_chrconstr,
-                                            'intra_chrconstr',
-                                            'list or dict of constraints')
-        intra_chrequiv = self._nmol_values(intra_chrequiv,
-                                           'intra_chrequiv',
-                                           'list of equivalence constraints')
-
         if stage_2:  # do intra-constraints in stage 2 only
             stage_2_equiv = intra_chrequiv
             intra_chrequiv = [[] for i in range(self.n_molecules)]

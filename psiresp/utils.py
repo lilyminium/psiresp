@@ -342,6 +342,8 @@ def isiterable(obj):
         return False
     if hasattr(obj, 'next'):
         return True
+    if isinstance(obj, itertools.repeat):
+        return True
     try:
         len(obj)
     except (TypeError, AttributeError):
@@ -367,6 +369,6 @@ def empty(obj):
 
 def iter_single(obj):
     """Return iterables of ``obj``, treating an empty list as an object"""
-    if not isiterable(obj) or empty(obj):
+    if not isiterable(obj) or empty(obj) and not isinstance(obj, itertools.repeat):
         return itertools.repeat(obj)
     return asiterable(obj)
