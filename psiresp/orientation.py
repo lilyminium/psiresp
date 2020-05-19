@@ -71,33 +71,10 @@ class Orientation(object):
         self.molecule = molecule
         self._grid_name = grid_name
         self._esp_name = esp_name
-        self.grid_filename = self._prepend_name_to_file(grid_name)
-        self.esp_filename = self._prepend_name_to_file(esp_name)
+        self.grid_filename = utils.prepend_name_to_file(self.name, grid_name)
+        self.esp_filename = utils.prepend_name_to_file(self.name, esp_name)
         self._grid = self._esp = self._r_inv = None
-
-        # try to read from files
-        if load_files:
-            fail = 'Could not read data from {}'
-            try:
-                self.grid = np.loadtxt(self.grid_filename)
-            except OSError:
-                warnings.warn(fail.format(self.grid_filename))
-            else:
-                if self.bohr:
-                    self.grid *= BOHR_TO_ANGSTROM
-                log.info('Read grid from {}'.format(self.grid_filename))
-            try:
-                self.esp = np.loadtxt(self.esp_filename)
-            except OSError:
-                warnings.warn(fail.format(self.esp_filename))
-            else:
-                log.info('Read esp from {}'.format(self.esp_filename))
-
-    def _prepend_name_to_file(self, filename):
-        head, tail = os.path.split(filename)
-        if head and not head.endswith(r'/'):
-            head += '/'
-        return '{}{}_{}'.format(head, self.name, tail)
+        self._load_files = load_files
 
     @property
     def grid(self):
@@ -152,7 +129,8 @@ class Orientation(object):
             mol.set_name(name)
         new = type(self)(name, symbols=self.symbols,
                          grid_name=self._grid_name,
-                         esp_name=self._esp_name)
+                         esp_name=self._esp_name,
+                         load_files=self._load_files)
         return new
 
     def get_esp_matrices(self, vdw_points=None, rmin=0, rmax=-1,
@@ -225,7 +203,7 @@ class Orientation(object):
     def get_grid(self, vdw_points=None, rmin=0, rmax=-1, fmt='%15.10f',
                  save_files=False, vdw_radii={}, use_radii='msk',
                  scale_factors=(1.4, 1.6, 1.8, 2.0),
-                 density=1.0):
+                 density=1.0, load_files=False):
         """
         Get ESP grid from a given file or compute it from the
         van der Waals' surfaces.
@@ -263,6 +241,17 @@ class Orientation(object):
         -------
         grid: ndarray
         """
+        if load_files or self._load_files:
+            try:
+                self.grid = np.loadtxt(self.grid_filename)
+            except OSError:
+                warnings.warn(f'Could not read data from {self.grid_filename}')
+            else:
+                if self.bohr:
+                    self.grid *= BOHR_TO_ANGSTROM
+                log.info(f'Read grid from {self.grid_filename}')
+                return self.grid
+
         # usually generated in RESP or Conformer
         if vdw_points is None or len(vdw_points) == 0:
             vdw_points = utils.gen_connolly_shells(self.symbols,
@@ -282,12 +271,12 @@ class Orientation(object):
             np.savetxt(self.grid_filename, to_save, fmt=fmt)
 
         self.grid = points
-        log.debug('Computed grid for {} with {} points'.format(self.name,
-                                                               len(points)))
+        log.debug(f'Computed grid for {self.name} with {len(points)} points')
         return points
 
     def get_esp(self, basis='6-31g*', method='scf', solvent=None,
-                psi4_options={}, fmt='%15.10f', save_files=False):
+                psi4_options={}, fmt='%15.10f', save_files=False,
+                load_files=False):
         """
         Get ESP at each point on a grid from a given file or compute it with Psi4.
 
@@ -311,6 +300,15 @@ class Orientation(object):
         -------
         grid_esp: ndarray
         """
+        if load_files or self._load_files:
+            try:
+                self.esp = np.loadtxt(self.esp_filename)
+            except OSError:
+                warnings.warn(f'Could not read data from {self.esp_filename}')
+            else:
+                log.info(f'Read esp from {self.esp_filename}')
+                return self.esp
+
         if not save_files:
             cwd = os.getcwd()
             with tempfile.TemporaryDirectory(prefix='tmp') as tmpdir:

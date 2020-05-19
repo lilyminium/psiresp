@@ -1,5 +1,5 @@
-from __future__ import division, absolute_import
 import itertools
+import os
 
 import numpy as np
 
@@ -372,3 +372,9 @@ def iter_single(obj):
     if not isiterable(obj) or empty(obj) and not isinstance(obj, itertools.repeat):
         return itertools.repeat(obj)
     return asiterable(obj)
+
+def prepend_name_to_file(name, filename):
+    head, tail = os.path.split(filename)
+    if head and not head.endswith(r'/'):
+        head += '/'
+    return '{}{}_{}'.format(head, name, tail)

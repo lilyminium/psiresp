@@ -1,11 +1,13 @@
 from __future__ import division, absolute_import
 import warnings
 import itertools
+import logging
 
 import numpy as np
 
 from . import utils
 
+log = logging.getLogger(__name__)
 
 class MultiResp(object):
     """
@@ -32,8 +34,12 @@ class MultiResp(object):
 
     def __init__(self, resps):
         self.molecules = resps
+        self._moldct = {r.name:i+1 for i, r in enumerate(resps)}
         self._unrestrained_charges = None
         self._restrained_charges = None
+
+        names = ', '.join([m.name for m in self.molecules])
+        log.debug(f'Created MultiResp with {self.n_molecules} molecules: {names}')
 
     def clone(self, suffix='_copy'):
         """Clone into another instance of MultiResp
@@ -126,7 +132,37 @@ class MultiResp(object):
 
     def get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
                                 inter_chrconstr=[], inter_chrequiv=[],
-                                weights=1, **kwargs):
+                                weights=1, mat_name='', save_files=False,
+                                load_files=False, **kwargs):
+        ABen = None
+        if load_files and mat_name:
+            try:
+                ABen = np.loadtxt(mat_name)
+            except OSError:
+                warnings.warn(f'Could not read matrix from {mat_name}')
+            else:
+                log.info(f'Read matrix from {mat_name}')
+        if ABen is None:
+            ABen = self._get_constraint_matrices(intra_chrconstr=intra_chrconstr,
+                                                 intra_chrequiv=intra_chrequiv,
+                                                 inter_chrconstr=inter_chrconstr,
+                                                 inter_chrequiv=inter_chrequiv,
+                                                 weights=weights, mat_name=mat_name,
+                                                 save_files=save_files,
+                                                 load_files=load_files, **kwargs)
+
+        A = ABen[:-3]
+        B = ABen[-3]
+        medges = np.where(ABen[-2])[0]
+        edges = [[i, i+m.n_atoms] for i, m in zip(medges, self.molecules)]
+        nmol = ABen[-1]
+        return A, B, np.array(edges), np.array(nmol)
+        
+
+    def _get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
+                                inter_chrconstr=[], inter_chrequiv=[],
+                                weights=1, mat_name='', save_files=False,
+                                **kwargs):
         """
         Get A and B matrices to solve for charges, including charge constraints.
 
@@ -213,25 +249,29 @@ class MultiResp(object):
         for m, constr, equiv, w in zip(self.molecules, intra_chrconstr,
                                        intra_chrequiv, weights):
             a, b = m.get_constraint_matrices(chrconstr=constr, chrequiv=equiv,
-                                             weights=w, **kwargs)
+                                             weights=w, mat_name=mat_name,
+                                             save_files=save_files, 
+                                             **kwargs)
             a_s.append(a)
             b_s.append(b)
             nmol.extend([m.n_structures]*len(b))
 
         mol_edges = np.r_[0, np.cumsum([len(b) for b in b_s])].astype(int)
-        edges = list(zip(mol_edges[:-1], mol_edges[1:]))
         n_intra = mol_edges[-1]
+        edges = [(i, j) for i, j in zip(mol_edges[:-1], mol_edges[1:])]
 
         # allow for inter constraints to be given either as (nmol, natom)
-        # or (nmol, [n_atom])
+        # or (nmol, [n_atom])  or names...
         def groups_to_indices(groups):
             indices = []
             for a, b in groups:
+                if isinstance(a, str):
+                    a = self._moldct[a]
                 offset = mol_edges[a-1]
                 if isinstance(b, (tuple, list)):
                     indices.extend([offset+x-1 for x in b])
                 else:
-                    indices.append(offset+x-1)
+                    indices.append(offset+b-1)
             return np.array(indices)
 
         # set up intermolecular constraints
@@ -249,8 +289,13 @@ class MultiResp(object):
         ndim = n_intra+n_equiv+n_constr
         nmol.extend([self.n_structures]*(n_equiv+n_constr))
 
-        A = np.zeros((ndim, ndim))
-        B = np.zeros(ndim)
+        log.debug(f'Constructing MultiResp constraint matrices of dimension {ndim}')
+
+        ABen = np.zeros((ndim+3, ndim))
+        A = ABen[:ndim]
+        B = ABen[ndim]
+        ABen[ndim+1, mol_edges[:-1]] = 1
+        ABen[-1] = nmol
 
         for (i, j), a, b in zip(edges, a_s, b_s):
             A[i:j, i:j] = a
@@ -265,8 +310,11 @@ class MultiResp(object):
             A[(x, ix[:-1])] = A[(ix[:-1], x)] = -1
             A[(x, ix[1:])] = A[(ix[1:], x)] = 1
 
-        edges = [[i, i+m.n_atoms] for (i, _), m in zip(edges, self.molecules)]
-        return A, B, np.array(edges), np.array(nmol)
+        if save_files and mat_name:
+            np.savetxt(mat_name, ABen)
+            log.info(f'Saved matrices to {mat_name}')
+
+        return ABen
 
     def fit(self, restraint=True, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
             tol=1e-5, maxiter=50, **kwargs):
@@ -645,15 +693,19 @@ class MultiResp(object):
                       inter_chrconstr=inter_chrconstr,
                       inter_chrequiv=inter_chrequiv,
                       basis=basis, method=method, hyp_a=hyp_a1,
+                      load_files=load_files, mat_name='stg1_abmat.dat',
                       **kwargs)
+        log.debug(f'Finished stage 1 fit with charges: {qs}')
         if stage_2:
             cs = self.get_stage2_constraints(qs, equal_methyls=equal_methyls,
                                              intra_chrequiv=stage_2_equiv, 
                                              inter_chrconstr=inter_chrconstr,
                                              intra_chrconstr=intra_chrconstr)
+            log.debug(f'Stage 2 constraints: {cs}')
             intra_c, intra_e = cs
             qs = self.fit(intra_chrconstr=intra_c,
                           intra_chrequiv=intra_e,
                           basis=basis, method=method,
-                          hyp_a=hyp_a2, **kwargs)
+                          mat_name='stg2_abmat.dat',
+                          hyp_a=hyp_a2, load_files=load_files, **kwargs)
         return qs

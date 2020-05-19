@@ -1,7 +1,7 @@
-from __future__ import absolute_import
 import logging
 import os
 import tempfile
+import warnings
 
 import numpy as np
 
@@ -62,7 +62,8 @@ class Conformer(object):
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
                  orient=[], rotate=[], translate=[], load_files=False,
-                 grid_name='grid.dat', esp_name='grid_esp.dat'):
+                 grid_name='grid.dat', esp_name='grid_esp.dat',
+                 mat_name='abmat.dat'):
         if name and name != molecule.name():
             molecule.set_name(name)
         self.name = molecule.name()
@@ -81,6 +82,8 @@ class Conformer(object):
         self._load_files = load_files
         self._grid_name = grid_name
         self._esp_name = esp_name
+        self._mat_name = mat_name
+        self.mat_filename = utils.prepend_name_to_file(self.name, mat_name)
         self._orientations = []
         self._orientation = Orientation(self.molecule, symbols=self.symbols)
 
@@ -130,7 +133,8 @@ class Conformer(object):
                          translate=self._translate,
                          load_files=self._load_files,
                          grid_name=self._grid_name,
-                         esp_name=self._esp_name)
+                         esp_name=self._esp_name,
+                         mat_name=self._mat_name)
         return new
 
     def _gen_orientations(self, orient=[], translate=[], rotate=[],
@@ -270,7 +274,8 @@ class Conformer(object):
                          basis='6-31g*', method='scf', solvent=None,
                          psi4_options={}, save_files=False, vdw_radii={},
                          use_radii='msk', vdw_point_density=1.0,
-                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0)):
+                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+                         load_files=False):
         """
         Get A and B matrices to solve for charges, from Bayly:93:Eq.11:: Aq=B
 
@@ -316,19 +321,38 @@ class Conformer(object):
         A: ndarray (n_atoms, n_atoms)
         B: ndarray (n_atoms,)
         """
-        A = np.zeros((self.n_atoms, self.n_atoms))
-        B = np.zeros(self.n_atoms)
+        shape = (self.n_atoms+1, self.n_atoms)  # Ax=B
+        AB = None
 
-        for mol in self.orientations:
-            a, b = mol.get_esp_matrices(vdw_points=vdw_points,
-                                        basis=basis, method=method,
-                                        solvent=solvent,
-                                        psi4_options=psi4_options,
-                                        save_files=save_files)
-            A += a
-            B += b
+        if load_files or self._load_files:
+            try:
+                AB = np.loadtxt(self.mat_filename)
+            except OSError:
+                warnings.warn(f'Could not read data from {self.mat_filename}')
+            else:
+                log.info(f'Read {self.name} AB matrices '
+                         f'from {self.mat_filename}')
+                if AB.shape != shape:
+                    log.info(f'{self.name} AB matrix has the wrong shape: '
+                             f'{AB.shape}, should be {shape}')
+                    AB = None
 
-        A *= (weight**2)
-        B *= (weight**2)
+        if AB is None:
+            AB = np.zeros(shape)
+            for mol in self.orientations:
+                a, b = mol.get_esp_matrices(vdw_points=vdw_points,
+                                            basis=basis, method=method,
+                                            solvent=solvent,
+                                            psi4_options=psi4_options,
+                                            save_files=save_files)
+                AB[:self.n_atoms] += a
+                AB[-1] += b
+        
+        if save_files:
+            np.savetxt(self.mat_filename, AB)
+            log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
+        
+        AB *= (weight**2)
+        A, B = AB[:self.n_atoms], AB[-1]
 
         return A, B
