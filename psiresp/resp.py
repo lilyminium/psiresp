@@ -121,8 +121,8 @@ class Resp(object):
             names = np.where(molnames == 'default', molnames, gennames)
 
         conformers = []
-        for mol, name in zip(molecules, names):
-            conformers.append(Conformer(mol.clone(), name=name, charge=charge,
+        for mol, n in zip(molecules, names):
+            conformers.append(Conformer(mol.clone(), name=n, charge=charge,
                                         multiplicity=multiplicity,
                                         orient=orient, rotate=rotate,
                                         translate=translate,
