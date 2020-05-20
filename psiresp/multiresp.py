@@ -93,7 +93,7 @@ class MultiResp(object):
         with the ``name`` of the variable and ``element`` description 
         if the lengths mismatch.
         """
-        values = utils.iter_single(values)
+        values = utils.iter_single(values, self.n_molecules)
         try:
             if len(values) != self.n_molecules:
                 err = ('{} must be a list with the '
