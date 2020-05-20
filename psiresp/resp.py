@@ -63,6 +63,7 @@ class Resp(object):
     def from_molecules(cls, molecules, charge=0, multiplicity=1, name=None,
                        orient=[], rotate=[], translate=[],
                        grid_name='grid.dat', esp_name='grid_esp.dat',
+                       mat_name='abmat.dat',
                        load_files=False, **kwargs):
         """
         Create Resp class from Psi4 molecules.
@@ -127,16 +128,20 @@ class Resp(object):
                                         translate=translate,
                                         grid_name=grid_name,
                                         esp_name=esp_name,
+                                        mat_name=mat_name,
                                         load_files=load_files))
 
-        return cls(conformers, name=name, **kwargs)
+        return cls(conformers, name=name, load_files=load_files,
+                   **kwargs)
 
-    def __init__(self, conformers, name=None, chrconstr=[], chrequiv=[]):
+    def __init__(self, conformers, name=None, chrconstr=[], chrequiv=[],
+                 load_files=False):
         if name is None:
             name = 'Resp'
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
         self.name = name
+        self._load_files = load_files
         self.conformers = utils.asiterable(conformers)
         self.n_conf = len(self.conformers)
         self.charge = self._conf.charge
@@ -153,6 +158,10 @@ class Resp(object):
             self.add_charge_constraints(chrconstr)
         if chrequiv is not None:
             self.add_charge_equivalences(chrequiv)
+
+        log.debug(f'Resp(name={self.name}) created with '
+                  f'{self.n_conf} conformers, {len(self.chrconstr)} charge '
+                  f'constraints and {len(self.chrequiv)} charge equivalences')
 
     @property
     def _conf(self):
@@ -181,7 +190,7 @@ class Resp(object):
         charge = self.charge
         mult = self._conf.multiplicity
         new = type(self).from_molecules(mols, name=name, charge=charge,
-                                        multiplicity=mult)
+                                        multiplicity=mult, load_files=self._load_files)
         for nc, mc in zip(new.conformers, self.conformers):
             nc.add_orientations(orient=mc._orient, rotate=mc._rotate,
                                 translate=mc._translate)
@@ -318,8 +327,9 @@ class Resp(object):
         n_constr = len(chrconstr)
         ndim = n_equiv+n_constr+self.n_atoms+1
 
-        A = np.zeros((ndim, ndim))
-        B = np.zeros(ndim)
+        AB = np.zeros((ndim+1, ndim))
+        A = AB[:ndim]
+        B = AB[-1]
 
         for i, (q, ids) in enumerate(chrconstr, self.n_atoms+1):
             B[i] = q
@@ -331,7 +341,7 @@ class Resp(object):
             A[(x, indices[:-1])] = A[(indices[:-1], x)] = -1
             A[(x, indices[1:])] = A[(indices[1:], x)] = 1
 
-        return A, B
+        return AB
 
     def iter_solve(self, q, a, b, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
                    tol=1e-6, maxiter=50):
@@ -393,7 +403,8 @@ class Resp(object):
                                 vdw_point_density=1.0, vdw_radii={},
                                 rmin=0, rmax=-1, basis='6-31g*', method='scf',
                                 solvent=None, psi4_options={},
-                                save_files=False):
+                                save_files=False, load_files=False,
+                                mat_name=''):
         """
         Get A and B matrices to solve for charges, including charge constraints.
 
@@ -442,9 +453,25 @@ class Resp(object):
         a: ndarray
         b: ndarray
         """
+        mat_filename = utils.prepend_name_to_file(self.name, mat_name)
+        AB = None
 
-        A, B = self.set_user_constraints(chrconstr=chrconstr,
-                                         chrequiv=chrequiv)
+        if load_files and self._load_files and mat_name:
+            try:
+                AB = np.loadtxt(mat_filename)
+            except OSError:
+                warnings.warn(f'Could not read data from {mat_filename}')
+            else:
+                log.info(f'Read matrix from {mat_filename}')
+                A, B = AB[:-1], AB[-1]
+                return A, B
+                
+
+        AB = self.set_user_constraints(chrconstr=chrconstr,
+                                        chrequiv=chrequiv)
+        A, B = AB[:-1], AB[-1]
+        log.debug(f'Computing {self.name} Resp constraint matrices '
+                  f'of dimension {len(B)}')
 
         if not utils.isiterable(weights):
             weights = itertools.repeat(weights)
@@ -470,12 +497,16 @@ class Resp(object):
                                          rmin=0, rmax=-1, basis=basis,
                                          method=method, solvent=solvent,
                                          psi4_options=psi4_options,
-                                         save_files=save_files)
+                                         save_files=save_files, load_files=load_files)
             A[:n_a, :n_a] += a
             B[:n_a] += b
 
         A[n_a, :n_a] = A[:n_a, n_a] = 1
         B[n_a] = self.charge
+
+        if save_files and mat_name:
+            np.savetxt(mat_filename, AB)
+            log.info(f'Saved matrix to {mat_filename}')
 
         return A, B
 
@@ -802,6 +833,8 @@ class Resp(object):
                      chrequiv=chrequiv,
                      basis=basis, method=method,
                      hyp_a=hyp_a1, restraint=restraint,
+                     load_files=load_files,
+                     mat_name='stg1_abmat.dat',
                      **kwargs)
 
         if stage_2:
@@ -817,5 +850,7 @@ class Resp(object):
             q = self.fit(chrconstr=constr, chrequiv=equiv,
                          basis=basis, method=method,
                          hyp_a=hyp_a2, restraint=restraint,
+                         load_files=load_files,
+                         mat_name='stg2_abmat.dat',
                          **kwargs)
         return q

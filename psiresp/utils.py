@@ -1,5 +1,5 @@
-from __future__ import division, absolute_import
 import itertools
+import os
 
 import numpy as np
 
@@ -342,6 +342,8 @@ def isiterable(obj):
         return False
     if hasattr(obj, 'next'):
         return True
+    if isinstance(obj, itertools.repeat):
+        return True
     try:
         len(obj)
     except (TypeError, AttributeError):
@@ -367,6 +369,12 @@ def empty(obj):
 
 def iter_single(obj):
     """Return iterables of ``obj``, treating an empty list as an object"""
-    if not isiterable(obj) or empty(obj):
+    if not isiterable(obj) or empty(obj) and not isinstance(obj, itertools.repeat):
         return itertools.repeat(obj)
     return asiterable(obj)
+
+def prepend_name_to_file(name, filename):
+    head, tail = os.path.split(filename)
+    if head and not head.endswith(r'/'):
+        head += '/'
+    return '{}{}_{}'.format(head, name, tail)
