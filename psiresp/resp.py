@@ -465,10 +465,9 @@ class Resp(object):
                 log.info(f'Read matrix from {mat_filename}')
                 A, B = AB[:-1], AB[-1]
                 return A, B
-                
 
         AB = self.set_user_constraints(chrconstr=chrconstr,
-                                        chrequiv=chrequiv)
+                                       chrequiv=chrequiv)
         A, B = AB[:-1], AB[-1]
         log.debug(f'Computing {self.name} Resp constraint matrices '
                   f'of dimension {len(B)}')
@@ -652,16 +651,33 @@ class Resp(object):
         if chrequiv:  # constraints are fitted in stage 2
             equivs = chrequiv
         elif equal_methyls:
-            equivs = [a, b, c, d] = self.get_methyl_constraints(chrconstr)
+            equivs = self.get_methyl_constraints(chrconstr)
         else:
             cs, equivs = zip(*self.get_sp3_ch_ids().items())
-        chs = np.r_[cs, np.concatenate(equivs)]
+
+        # sort through equivs; cannot have 2 equivalent atoms, that
+        # are constrained to different charges in chrconstr; and
+        # if they are constrained to the same charges I think it makes
+        # a singular matrix?
+        if isinstance(chrconstr, dict):
+            chrconstr = list(chrconstr.items())
+        charge_mapping = {at[0]: q for q, at in chrconstr if len(at) == 1}
+        final_equivs = []
+        for eq in equivs:
+            if not len(eq) >= 2:
+                continue
+            charges = [charge_mapping[a] for a in eq if a in charge_mapping]
+            if len(charges) <= 1:
+                final_equivs.append(eq)
+
+        chs = np.r_[cs, np.concatenate(final_equivs)]
 
         q = np.asarray(q)
         ids = self.indices+1
         mask = ~np.in1d(ids, chs)
-        constraints = [(q, [a]) for q, a in zip(q[mask], ids[mask])]
-        return constraints, equivs
+        constraints = [(q, [a]) for q, a in zip(q[mask], ids[mask])
+                       if a not in charge_mapping]
+        return constraints, final_equivs
 
     def _gen_orientation_atoms(self):
         """

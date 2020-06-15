@@ -9,6 +9,7 @@ from . import utils
 
 log = logging.getLogger(__name__)
 
+
 class MultiResp(object):
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
@@ -34,7 +35,7 @@ class MultiResp(object):
 
     def __init__(self, resps):
         self.molecules = resps
-        self._moldct = {r.name:i+1 for i, r in enumerate(resps)}
+        self._moldct = {r.name: i+1 for i, r in enumerate(resps)}
         self._unrestrained_charges = None
         self._restrained_charges = None
 
@@ -157,12 +158,11 @@ class MultiResp(object):
         edges = [[i, i+m.n_atoms] for i, m in zip(medges, self.molecules)]
         nmol = ABen[-1]
         return A, B, np.array(edges), np.array(nmol)
-        
 
     def _get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
-                                inter_chrconstr=[], inter_chrequiv=[],
-                                weights=1, mat_name='', save_files=False,
-                                **kwargs):
+                                 inter_chrconstr=[], inter_chrequiv=[],
+                                 weights=1, mat_name='', save_files=False,
+                                 **kwargs):
         """
         Get A and B matrices to solve for charges, including charge constraints.
 
@@ -250,7 +250,7 @@ class MultiResp(object):
                                        intra_chrequiv, weights):
             a, b = m.get_constraint_matrices(chrconstr=constr, chrequiv=equiv,
                                              weights=w, mat_name=mat_name,
-                                             save_files=save_files, 
+                                             save_files=save_files,
                                              **kwargs)
             a_s.append(a)
             b_s.append(b)
@@ -343,7 +343,14 @@ class MultiResp(object):
         charges: list of ndarray
         """
         a, b, edges, nmol = self.get_constraint_matrices(**kwargs)
-        q = np.linalg.solve(a, b)
+        try:
+            q = np.linalg.solve(a, b)
+        except np.linalg.LinAlgError:
+            np.savetxt('a_matrix.dat', a)
+            np.savetxt('b_matrix.dat', b)
+            err = ("Singular matrix. Wrote A and B matrices out to "
+                   "a_matrix.dat and b_matrix.dat for more info")
+            raise np.linalg.LinAlgError(err) from None
         self.unrestrained_charges = [q[i:j] for i, j in edges]
         if restraint:
             q = self.iter_solve(q, a, b, edges, nmol, hyp_a=hyp_a, hyp_b=hyp_b,
@@ -494,7 +501,11 @@ class MultiResp(object):
             iconstr.append(c)
             iequiv.append(e)
 
-        return iconstr, iequiv
+        equivs = []
+        for group in iequiv:
+            equivs.append([x for x in group if len(x) >= 2])
+
+        return iconstr, equivs
 
     def get_methyl_constraints(self):
         """
@@ -698,7 +709,7 @@ class MultiResp(object):
         log.debug(f'Finished stage 1 fit with charges: {qs}')
         if stage_2:
             cs = self.get_stage2_constraints(qs, equal_methyls=equal_methyls,
-                                             intra_chrequiv=stage_2_equiv, 
+                                             intra_chrequiv=stage_2_equiv,
                                              inter_chrconstr=inter_chrconstr,
                                              intra_chrconstr=intra_chrconstr)
             log.debug(f'Stage 2 constraints: {cs}')
