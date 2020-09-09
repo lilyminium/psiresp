@@ -367,11 +367,12 @@ def empty(obj):
     return not obj
 
 
-def iter_single(obj):
+def iter_single(obj, *args):
     """Return iterables of ``obj``, treating an empty list as an object"""
     if not isiterable(obj) or empty(obj) and not isinstance(obj, itertools.repeat):
-        return itertools.repeat(obj)
+        return itertools.repeat(obj, *args)
     return asiterable(obj)
+
 
 def prepend_name_to_file(name, filename):
     head, tail = os.path.split(filename)
