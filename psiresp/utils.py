@@ -373,6 +373,7 @@ def iter_single(obj, *args):
         return itertools.repeat(obj, *args)
     return asiterable(obj)
 
+
 def prepend_name_to_file(name, filename):
     head, tail = os.path.split(filename)
     if head and not head.endswith(r'/'):

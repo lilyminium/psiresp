@@ -655,28 +655,30 @@ class Resp(object):
         else:
             cs, equivs = zip(*self.get_sp3_ch_ids().items())
 
+        # TODO: look into this
         # sort through equivs; cannot have 2 equivalent atoms, that
         # are constrained to different charges in chrconstr; and
         # if they are constrained to the same charges I think it makes
         # a singular matrix?
-        if isinstance(chrconstr, dict):
-            chrconstr = list(chrconstr.items())
-        charge_mapping = {at[0]: q for q, at in chrconstr if len(at) == 1}
-        final_equivs = []
-        for eq in equivs:
-            if not len(eq) >= 2:
-                continue
-            charges = [charge_mapping[a] for a in eq if a in charge_mapping]
-            if len(charges) <= 1:
-                final_equivs.append(eq)
+        # if isinstance(chrconstr, dict):
+        #     chrconstr = list(chrconstr.items())
+        # charge_mapping = {at[0]: q for q, at in chrconstr if len(at) == 1}
+        # final_equivs = []
+        # for eq in equivs:
+        #     if not len(eq) >= 2:
+        #         continue
+        #     charges = [charge_mapping[a] for a in eq if a in charge_mapping]
+        #     if len(set(charges)) <= 1:
+        #         final_equivs.append(eq)
+        final_equivs = equivs
 
         chs = np.r_[cs, np.concatenate(final_equivs)]
 
         q = np.asarray(q)
         ids = self.indices+1
         mask = ~np.in1d(ids, chs)
-        constraints = [(q, [a]) for q, a in zip(q[mask], ids[mask])
-                       if a not in charge_mapping]
+        constraints = [(q, [a]) for q, a in zip(q[mask], ids[mask])]
+                    #    if a not in charge_mapping]
         return constraints, final_equivs
 
     def _gen_orientation_atoms(self):

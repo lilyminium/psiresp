@@ -483,18 +483,21 @@ class MultiResp(object):
             inter_chrconstr = list(inter_chrconstr.items())
 
         # anything involved in a charge constraint cannot fluctuate freely
-        chrconstr = [list() for i in range(self.n_molecules)]
-        for _, groups in inter_chrconstr:
-            for molid, atoms in groups:
-                if isinstance(atoms, (tuple, list)):
-                    chrconstr[molid-1].extend(atoms)
-                else:
-                    chrconstr[molid-1].append(atoms)
+        # chrconstr = [list() for i in range(self.n_molecules)]
+        # print("inter", intra_chrconstr)
+        # for q, groups in inter_chrconstr:
+        #     for molid, atoms in groups:
+        #         if isinstance(atoms, (tuple, list)):
+        #             chrconstr[molid-1].extend(atoms)
+        #         else:
+        #             chrconstr[molid-1].append(atoms)
 
-        for i, atoms in enumerate(intra_chrconstr):
-            chrconstr[i].extend(atoms)  # avoid any tuple+list hijinks
+        # for i, atoms in enumerate(intra_chrconstr):
+        #     chrconstr[i].extend(atoms)  # avoid any tuple+list hijinks
 
-        rows = zip(self.molecules, qs, intra_chrequiv, chrconstr)
+        # print("first", chrconstr)
+
+        rows = zip(self.molecules, qs, intra_chrequiv, intra_chrconstr)
         for i, (mol, q, eq, cr) in enumerate(rows):
             c, e = mol.get_stage2_constraints(q, chrequiv=eq, chrconstr=cr,
                                               equal_methyls=equal_methyls)
