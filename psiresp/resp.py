@@ -4,6 +4,8 @@ import itertools
 import logging
 
 import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 from .conformer import Conformer
 from . import utils
@@ -133,6 +135,29 @@ class Resp(object):
 
         return cls(conformers, name=name, load_files=load_files,
                    **kwargs)
+
+
+    @classmethod
+    def from_rdmol(cls, rdmol, name=None, rmsd_threshold=1.5, minimize=True,
+                   n_confs=50, **kwargs):
+        rdmol = Chem.AddHs(rdmol)
+        confs = []
+
+        cids = AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
+                                          pruneRmsThresh=rmsd_threshold,
+                                          ignoreSmoothingFailures=True)
+        if minimize:
+            # TODO: is UFF good?
+            AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
+
+        if name is None:
+            name = "Mol"
+
+        charge = Chem.GetFormalCharge(rdmol)
+        molecules = utils.rdmol_to_psi4mols(rdmol)
+
+        return cls.from_molecules(molecules, charge=charge, **kwargs)
+        
 
     def __init__(self, conformers, name=None, chrconstr=[], chrequiv=[],
                  load_files=False):

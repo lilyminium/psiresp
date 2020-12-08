@@ -59,6 +59,7 @@ class Conformer(object):
     orientations: list of Orientations
         list of the molecule with reoriented coordinates
     """
+        
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
                  orient=[], rotate=[], translate=[], load_files=False,

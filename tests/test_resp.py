@@ -6,11 +6,20 @@ Unit and regression test for the psiresp package.
 import psiresp
 import pytest
 import sys
+from rdkit import Chem
 import numpy as np
 
 from numpy.testing import assert_almost_equal, assert_allclose
 from .utils import mol_from_file, charges_from_red_file, datafile
 
+
+def test_rdkit_gen_confs():
+    mol = Chem.MolFromSmiles('C1CCC1OC')
+    resp = psiresp.Resp.from_rdmol(mol, n_confs=10, rmsd_threshold=-1)
+    assert len(resp.conformers) == 10
+    first = resp.conformers[0].coordinates
+    second = resp.conformers[1].coordinates
+    assert (second - first).sum() > 0
 
 class TestNoOrient:
 
