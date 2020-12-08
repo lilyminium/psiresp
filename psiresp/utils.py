@@ -9,19 +9,22 @@ from rdkit.Chem import AllChem
 from . import vdwradii
 
 
-def rdmol_to_psi4mols(rdmol):
+def rdmol_to_psi4mols(rdmol, name=None):
     confs = rdmol.GetConformers()
     n_atoms = rdmol.GetNumAtoms()
     atoms = [rdmol.GetAtomWithIdx(i) for i in range(n_atoms)]
     symbols = [a.GetSymbol() for a in atoms]
     ATOM = "{sym} {x[0]} {x[1]} {x[2]}"
+
+    if name is None:
+        name = "Mol"
     
     mols = []
 
-    for c in confs:
+    for i, c in enumerate(confs, 1):
         pos = c.GetPositions()
         xyz = [ATOM.format(sym=a, x=x) for a, x in zip(symbols, pos)]
-        txt = f"{n_atoms}\n\n" + "\n".join(xyz)
+        txt = f"{n_atoms}\n{name}_c{i}\n" + "\n".join(xyz)
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
         mols.append(mol)
     
