@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+
+import yaml
+import glob
+import tempfile
+import argparse
+
+from rdkit import Chem
+import MDAnalysis as mda
+import psiresp as sip
+from psiresp.utils import rdmols_to_inter_chrequiv, rdmol_to_psi4mols
+import psi4
+
+parser = argparse.ArgumentParser("Run resp")
+parser.add_argument("input", help="input yaml file")
+parser.add_argument('-mem', '--memory', dest='memory',
+                    default='4GB', help='memory')
+parser.add_argument('-nt', '--nthreads', dest='nthreads',
+                    type=int, default=8, help='number of threads')
+
+
+def read(yamlfile):
+    with open(yamlfile, "r") as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
+
+
+def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
+                chrequiv=[], chrconstr=[], molecules={}):
+    if isinstance(intra_chrconstr, dict):
+        intra_chrconstr = intra_chrconstr.items()
+    intra_chrconstr = list(intra_chrconstr)
+
+    if not len(intra_chrconstr):
+        for i in range(len(molecules)):
+            intra_chrconstr.append([])
+
+    intra_chrequiv = intra_chrequiv[:]
+    if not len(intra_chrequiv):
+        for i in range(len(molecules)):
+            intra_chrequiv.append([])
+    
+    chrequiv = list(chrequiv)
+    if isinstance(chrconstr, dict):
+        chrconstr = chrconstr.items()
+    chrconstr = list(chrconstr)
+
+    for i in range(len(molecules)):
+        intra_chrconstr[i].extend(chrconstr)
+        intra_chrequiv[i].extend(chrequiv)
+    
+    return intra_chrconstr, intra_chrequiv
+
+
+def run_job(equiv_mcs=False, mcs_natoms=4,
+            stage_2=True, intra_chrconstr=[],
+            intra_chrequiv=[], inter_chrconstr=[],
+            inter_chrequiv=[], equal_methyls=False,
+            hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
+            ihfree=True, tol=1e-5, maxiter=50,
+            restraint=True, molecules={},
+            chrequiv=[], chrconstr=[],
+            **kwargs):
+
+    intra_chrconstr, intra_chrequiv = clean_intra(intra_chrconstr,
+                                                  intra_chrequiv,
+                                                  chrequiv, chrconstr,
+                                                  molecules)
+
+    mol_kwargs = []
+    for name, molkwargs in molecules.items():
+        dct = dict(**kwargs, **molkwargs)
+        dct["name"] = name
+        mol_kwargs.append(dct)
+
+    rdmols = [load_rdmol(**kw) for kw in mol_kwargs]
+
+    if isinstance(inter_chrequiv, dict):
+        inter_chrequiv = inter_chrequiv.items()
+    inter_chrequiv = list(inter_chrequiv)
+
+    if equiv_mcs:
+        inter_chrequiv += rdmols_to_inter_chrequiv(rdmols, mcs_natoms)
+
+    resps = []
+    out_files = []
+    for rdmol, molkwargs in zip(rdmols, mol_kwargs):
+        molkwargs.pop("coords", None)
+        molkwargs.pop("rdmol", None)
+        out = molkwargs.pop("out", "{name}_charged.pdb")
+        out_files.append(out.format(**molkwargs))
+
+        confs = rdmol_to_psi4mols(rdmol, molkwargs["name"])
+        rp = sip.Resp.from_molecules(confs, **molkwargs)
+        resps.append(rp)
+    
+    mresp = sip.MultiResp(resps)
+    mresp.run(stage_2=stage_2,
+              intra_chrconstr=intra_chrconstr,
+              inter_chrconstr=inter_chrconstr,
+              intra_chrequiv=intra_chrequiv,
+              inter_chrequiv=inter_chrequiv,
+              equal_methyls=equal_methyls,
+              hyp_a1=hyp_a1, hyp_a2=hyp_a2,
+              ihfree=ihfree, tol=tol, maxiter=maxiter,
+              restraint=restraint)
+
+    for out, mol in zip(out_files, mresp.molecules):
+        mol.write(out)
+        print(f"Wrote {out}")
+    print("Completed.")
+
+
+def read_rdmol(filename):
+    suffix = filename.split('.')[-1]
+    FILE = {
+        "pdb": Chem.MolFromPDBFile,
+        "tpl": Chem.MolFromTPLFile,
+        "mol2": Chem.MolFromMol2File,
+        "mol": Chem.MolFromMolFile,
+        "png": Chem.MolFromPNGFile,
+    }
+    STR = (
+        Chem.MolFromSmiles,
+        Chem.MolFromSmarts,
+        Chem.MolFromFASTA,
+        Chem.MolFromHELM,
+        Chem.MolFromSequence,
+        Chem.MolFromMol2Block,
+        Chem.MolFromMolBlock,
+        Chem.MolFromPDBBlock,
+        Chem.MolFromPNGString,
+        Chem.MolFromRDKitSVG,
+        Chem.MolFromTPLBlock,
+    )
+    if suffix in FILE:
+        return FILE[suffix](filename, removeHs=False)
+    
+    for parser in STR:
+        mol = parser(filename, removeHs=False)
+        if mol is not None:
+            return mol
+    raise ValueError(f"Could not parse {filename}")
+
+
+def read_psi4mol(filename):
+    u = mda.Universe(filename)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file = f"{tmpdir}/temp.xyz"
+        u.atoms.write(file)
+        with open(file, "r") as f:
+            geom = f.read()
+    mol = psi4.core.Molecule.from_string(geom, fix_com=True,
+                                         fix_orientation=True)
+    mol.update_geometry()
+    return mol
+
+
+def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
+    coordfiles = glob.glob(coords.format(name=name))
+    if rdmol is not None:
+        rdfile = glob.glob(rdmol.format(name=name))[0]
+        mol = read_rdmol(rdfile)
+    else:
+        try:
+            mol = mda.Universe(coordfiles[0])
+        except IndexError:
+            raise ValueError(f"Could not find file for {coords}") from None
+        mol = mol.atoms.convert_to("RDKIT")
+    
+    n_atoms = mol.GetNumAtoms()
+    
+    for file in coordfiles:
+        conf = Chem.Conformer(n_atoms)
+        pos = mda.Universe(file).atoms.positions.astype(float)
+        for i, row in enumerate(pos):
+            conf.SetAtomPosition(i, row)
+        mol.AddConformer(conf)
+    Chem.AssignStereochemistryFrom3D(mol)
+    Chem.SetDoubleBondNeighborDirections(mol)
+    return mol
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    psi4.set_memory(args.memory)
+    psi4.set_num_threads(args.nthreads)
+
+    contents = read(args.input)
+    print(contents)
+    molecules = contents.pop("molecules", {})
+
+    run_job(**contents, molecules=molecules)

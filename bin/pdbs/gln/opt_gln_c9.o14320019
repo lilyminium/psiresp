@@ -1,0 +1,17 @@
+Read molecule from gln_c9.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved gln_c9_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:21:40:
+   Job Id:             14320019.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      20.00
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:18:44                                   
+   Memory Requested:   10.0GB                Memory Used: 1.12GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:18:45        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

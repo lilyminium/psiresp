@@ -1,0 +1,15 @@
+Read molecule from ile_c21.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:34:44:
+   Job Id:             14320061.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      33.88
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:31:41                                   
+   Memory Requested:   10.0GB                Memory Used: 862.94MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:31:46        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

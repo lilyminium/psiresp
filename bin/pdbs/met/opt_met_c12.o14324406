@@ -1,0 +1,17 @@
+Read molecule from met_c12.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved met_c12_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:30:22:
+   Job Id:             14324406.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      30.06
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:28:06                                   
+   Memory Requested:   10.0GB                Memory Used: 850.28MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:28:11        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

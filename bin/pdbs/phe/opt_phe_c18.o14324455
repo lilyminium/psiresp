@@ -1,0 +1,15 @@
+Read molecule from phe_c18.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:53:17:
+   Job Id:             14324455.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      54.47
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:51:05                                   
+   Memory Requested:   10.0GB                Memory Used: 1.43GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:51:04        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

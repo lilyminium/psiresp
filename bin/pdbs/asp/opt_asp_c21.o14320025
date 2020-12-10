@@ -1,0 +1,15 @@
+Read molecule from asp_c21.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:31:28:
+   Job Id:             14320025.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      30.45
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:28:27                                   
+   Memory Requested:   10.0GB                Memory Used: 803.13MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:28:33        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

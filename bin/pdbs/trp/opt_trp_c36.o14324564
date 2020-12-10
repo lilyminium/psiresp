@@ -1,0 +1,15 @@
+Read molecule from trp_c36.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 10:46:34:
+   Job Id:             14324564.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      87.95
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 01:22:34                                   
+   Memory Requested:   10.0GB                Memory Used: 1.75GB          
+   Walltime requested: 48:00:00            Walltime Used: 01:22:27        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

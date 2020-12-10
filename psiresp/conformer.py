@@ -5,13 +5,13 @@ import warnings
 
 import numpy as np
 
-from . import utils
+from . import utils, base
 from .orientation import Orientation
 
 log = logging.getLogger(__name__)
 
 
-class Conformer(object):
+class Conformer(base.CachedBase):
     """
     Wrapper class to manage one conformer molecule, containing 
     multiple orientations.
@@ -59,12 +59,18 @@ class Conformer(object):
     orientations: list of Orientations
         list of the molecule with reoriented coordinates
     """
+
+    or_kwargnames = ["method", "basis", "vdw_radii",
+                     "rmin", "rmax", "use_radii", "scale_factors",
+                     "density", "solvent"]
+    kwargnames = or_kwargnames + ["charge", "multiplicity", "weight"]
+    
         
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
-                 orient=[], rotate=[], translate=[], load_files=False,
-                 grid_name='grid.dat', esp_name='grid_esp.dat',
-                 mat_name='abmat.dat'):
+                 force=False, verbose=False,
+                 weight=1, orient=[], rotate=[], translate=[], **kwargs):
+        super().__init__(force=force, verbose=verbose)
         if name and name != molecule.name():
             molecule.set_name(name)
         self.name = molecule.name()
@@ -72,21 +78,35 @@ class Conformer(object):
             molecule.set_molecular_charge(charge)
         if multiplicity != molecule.multiplicity():
             molecule.set_multiplicity(multiplicity)
+
         self.charge = charge
         self.multiplicity = multiplicity
+        self.weight = weight
+
+        self.or_kwargs = {}
+        for kw in self.or_kwargnames:
+            if kw in kwargs:
+                self.or_kwargs[kw] = kwargs[kw]
+
         self.molecule = molecule
         self.n_atoms = molecule.natom()
         self.symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
         self._orient = orient[:]
         self._rotate = rotate[:]
         self._translate = translate[:]
-        self._load_files = load_files
-        self._grid_name = grid_name
-        self._esp_name = esp_name
-        self._mat_name = mat_name
-        self.mat_filename = utils.prepend_name_to_file(self.name, mat_name)
         self._orientations = []
         self._orientation = Orientation(self.molecule, symbols=self.symbols)
+
+    
+    @property
+    def kwargs(self):
+        dct = dict(**self.or_kwargs)
+        for kw in ("charge", "multiplicity", "weight"):
+            dct[kw] = getattr(self, kw)
+        dct["orient"] = self._orient
+        dct["rotate"] = self._rotate
+        dct["translate"] = self._translate
+        return dct
 
     @property
     def n_orientations(self):
@@ -97,15 +117,10 @@ class Conformer(object):
         if not self._orientations:
             self._gen_orientations(orient=self._orient,
                                    translate=self._translate,
-                                   rotate=self._rotate,
-                                   load_files=self._load_files)
+                                   rotate=self._rotate)
         if not self._orientations:
             return [self._orientation]
         return self._orientations
-
-    @property
-    def _grid_needs_computing(self):
-        return any(mol.grid is None for mol in self.orientations)
 
     @property
     def coordinates(self):
@@ -128,18 +143,10 @@ class Conformer(object):
             name = self.name+'_copy'
 
         new = type(self)(self.molecule.clone(), name=name,
-                         charge=self.charge,
-                         multiplicity=self.multiplicity,
-                         orient=self._orient, rotate=self._rotate,
-                         translate=self._translate,
-                         load_files=self._load_files,
-                         grid_name=self._grid_name,
-                         esp_name=self._esp_name,
-                         mat_name=self._mat_name)
+                         **self.kwargs)
         return new
 
-    def _gen_orientations(self, orient=[], translate=[], rotate=[],
-                          load_files=False):
+    def _gen_orientations(self, orient=[], translate=[], rotate=[]):
         """
         Generate new orientations.
 
@@ -166,18 +173,18 @@ class Conformer(object):
         for atom_ids in orient:
             a, b, c = [a-1 if a > 0 else a for a in atom_ids]
             xyz = utils.orient_rigid(a, b, c, self.coordinates)
-            self._add_orientation(xyz, load_files=load_files)
+            self._add_orientation(xyz)
 
         for atom_ids in rotate:
             a, b, c = [a-1 if a > 0 else a for a in atom_ids]
             xyz = utils.rotate_rigid(a, b, c, self.coordinates)
-            self._add_orientation(xyz, load_files=load_files)
+            self._add_orientation(xyz)
 
         for translation in translate:
             xyz = self.coordinates+translation
-            self._add_orientation(xyz, load_files=load_files)
+            self._add_orientation(xyz)
 
-    def _add_orientation(self, coordinates, load_files=False):
+    def _add_orientation(self, coordinates):
         import psi4
         mat = psi4.core.Matrix.from_array(coordinates)
         cmol = self.molecule.clone()
@@ -185,11 +192,13 @@ class Conformer(object):
         cmol.fix_com(True)
         cmol.fix_orientation(True)
         cmol.update_geometry()
-        cmol.set_name('{}_o{}'.format(self.name, len(self._orientations)+1))
-        self._orientations.append(Orientation(cmol, symbols=self.symbols,
-                                              load_files=load_files,
-                                              grid_name=self._grid_name,
-                                              esp_name=self._esp_name))
+        name = '{}_o{}'.format(self.name, len(self._orientations)+1)
+        cmol.set_name(name)
+        omol = Orientation(cmol, symbols=self.symbols, name=name,
+                           n_atoms=len(self.symbols), verbose=self.verbose,
+                           force=self.force,
+                           **self.or_kwargs)
+        self._orientations.append(omol)
 
     def add_orientations(self, orient=[], translate=[], rotate=[],
                          load_files=False):
@@ -222,44 +231,9 @@ class Conformer(object):
             self._gen_orientations(orient=orient, rotate=rotate,
                                    translate=translate, load_files=load_files)
 
-    def optimize_geometry(self, method='scf', basis='6-31g*',
-                          psi4_options={}, save_opt_geometry=True,
-                          save_files=False):
-        """
-        Optimise the geometry of the molecule and update the coordinates.
-
-        Parameters
-        ----------
-        multiplicity: int (optional)
-        basis: str (optional)
-            Basis set to optimise geometry
-        method: str (optional)
-            Method to optimise geometry
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_opt_geometry: bool (optional)
-            if ``True``, writes the optimised geometry to an XYZ file.
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved. This does not affect 
-            writing optimised geometries to files. 
-        """
-        if not save_files:
-            cwd = os.getcwd()
-            with tempfile.TemporaryDirectory(prefix='tmp') as tmpdir:
-                os.chdir(tmpdir)
-                self._optimize_geometry(method=method, basis=basis,
-                                        psi4_options=psi4_options)
-                os.chdir(cwd)
-        else:
-            self._optimize_geometry(method=method, basis=basis,
-                                    psi4_options=psi4_options)
-
-        if save_opt_geometry:
-            self.molecule.save_xyz_file(self.name+'_opt.xyz', True)
-
-    def _optimize_geometry(self, method='scf', basis='6-31g*', psi4_options={}):
+    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
         import psi4
-        psi4.set_options({'basis': basis,
+        psi4.set_options({'basis': self.basis,
                           'geom_maxiter': 200,
                           'full_hess_every': 10,
                           'g_convergence': 'gau_tight',
@@ -267,13 +241,35 @@ class Conformer(object):
         psi4.set_options(psi4_options)
         logfile = self.name+'_opt.log'
         psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
-        psi4.optimize(method, molecule=self.molecule)
+        psi4.optimize(self.method, molecule=self.molecule)
         psi4.core.clean()
         self._orientations = []
+        if save_opt_geometry:
+            self.molecule.save_xyz_file(self.name+'_opt.xyz', True)
+
+
+    @utils.datafile
+    def get_unweighted_ab(self):
+        shape = (self.n_atoms+1, self.n_atoms)  # Ax=B
+        AB = np.zeros(shape)
+        for mol in self.orientations:
+            AB[:self.n_atoms] += mol.esp_mat_a
+            AB[-1] += mol.esp_mat_b
+        return AB
+
+    def get_weighted_ab(self):
+        return self.unweighted_ab * (self.weight ** 2)
+
+    def get_esp_a(self):
+        return self.weighted_ab[:self.n_atoms]
+    
+    def get_esp_b(self):
+        return self.weighted_ab[-1]
+
 
     def get_esp_matrices(self, weight=1.0, vdw_points=None, rmin=0, rmax=-1,
                          basis='6-31g*', method='scf', solvent=None,
-                         psi4_options={}, save_files=False, vdw_radii={},
+                         psi4_options={}, save_files=False,
                          use_radii='msk', vdw_point_density=1.0,
                          vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
                          load_files=False):

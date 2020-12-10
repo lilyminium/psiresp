@@ -1,0 +1,51 @@
+qsub opt_cys_c1
+b'14319932.gadi-pbs\n'
+qsub opt_cys_c2
+b'14319936.gadi-pbs\n'
+qsub opt_cys_c3
+b'14319939.gadi-pbs\n'
+qsub opt_cys_c4
+b'14319944.gadi-pbs\n'
+qsub opt_cys_c5
+b'14319949.gadi-pbs\n'
+qsub opt_cys_c6
+b'14319954.gadi-pbs\n'
+qsub opt_cys_c7
+b'14319959.gadi-pbs\n'
+qsub opt_cys_c8
+b'14319963.gadi-pbs\n'
+qsub opt_cys_c9
+b'14319970.gadi-pbs\n'
+qsub opt_cys_c10
+b'14319976.gadi-pbs\n'
+qsub opt_cys_c11
+b'14319983.gadi-pbs\n'
+qsub opt_cys_c12
+b'14319990.gadi-pbs\n'
+qsub opt_cys_c13
+b'14319997.gadi-pbs\n'
+qsub opt_cys_c14
+b'14320004.gadi-pbs\n'
+qsub opt_cys_c15
+b'14320010.gadi-pbs\n'
+qsub opt_cys_c16
+b'14320018.gadi-pbs\n'
+qsub opt_cys_c17
+b'14320024.gadi-pbs\n'
+qsub opt_cys_c18
+b'14320033.gadi-pbs\n'
+qsub opt_cys_c19
+b'14320039.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:01:46:
+   Job Id:             14319900.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.20
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:02                                   
+   Memory Requested:   10.0GB                Memory Used: 294.18MB        
+   Walltime requested: 02:00:00            Walltime Used: 00:00:11        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

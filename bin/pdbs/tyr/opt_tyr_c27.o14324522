@@ -1,0 +1,17 @@
+Read molecule from tyr_c27.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved tyr_c27_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:45:58:
+   Job Id:             14324522.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      46.54
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:43:40                                   
+   Memory Requested:   10.0GB                Memory Used: 1.44GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:43:38        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

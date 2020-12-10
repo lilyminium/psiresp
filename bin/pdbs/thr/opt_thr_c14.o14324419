@@ -1,0 +1,17 @@
+Read molecule from thr_c14.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved thr_c14_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:18:46:
+   Job Id:             14324419.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      17.69
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:16:31                                   
+   Memory Requested:   10.0GB                Memory Used: 789.54MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:16:35        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

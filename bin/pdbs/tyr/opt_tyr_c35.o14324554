@@ -1,0 +1,15 @@
+Read molecule from tyr_c35.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 10:22:17:
+   Job Id:             14324554.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      62.19
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:58:22                                   
+   Memory Requested:   10.0GB                Memory Used: 1.47GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:58:18        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

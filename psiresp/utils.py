@@ -1,10 +1,13 @@
 import itertools
 import os
+from collections import defaultdict
+import functools
 
+import pandas as pd
 import psi4
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdFMCS
 
 from . import vdwradii
 
@@ -31,6 +34,168 @@ def rdmol_to_psi4mols(rdmol, name=None):
     return mols
 
 
+def psi4mol_to_rdmol(mol):
+    txt = mol.format_molecule_for_mol()
+    return Chem.MolFromMol2Block(txt)
+
+
+def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
+    matches = set()
+    for pair in itertools.combinations(rdmols, 2):
+        res = rdFMCS.FindMCS(pair,
+                             # TODO: AtomCompare.CompareIsotopes?
+                             atomCompare=rdFMCS.AtomCompare.CompareElements,
+                             bondCompare=rdFMCS.BondCompare.CompareOrderExact,
+                             matchValences=True,
+                             ringMatchesRingOnly=True,
+                             completeRingsOnly=True,
+                             timeout=1)
+        if not res.canceled and res.numAtoms >= n_atoms:
+            matches.add(res.smartsString)
+    
+    submols = [Chem.MolFromSmarts(x) for x in matches]
+    chrequiv = []
+    for ref in submols:
+        sub = []
+        for n in range(ref.GetNumAtoms()):
+            sub.append(set())
+        for j, mol in enumerate(rdmols):
+            subs = mol.GetSubstructMatches(ref)
+            for k, atoms in enumerate(subs):
+                sub[k] |= set([(j, x) for x in atoms])
+        for cmp in sub:
+            for k, group in enumerate(chrequiv):
+                if len(group and cmp):
+                    group.update(cmp)
+                    break
+            else:
+                chrequiv.append(cmp)
+    
+    return [list(x) for x in chrequiv]
+
+
+def iterable(obj):
+    """Returns ``True`` if `obj` can be iterated over and is *not* a  string
+    nor a :class:`NamedStream`"""
+    if isinstance(obj, str):
+        return False  # avoid iterating over characters of a string
+
+    if hasattr(obj, 'next'):
+        return True  # any iterator will do
+    try:
+        len(obj)  # anything else that might work
+    except (TypeError, AttributeError):
+        return False
+    return True
+
+
+def asiterable(obj):
+    """Returns `obj` so that it can be iterated over.
+
+    A string is *not* detected as and iterable and is wrapped into a :class:`list`
+    with a single element.
+
+    See Also
+    --------
+    iterable
+
+    """
+    if not iterable(obj):
+        obj = [obj]
+    return obj
+
+
+def read_csv(path):
+    return pd.read_csv(path, index_col=0, header=0)
+
+
+def try_load_data(filename, force=False, verbose=False, name=""):
+    path = f"{name}_{filename}"
+    suffix = path.split(".")[-1]
+
+    if not force:
+        if suffix == 'csv':
+            loader = read_csv
+        elif suffix in ('dat', 'txt'):
+            loader = np.loadtxt
+        elif suffix in ('npy', 'npz'):
+            loader = np.load
+        else:
+            raise ValueError(f"Can't find loader for {suffix} file")
+        
+        try:
+            data = loader(path)
+        except:
+            if verbose:
+                print(f'Could not load data from {path}: rerun(ning).')
+        else:
+            if verbose:
+                print(f'Loaded from {path}.')
+                return data, path
+    return None, path
+
+
+def save_data(data, path, comments=None, verbose=False):
+        suffix = path.split('.')[-1]
+        if suffix == 'csv':
+            data.to_csv(path)
+        elif suffix in ('dat', 'txt'):
+            np.savetxt(path, data, comments=comments)
+        elif suffix == 'npy':
+            np.save(path, data)
+        elif suffix == 'npz':
+            np.savez(path, **data)
+        else:
+            raise ValueError(f"Can't find saver for {suffix} file")
+        if verbose:
+            print('Saved to', path)
+
+
+def cached(func):
+    """
+    Cache the output of functions so they appear as properties.
+    
+    Adapted from MDAnalysis. Definitely want to replace this with
+    functools.cached_property when we can guarantee python >= 3.8.
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        key = func.__name__[4:]
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            self.__dict__[key] = ret = func(self, *args, **kwargs)
+            return ret
+
+    return property(wrapper)
+
+
+    
+def datafile(func):
+    """Try to load data from file. If not found, saves data to same path"""
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        filename = func.__name__[4:] + ".dat"
+        data, path = try_load_data(filename, force=self.force,
+                                   verbose=self.verbose)
+        if data is not None:
+            return data
+
+        data = func(self, *args, **kwargs)
+        
+        comments = None
+        if path.endswith('npy'):
+            try:
+                data, comments = data
+            except ValueError:
+                pass
+        save_data(data, path, comments=comments,
+                    verbose=self.verbose)
+        return data
+    return wrapper
+
+
+    
 
 def rotate_x(n, coords):
     """

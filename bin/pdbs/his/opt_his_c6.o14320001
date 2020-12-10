@@ -1,0 +1,17 @@
+Read molecule from his_c6.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved his_c6_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:32:09:
+   Job Id:             14320001.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      31.16
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:29:13                                   
+   Memory Requested:   10.0GB                Memory Used: 1.23GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:29:13        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

@@ -1,0 +1,17 @@
+Read molecule from ala_c9.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved ala_c9_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-08 20:24:15:
+   Job Id:             14312123.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      8.27
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:07:43                                   
+   Memory Requested:   10.0GB                Memory Used: 601.43MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:07:45        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

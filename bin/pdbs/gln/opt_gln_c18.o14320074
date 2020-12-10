@@ -1,0 +1,15 @@
+Read molecule from gln_c18.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:37:32:
+   Job Id:             14320074.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      36.89
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:34:36                                   
+   Memory Requested:   10.0GB                Memory Used: 1.15GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:34:35        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

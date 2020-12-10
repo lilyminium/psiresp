@@ -1,0 +1,97 @@
+qsub opt_tyr_c1
+b'14324283.gadi-pbs\n'
+qsub opt_tyr_c2
+b'14324300.gadi-pbs\n'
+qsub opt_tyr_c3
+b'14324312.gadi-pbs\n'
+qsub opt_tyr_c4
+b'14324324.gadi-pbs\n'
+qsub opt_tyr_c5
+b'14324336.gadi-pbs\n'
+qsub opt_tyr_c6
+b'14324346.gadi-pbs\n'
+qsub opt_tyr_c7
+b'14324354.gadi-pbs\n'
+qsub opt_tyr_c8
+b'14324366.gadi-pbs\n'
+qsub opt_tyr_c9
+b'14324377.gadi-pbs\n'
+qsub opt_tyr_c10
+b'14324386.gadi-pbs\n'
+qsub opt_tyr_c11
+b'14324397.gadi-pbs\n'
+qsub opt_tyr_c12
+b'14324408.gadi-pbs\n'
+qsub opt_tyr_c13
+b'14324417.gadi-pbs\n'
+qsub opt_tyr_c14
+b'14324426.gadi-pbs\n'
+qsub opt_tyr_c15
+b'14324436.gadi-pbs\n'
+qsub opt_tyr_c16
+b'14324445.gadi-pbs\n'
+qsub opt_tyr_c17
+b'14324454.gadi-pbs\n'
+qsub opt_tyr_c18
+b'14324463.gadi-pbs\n'
+qsub opt_tyr_c19
+b'14324472.gadi-pbs\n'
+qsub opt_tyr_c20
+b'14324479.gadi-pbs\n'
+qsub opt_tyr_c21
+b'14324486.gadi-pbs\n'
+qsub opt_tyr_c22
+b'14324492.gadi-pbs\n'
+qsub opt_tyr_c23
+b'14324498.gadi-pbs\n'
+qsub opt_tyr_c24
+b'14324503.gadi-pbs\n'
+qsub opt_tyr_c25
+b'14324508.gadi-pbs\n'
+qsub opt_tyr_c26
+b'14324517.gadi-pbs\n'
+qsub opt_tyr_c27
+b'14324522.gadi-pbs\n'
+qsub opt_tyr_c28
+b'14324525.gadi-pbs\n'
+qsub opt_tyr_c29
+b'14324526.gadi-pbs\n'
+qsub opt_tyr_c30
+b'14324527.gadi-pbs\n'
+qsub opt_tyr_c31
+b'14324532.gadi-pbs\n'
+qsub opt_tyr_c32
+b'14324537.gadi-pbs\n'
+qsub opt_tyr_c33
+b'14324543.gadi-pbs\n'
+qsub opt_tyr_c34
+b'14324548.gadi-pbs\n'
+qsub opt_tyr_c35
+b'14324554.gadi-pbs\n'
+qsub opt_tyr_c36
+b'14324559.gadi-pbs\n'
+qsub opt_tyr_c37
+b'14324562.gadi-pbs\n'
+qsub opt_tyr_c38
+b'14324567.gadi-pbs\n'
+qsub opt_tyr_c39
+b'14324570.gadi-pbs\n'
+qsub opt_tyr_c40
+b'14324574.gadi-pbs\n'
+qsub opt_tyr_c41
+b'14324577.gadi-pbs\n'
+qsub opt_tyr_c42
+b'14324581.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:00:30:
+   Job Id:             14324261.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.57
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:04                                   
+   Memory Requested:   10.0GB                Memory Used: 123.26MB        
+   Walltime requested: 02:00:00            Walltime Used: 00:00:32        
+   JobFS requested:    3.91GB                 JobFS used: 383.0B          
+======================================================================================

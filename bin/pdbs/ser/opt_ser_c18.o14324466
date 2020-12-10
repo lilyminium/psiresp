@@ -1,0 +1,17 @@
+Read molecule from ser_c18.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved ser_c18_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:11:24:
+   Job Id:             14324466.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      9.69
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:09:01                                   
+   Memory Requested:   10.0GB                Memory Used: 799.36MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:09:05        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

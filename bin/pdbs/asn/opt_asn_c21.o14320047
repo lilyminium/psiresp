@@ -1,0 +1,17 @@
+Read molecule from asn_c21.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved asn_c21_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:16:35:
+   Job Id:             14320047.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      14.33
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:13:23                                   
+   Memory Requested:   10.0GB                Memory Used: 787.88MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:13:26        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

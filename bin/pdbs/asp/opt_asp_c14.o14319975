@@ -1,0 +1,17 @@
+Read molecule from asp_c14.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved asp_c14_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:25:18:
+   Job Id:             14319975.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      23.88
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:22:18                                   
+   Memory Requested:   10.0GB                Memory Used: 798.0MB         
+   Walltime requested: 48:00:00            Walltime Used: 00:22:23        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

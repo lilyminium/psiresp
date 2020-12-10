@@ -10,7 +10,7 @@ from . import utils
 log = logging.getLogger(__name__)
 
 
-class MultiResp(object):
+class MultiResp:
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
 
@@ -105,9 +105,7 @@ class MultiResp(object):
             pass
         return values
 
-    def optimize_geometry(self, method='scf', basis='6-31g*',
-                          psi4_options={}, save_opt_geometry=False,
-                          save_files=False):
+    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
         """
         Optimise geometry for all molecules.
 
@@ -126,43 +124,11 @@ class MultiResp(object):
             writing optimised geometries to files. 
         """
         for mol in self.molecules:
-            mol.optimize_geometry(method=method, basis=basis,
-                                  psi4_options=psi4_options,
-                                  save_opt_geometry=save_opt_geometry,
-                                  save_files=save_files)
+            mol.optimize_geometry(psi4_options=psi4_options,
+                                  save_opt_geometry=save_opt_geometry)
 
-    def get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
-                                inter_chrconstr=[], inter_chrequiv=[],
-                                weights=1, mat_name='', save_files=False,
-                                load_files=False, **kwargs):
-        ABen = None
-        if load_files and mat_name:
-            try:
-                ABen = np.loadtxt(mat_name)
-            except OSError:
-                warnings.warn(f'Could not read matrix from {mat_name}')
-            else:
-                log.info(f'Read matrix from {mat_name}')
-        if ABen is None:
-            ABen = self._get_constraint_matrices(intra_chrconstr=intra_chrconstr,
-                                                 intra_chrequiv=intra_chrequiv,
-                                                 inter_chrconstr=inter_chrconstr,
-                                                 inter_chrequiv=inter_chrequiv,
-                                                 weights=weights, mat_name=mat_name,
-                                                 save_files=save_files,
-                                                 load_files=load_files, **kwargs)
-
-        A = ABen[:-3]
-        B = ABen[-3]
-        medges = np.where(ABen[-2])[0]
-        edges = [[i, i+m.n_atoms] for i, m in zip(medges, self.molecules)]
-        nmol = ABen[-1]
-        return A, B, np.array(edges), np.array(nmol)
-
-    def _get_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
-                                 inter_chrconstr=[], inter_chrequiv=[],
-                                 weights=1, mat_name='', save_files=False,
-                                 **kwargs):
+    def gen_constraint_matrices(self, intra_chrconstr=[], intra_chrequiv=[],
+                                inter_chrconstr=[], inter_chrequiv=[]):
         """
         Get A and B matrices to solve for charges, including charge constraints.
 
@@ -211,7 +177,7 @@ class MultiResp(object):
             conformer in the third molecule by 4. If only one value is given, it
             is repeated for every molecule.
         **kwargs
-            Arguments passed to Resp.get_constraint_matrices.
+            Arguments passed to Resp.gen_constraint_matrices.
 
         Returns
         -------
@@ -237,21 +203,11 @@ class MultiResp(object):
         if utils.empty(inter_chrequiv):
             inter_chrequiv = []
 
-        if not utils.isiterable(weights):
-            weights = itertools.repeat(weights)
-        elif len(weights) != self.n_molecules:
-            err = ('weights must be an iterable of the same length '
-                   'as number of molecules')
-            raise ValueError(err)
-
         # gather individual A and B matrices for each Resp class
         a_s, b_s, nmol = [], [], []
-        for m, constr, equiv, w in zip(self.molecules, intra_chrconstr,
-                                       intra_chrequiv, weights):
-            a, b = m.get_constraint_matrices(chrconstr=constr, chrequiv=equiv,
-                                             weights=w, mat_name=mat_name,
-                                             save_files=save_files,
-                                             **kwargs)
+        for m, constr, equiv in zip(self.molecules, intra_chrconstr,
+                                    intra_chrequiv):
+            a, b = m.gen_constraint_matrices(chrconstr=constr, chrequiv=equiv)
             a_s.append(a)
             b_s.append(b)
             nmol.extend([m.n_structures]*len(b))
@@ -310,14 +266,16 @@ class MultiResp(object):
             A[(x, ix[:-1])] = A[(ix[:-1], x)] = -1
             A[(x, ix[1:])] = A[(ix[1:], x)] = 1
 
-        if save_files and mat_name:
-            np.savetxt(mat_name, ABen)
-            log.info(f'Saved matrices to {mat_name}')
-
-        return ABen
+        A = ABen[:-3]
+        B = ABen[-3]
+        medges = np.where(ABen[-2])[0]
+        edges = [[i, i+m.n_atoms] for i, m in zip(medges, self.molecules)]
+        nmol = ABen[-1]
+        return A, B, np.array(edges), np.array(nmol)
 
     def fit(self, restraint=True, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
-            tol=1e-5, maxiter=50, **kwargs):
+            tol=1e-5, maxiter=50, intra_chrconstr=[], intra_chrequiv=[],
+            inter_chrconstr=[], inter_chrequiv=[],):
         """
         Perform the R/ESP fits.
 
@@ -336,13 +294,16 @@ class MultiResp(object):
         maxiter: int (optional)
             maximum number of iterations
         **kwargs:
-            arguments passed to MultiResp.get_constraint_matrices
+            arguments passed to MultiResp.gen_constraint_matrices
 
         Returns
         -------
         charges: list of ndarray
         """
-        a, b, edges, nmol = self.get_constraint_matrices(**kwargs)
+        a, b, edges, nmol = self.gen_constraint_matrices(intra_chrconstr=[],
+                                                         intra_chrequiv=[],
+                                                         inter_chrconstr=[],
+                                                         inter_chrequiv=[])
         try:
             q = np.linalg.solve(a, b)
         except np.linalg.LinAlgError:
@@ -510,7 +471,7 @@ class MultiResp(object):
 
         return iconstr, equivs
 
-    def get_methyl_constraints(self):
+    def gen_methyl_constraints(self):
         """
         Get charge equivalence arrays when all methyls are treated as 
         equivalent, and all methylenes are equivalent. Toggle this with 
@@ -525,14 +486,13 @@ class MultiResp(object):
         """
         equivs = [[], [], [], []]
         for mol in self.molecules:
-            meqs = mol.get_methyl_constraints()
+            meqs = mol.gen_methyl_constraints()
             for j, eqs in enumerate(meqs):
                 equivs[j].append(eqs)
         return equivs
 
     def add_orientations(self, orient=[], n_orient=0, rotate=[],
-                         n_rotate=0, translate=[], n_translate=0,
-                         load_files=False):
+                         n_rotate=0, translate=[], n_translate=0):
         """
         Add orientations to each conformer of each Resp molecule. 
 
@@ -577,15 +537,12 @@ class MultiResp(object):
         translate = utils.iter_single(translate)
         for mol, o, r, t in zip(self.molecules, orient, rotate, translate):
             mol.add_orientations(orient=o, n_orient=0, rotate=r,
-                                 n_rotate=0, translate=t, n_translate=0,
-                                 load_files=load_files)
+                                 n_rotate=0, translate=t, n_translate=0)
 
-    def run(self, stage_2=True, opt=False, save_opt_geometry=False,
-            intra_chrconstr=[], intra_chrequiv=[], inter_chrconstr=[],
-            inter_chrequiv=[], n_orient=0, orient=[], n_rotate=0, rotate=[],
-            n_translate=0, translate=[], equal_methyls=False, basis='6-31g*',
-            method='scf', psi4_options={}, hyp_a1=0.0005, hyp_a2=0.001,
-            load_files=False, **kwargs):
+    def run(self, stage_2=True, intra_chrconstr=[], intra_chrequiv=[],
+            inter_chrconstr=[], inter_chrequiv=[], equal_methyls=False,
+            hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1, ihfree=True,
+            tol=1e-5, maxiter=50, restraint=True, **kwargs):
         """
         Parameters
         ----------
@@ -681,17 +638,6 @@ class MultiResp(object):
         charges: list of ndarrays
         """
 
-        if opt:
-            for mol in self.molecules:
-                mol.optimize_geometry(method=method, basis=basis,
-                                      psi4_options=psi4_options,
-                                      save_opt_geometry=save_opt_geometry)
-
-        self.add_orientations(n_orient=n_orient, orient=orient,
-                              n_rotate=n_rotate, rotate=rotate,
-                              n_translate=n_translate,
-                              translate=translate, load_files=load_files)
-
         if stage_2:  # do intra-constraints in stage 2 only
             stage_2_equiv = intra_chrequiv
             intra_chrequiv = [[] for i in range(self.n_molecules)]
@@ -699,16 +645,15 @@ class MultiResp(object):
             stage_2_equiv = [[] for i in range(self.n_molecules)]
 
         if equal_methyls and not stage_2:
-            equivs = self.get_methyl_constraints()
+            equivs = self.gen_methyl_constraints()
             intra_chrequiv = [x+y for x, y in zip(intra_chrequiv, equivs)]
 
         qs = self.fit(intra_chrconstr=intra_chrconstr,
                       intra_chrequiv=intra_chrequiv,
                       inter_chrconstr=inter_chrconstr,
                       inter_chrequiv=inter_chrequiv,
-                      basis=basis, method=method, hyp_a=hyp_a1,
-                      load_files=load_files, mat_name='stg1_abmat.dat',
-                      **kwargs)
+                      hyp_a=hyp_a1, hyp_b=hyp_b, restraint=restraint,
+                      ihfree=ihfree, tol=tol, maxiter=maxiter)
         log.debug(f'Finished stage 1 fit with charges: {qs}')
         if stage_2:
             cs = self.get_stage2_constraints(qs, equal_methyls=equal_methyls,
@@ -719,7 +664,6 @@ class MultiResp(object):
             intra_c, intra_e = cs
             qs = self.fit(intra_chrconstr=intra_c,
                           intra_chrequiv=intra_e,
-                          basis=basis, method=method,
-                          mat_name='stg2_abmat.dat',
-                          hyp_a=hyp_a2, load_files=load_files, **kwargs)
+                          hyp_a=hyp_a2, hyp_b=hyp_b, restraint=restraint,
+                          ihfree=ihfree, tol=tol, maxiter=maxiter)
         return qs

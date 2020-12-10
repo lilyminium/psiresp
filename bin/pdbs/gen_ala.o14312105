@@ -1,0 +1,41 @@
+qsub opt_ala_c1
+b'14312111.gadi-pbs\n'
+qsub opt_ala_c2
+b'14312113.gadi-pbs\n'
+qsub opt_ala_c3
+b'14312114.gadi-pbs\n'
+qsub opt_ala_c4
+b'14312115.gadi-pbs\n'
+qsub opt_ala_c5
+b'14312116.gadi-pbs\n'
+qsub opt_ala_c6
+b'14312117.gadi-pbs\n'
+qsub opt_ala_c7
+b'14312118.gadi-pbs\n'
+qsub opt_ala_c8
+b'14312120.gadi-pbs\n'
+qsub opt_ala_c9
+b'14312123.gadi-pbs\n'
+qsub opt_ala_c10
+b'14312125.gadi-pbs\n'
+qsub opt_ala_c11
+b'14312127.gadi-pbs\n'
+qsub opt_ala_c12
+b'14312130.gadi-pbs\n'
+qsub opt_ala_c13
+b'14312132.gadi-pbs\n'
+qsub opt_ala_c14
+b'14312135.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-08 20:14:16:
+   Job Id:             14312105.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.18
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:02                                   
+   Memory Requested:   10.0GB                Memory Used: 63.16MB         
+   Walltime requested: 48:00:00            Walltime Used: 00:00:10        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

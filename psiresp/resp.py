@@ -2,10 +2,12 @@ from __future__ import division, absolute_import
 import warnings
 import itertools
 import logging
+import io
 
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import MDAnalysis as mda
 
 from .conformer import Conformer
 from . import utils
@@ -13,7 +15,7 @@ from . import utils
 log = logging.getLogger(__name__)
 
 
-class Resp(object):
+class Resp:
     """
     Class to manage R/ESP for one molecule of multiple conformers.
 
@@ -62,11 +64,7 @@ class Resp(object):
     """
 
     @classmethod
-    def from_molecules(cls, molecules, charge=0, multiplicity=1, name=None,
-                       orient=[], rotate=[], translate=[],
-                       grid_name='grid.dat', esp_name='grid_esp.dat',
-                       mat_name='abmat.dat',
-                       load_files=False, **kwargs):
+    def from_molecules(cls, molecules, name="Mol", **kwargs):
         """
         Create Resp class from Psi4 molecules.
 
@@ -75,36 +73,9 @@ class Resp(object):
         molecules: iterable of Psi4 molecules
             conformers of the molecule. They must all have the same atoms
             in the same order.
-        charge: int (optional)
-            overall charge of the molecule.
-        multiplicity: int (optional)
-            multiplicity of the molecule
         name: str (optional)
             name of the molecule. This is used to name output files. If not
             given, defaults to 'Mol'.
-        orient: list of tuples of ints (optional)
-            List of reorientations to add to each conformer.
-            Corresponds to REMARK REORIENT in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        rotate: list of tuples of ints (optional)
-            List of rotations to add to each conformer.
-            Corresponds to REMARK ROTATE in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        translate: list of tuples of floats (optional)
-            List of translations to add to each conformer.
-            Corresponds to REMARK TRANSLATE in R.E.D.
-            e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
-            x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-        grid_name: str (optional)
-            template for grid filename for each Orientation.
-        esp_name: str (optional)
-            template for ESP filename for each Orientation.
-        load_files: bool (optional)
-            If ``True``, tries to load data from file for each Orientation.
         **kwargs:
             arguments passed to ``Resp.__init__()``.
 
@@ -113,32 +84,15 @@ class Resp(object):
         resp: Resp
         """
         molecules = utils.asiterable(molecules)
-        if name is not None:
-            names = ['{}_c{}'.format(name, i+1) for i in range(len(molecules))]
-        else:
-            molnames = [m.name() for m in molecules]
-            gennames = ['Mol_c{}'.format(i+1) for i in range(len(molecules))]
-            # default Psi4 name is 'default'...
-            # Hope no one actually wants to call their molecules default!
-            names = np.where(molnames == 'default', molnames, gennames)
-
         conformers = []
-        for mol, n in zip(molecules, names):
-            conformers.append(Conformer(mol.clone(), name=n, charge=charge,
-                                        multiplicity=multiplicity,
-                                        orient=orient, rotate=rotate,
-                                        translate=translate,
-                                        grid_name=grid_name,
-                                        esp_name=esp_name,
-                                        mat_name=mat_name,
-                                        load_files=load_files))
-
-        return cls(conformers, name=name, load_files=load_files,
-                   **kwargs)
+        for i, mol in enumerate(molecules, 1):
+            conformers.append(Conformer(mol.clone(), name=f"{name}_c{i:03d}",
+                                        **kwargs))
+        return cls(conformers, name=name, **kwargs)
 
 
     @classmethod
-    def from_rdmol(cls, rdmol, name=None, rmsd_threshold=1.5, minimize=True,
+    def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=True,
                    n_confs=50, **kwargs):
         rdmol = Chem.AddHs(rdmol)
         confs = []
@@ -149,33 +103,41 @@ class Resp(object):
         if minimize:
             # TODO: is UFF good?
             AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
-
-        if name is None:
-            name = "Mol"
-
         charge = Chem.GetFormalCharge(rdmol)
-        molecules = utils.rdmol_to_psi4mols(rdmol)
+        molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
 
-        return cls.from_molecules(molecules, charge=charge, **kwargs)
+        return cls.from_molecules(molecules, name=name, charge=charge, **kwargs)
         
 
-    def __init__(self, conformers, name=None, chrconstr=[], chrequiv=[],
-                 load_files=False):
-        if name is None:
-            name = 'Resp'
+    def __init__(self, conformers, name="Resp", chrconstr=[], chrequiv=[],
+                 weights=1, save_opt_geometry=False, opt=False,
+                 psi4_options={}, n_orient=0, n_rotate=0, n_translate=0,
+                 orient=[], rotate=[], translate=[], **kwargs):
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
-        self.name = name
-        self._load_files = load_files
         self.conformers = utils.asiterable(conformers)
+
+        self.name = name
         self.n_conf = len(self.conformers)
         self.charge = self._conf.charge
         self.symbols = self._conf.symbols
         self.n_atoms = self._conf.n_atoms
+        if not utils.isiterable(weights):
+            weights = itertools.repeat(weights)
+        elif len(weights) != self.n_conf:
+            err = ('weights must be an iterable of the same length '
+                   'as number of conformers')
+            raise ValueError(err)
+        self.weights = weights
+        self.kwargs = dict(**kwargs)
+
+        # mol info
         self.indices = np.arange(self.n_atoms)
         self.atom_ids = self.indices+1
         self.heavy_ids = np.where(self.symbols != 'H')[0]+1
         self.h_ids = np.where(self.symbols == 'H')[0]+1
+
+        # resp info
         self._orient_combs = self._gen_orientation_atoms()
         self.chrconstr = []
         self.chrequiv = []
@@ -183,6 +145,15 @@ class Resp(object):
             self.add_charge_constraints(chrconstr)
         if chrequiv is not None:
             self.add_charge_equivalences(chrequiv)
+
+        if opt:
+            self.optimize_geometry(psi4_options=psi4_options,
+                                   save_opt_geometry=save_opt_geometry)
+        
+        self.add_orientations(n_orient=n_orient, orient=orient,
+                              n_rotate=n_rotate, rotate=rotate,
+                              n_translate=n_translate,
+                              translate=translate)
 
         log.debug(f'Resp(name={self.name}) created with '
                   f'{self.n_conf} conformers, {len(self.chrconstr)} charge '
@@ -195,6 +166,16 @@ class Resp(object):
     @property
     def n_structures(self):
         return sum([c.n_orientations for c in self.conformers])
+
+    def to_mda(self):
+        mol = self._conf.molecule.format_molecule_for_mol()
+        u = mda.Universe(io.StringIO(mol), format="MOL2")
+        u.add_TopologyAttr("charges", self.charges)
+        return u
+    
+    def write(self, filename):
+        u = self.to_mda()
+        u.atoms.write(filename)
 
     def clone(self, name=None):
         """Clone into another instance of Resp
@@ -215,7 +196,7 @@ class Resp(object):
         charge = self.charge
         mult = self._conf.multiplicity
         new = type(self).from_molecules(mols, name=name, charge=charge,
-                                        multiplicity=mult, load_files=self._load_files)
+                                        multiplicity=mult, **self.kwargs)
         for nc, mc in zip(new.conformers, self.conformers):
             nc.add_orientations(orient=mc._orient, rotate=mc._rotate,
                                 translate=mc._translate)
@@ -223,7 +204,9 @@ class Resp(object):
 
     def add_charge_constraint(self, charge, atom_ids):
         """
-        Add charge constraint
+        Add charge constraint.
+
+        Convenience method.
 
         Parameters
         ----------
@@ -243,6 +226,8 @@ class Resp(object):
     def add_charge_constraints(self, chrconstr=[]):
         """Add charge constraints
 
+        Convenience method.
+
         Parameters
         ----------
         chrconstr: list or dict (optional)
@@ -260,6 +245,8 @@ class Resp(object):
         """
         Add constraint for equivalent charges.
 
+        Convenience method.
+
         Parameters
         ----------
         atom_ids: iterable of ints
@@ -276,6 +263,8 @@ class Resp(object):
     def add_charge_equivalences(self, chrequiv=[]):
         """Add charge equivalence constraints
 
+        Convenience method.
+
         Parameters
         ----------
         chrequiv: list (optional)
@@ -286,9 +275,7 @@ class Resp(object):
         for ids in chrequiv:
             self.add_charge_equivalence(ids)
 
-    def optimize_geometry(self, method='scf', basis='6-31g*',
-                          psi4_options={}, save_opt_geometry=False,
-                          save_files=False):
+    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
         """
         Optimise geometry for all conformers.
 
@@ -307,10 +294,8 @@ class Resp(object):
             writing optimised geometries to files. 
         """
         for conf in self.conformers:
-            conf.optimize_geometry(method=method, basis=basis,
-                                   psi4_options=psi4_options,
-                                   save_opt_geometry=save_opt_geometry,
-                                   save_files=save_files)
+            conf.optimize_geometry(psi4_options=psi4_options,
+                                   save_opt_geometry=save_opt_geometry)
 
     def set_user_constraints(self, chrconstr=[], chrequiv=[]):
         """
@@ -422,14 +407,7 @@ class Resp(object):
 
         return q
 
-    def get_constraint_matrices(self, chrconstr=[], chrequiv=[],
-                                weights=1, use_radii='msk',
-                                vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                                vdw_point_density=1.0, vdw_radii={},
-                                rmin=0, rmax=-1, basis='6-31g*', method='scf',
-                                solvent=None, psi4_options={},
-                                save_files=False, load_files=False,
-                                mat_name=''):
+    def gen_constraint_matrices(self, chrconstr=[], chrequiv=[]):
         """
         Get A and B matrices to solve for charges, including charge constraints.
 
@@ -478,18 +456,6 @@ class Resp(object):
         a: ndarray
         b: ndarray
         """
-        mat_filename = utils.prepend_name_to_file(self.name, mat_name)
-        AB = None
-
-        if load_files and self._load_files and mat_name:
-            try:
-                AB = np.loadtxt(mat_filename)
-            except OSError:
-                warnings.warn(f'Could not read data from {mat_filename}')
-            else:
-                log.info(f'Read matrix from {mat_filename}')
-                A, B = AB[:-1], AB[-1]
-                return A, B
 
         AB = self.set_user_constraints(chrconstr=chrconstr,
                                        chrequiv=chrequiv)
@@ -497,45 +463,20 @@ class Resp(object):
         log.debug(f'Computing {self.name} Resp constraint matrices '
                   f'of dimension {len(B)}')
 
-        if not utils.isiterable(weights):
-            weights = itertools.repeat(weights)
-        elif len(weights) != self.n_conf:
-            err = ('weights must be an iterable of the same length '
-                   'as number of conformers')
-            raise ValueError(err)
-
-        # don't compute anything unless we have to
-        if any(conf._grid_needs_computing for conf in self.conformers):
-            vdw_points = utils.gen_connolly_shells(self.symbols,
-                                                   vdw_radii=vdw_radii,
-                                                   use_radii=use_radii,
-                                                   scale_factors=vdw_scale_factors,
-                                                   density=vdw_point_density)
-        else:
-            vdw_points = []
-
         # get molecule weights
         n_a = self.n_atoms
-        for conf, w in zip(self.conformers, weights):
-            a, b = conf.get_esp_matrices(weight=w, vdw_points=vdw_points,
-                                         rmin=0, rmax=-1, basis=basis,
-                                         method=method, solvent=solvent,
-                                         psi4_options=psi4_options,
-                                         save_files=save_files, load_files=load_files)
-            A[:n_a, :n_a] += a
-            B[:n_a] += b
+        for conf, w in zip(self.conformers, self.weights):
+            A[:n_a, :n_a] += conf.esp_a
+            B[:n_a] += conf.esp_b
 
         A[n_a, :n_a] = A[:n_a, n_a] = 1
         B[n_a] = self.charge
 
-        if save_files and mat_name:
-            np.savetxt(mat_filename, AB)
-            log.info(f'Saved matrix to {mat_filename}')
 
         return A, B
 
     def fit(self, restraint=True, hyp_a=0.0005, hyp_b=0.1, ihfree=True,
-            tol=1e-6, maxiter=50, **kwargs):
+            tol=1e-6, maxiter=50, chrconstr=[], chrequiv=[]):
         """
         Perform the R/ESP fits.
 
@@ -554,13 +495,13 @@ class Resp(object):
         maxiter: int (optional)
             maximum number of iterations
         **kwargs:
-            arguments passed to Resp.get_constraint_matrices
+            arguments passed to Resp.gen_constraint_matrices
 
         Returns
         -------
         charges: ndarray
         """
-        a, b = self.get_constraint_matrices(**kwargs)
+        a, b = self.gen_constraint_matrices(chrconstr=chrconstr, chrequiv=chrequiv)
         q = np.linalg.solve(a, b)
         self.unrestrained_charges = q[:self.n_atoms]
         if restraint:
@@ -592,7 +533,7 @@ class Resp(object):
             groups[i+1] = partners[self.symbols[partners] == 'H']+1
         return groups
 
-    def get_methyl_constraints(self, chrconstr=None):
+    def gen_methyl_constraints(self, chrconstr=None):
         """
         Get charge equivalence arrays when all methyls are treated as
         equivalent, and all methylenes are equivalent. Toggle this with
@@ -676,7 +617,7 @@ class Resp(object):
         if chrequiv:  # constraints are fitted in stage 2
             equivs = chrequiv
         elif equal_methyls:
-            equivs = self.get_methyl_constraints(chrconstr)
+            equivs = self.gen_methyl_constraints(chrconstr)
         else:
             cs, equivs = zip(*self.get_sp3_ch_ids().items())
 
@@ -724,8 +665,7 @@ class Resp(object):
         return all_comb
 
     def add_orientations(self, orient=[], n_orient=0, translate=[],
-                         n_translate=0, rotate=[], n_rotate=0,
-                         load_files=False):
+                         n_translate=0, rotate=[], n_rotate=0,):
         """
         Add orientations to conformers.
 
@@ -771,14 +711,11 @@ class Resp(object):
 
         for conf in self.conformers:
             conf.add_orientations(orient=orient, rotate=rotate,
-                                  translate=translate, load_files=load_files)
+                                  translate=translate)
 
-    def run(self, stage_2=True, opt=False, save_opt_geometry=False,
-            chrconstr=[], chrequiv=[], basis='6-31g*', method='scf',
-            psi4_options={}, hyp_a1=0.0005, hyp_a2=0.001, n_orient=0, orient=[],
-            n_rotate=0, rotate=[], n_translate=0, translate=[],
-            equal_methyls=False, restraint=True, load_files=False,
-            **kwargs):
+    def run(self, stage_2=True, chrconstr=[], chrequiv=[],
+            hyp_a1=0.0005, hyp_a2=0.001, equal_methyls=False,
+            retraint=False, **kwargs):
         """
         Perform a 1- or 2-stage ESP or RESP fit.
 
@@ -852,15 +789,8 @@ class Resp(object):
         charges: ndarray
         """
 
-        if opt:
-            self.optimize_geometry(method=method, basis=basis,
-                                   psi4_options=psi4_options,
-                                   save_opt_geometry=save_opt_geometry)
-
-        self.add_orientations(n_orient=n_orient, orient=orient,
-                              n_rotate=n_rotate, rotate=rotate,
-                              n_translate=n_translate,
-                              translate=translate, load_files=load_files)
+        chrequiv = self.chrequiv + chrequiv
+        chrconstr = self.chrconstr + chrconstr
 
         if stage_2:  # do constraints in stage 2 only
             stage_2_equiv = chrequiv
@@ -869,15 +799,12 @@ class Resp(object):
             stage_2_equiv = []
 
             if equal_methyls:
-                methyls = self.get_methyl_constraints(chrconstr)
+                methyls = self.gen_methyl_constraints(chrconstr)
                 chrequiv = list(chrequiv) + methyls
 
         q = self.fit(chrconstr=chrconstr,
                      chrequiv=chrequiv,
-                     basis=basis, method=method,
                      hyp_a=hyp_a1, restraint=restraint,
-                     load_files=load_files,
-                     mat_name='stg1_abmat.dat',
                      **kwargs)
 
         if stage_2:
@@ -891,9 +818,6 @@ class Resp(object):
             constr, equiv = cs
 
             q = self.fit(chrconstr=constr, chrequiv=equiv,
-                         basis=basis, method=method,
                          hyp_a=hyp_a2, restraint=restraint,
-                         load_files=load_files,
-                         mat_name='stg2_abmat.dat',
                          **kwargs)
         return q

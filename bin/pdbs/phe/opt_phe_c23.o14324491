@@ -1,0 +1,17 @@
+Read molecule from phe_c23.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved phe_c23_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:48:58:
+   Job Id:             14324491.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      49.87
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:46:45                                   
+   Memory Requested:   10.0GB                Memory Used: 1.39GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:46:45        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

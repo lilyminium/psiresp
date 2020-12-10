@@ -1,0 +1,17 @@
+Read molecule from asp_c10.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved asp_c10_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:20:31:
+   Job Id:             14319952.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      18.72
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:17:29                                   
+   Memory Requested:   10.0GB                Memory Used: 791.43MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:17:33        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

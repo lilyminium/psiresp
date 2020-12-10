@@ -1,0 +1,15 @@
+Read molecule from arg_c36.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-08 21:06:16:
+   Job Id:             14312199.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      49.14
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:46:07                                   
+   Memory Requested:   10.0GB                Memory Used: 1.34GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:46:04        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

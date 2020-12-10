@@ -1,0 +1,17 @@
+Read molecule from leu_c24.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved leu_c24_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:18:37:
+   Job Id:             14324468.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      17.49
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:16:20                                   
+   Memory Requested:   10.0GB                Memory Used: 828.29MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:16:24        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

@@ -1,0 +1,15 @@
+Read molecule from leu_c11.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:32:44:
+   Job Id:             14324342.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      32.53
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:30:26                                   
+   Memory Requested:   10.0GB                Memory Used: 854.63MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:30:30        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

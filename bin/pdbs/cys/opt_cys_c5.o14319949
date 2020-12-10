@@ -1,0 +1,15 @@
+Read molecule from cys_c5.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:23:06:
+   Job Id:             14319949.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      21.56
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:20:08                                   
+   Memory Requested:   10.0GB                Memory Used: 783.25MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:20:13        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

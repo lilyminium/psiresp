@@ -1,0 +1,17 @@
+Read molecule from ser_c6.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved ser_c6_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:10:55:
+   Job Id:             14324339.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      9.35
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:08:41                                   
+   Memory Requested:   10.0GB                Memory Used: 805.71MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:08:46        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

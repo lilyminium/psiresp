@@ -1,0 +1,67 @@
+qsub opt_ile_c1
+b'14319940.gadi-pbs\n'
+qsub opt_ile_c2
+b'14319945.gadi-pbs\n'
+qsub opt_ile_c3
+b'14319950.gadi-pbs\n'
+qsub opt_ile_c4
+b'14319955.gadi-pbs\n'
+qsub opt_ile_c5
+b'14319960.gadi-pbs\n'
+qsub opt_ile_c6
+b'14319965.gadi-pbs\n'
+qsub opt_ile_c7
+b'14319971.gadi-pbs\n'
+qsub opt_ile_c8
+b'14319978.gadi-pbs\n'
+qsub opt_ile_c9
+b'14319985.gadi-pbs\n'
+qsub opt_ile_c10
+b'14319992.gadi-pbs\n'
+qsub opt_ile_c11
+b'14320000.gadi-pbs\n'
+qsub opt_ile_c12
+b'14320007.gadi-pbs\n'
+qsub opt_ile_c13
+b'14320013.gadi-pbs\n'
+qsub opt_ile_c14
+b'14320021.gadi-pbs\n'
+qsub opt_ile_c15
+b'14320027.gadi-pbs\n'
+qsub opt_ile_c16
+b'14320034.gadi-pbs\n'
+qsub opt_ile_c17
+b'14320041.gadi-pbs\n'
+qsub opt_ile_c18
+b'14320046.gadi-pbs\n'
+qsub opt_ile_c19
+b'14320052.gadi-pbs\n'
+qsub opt_ile_c20
+b'14320057.gadi-pbs\n'
+qsub opt_ile_c21
+b'14320061.gadi-pbs\n'
+qsub opt_ile_c22
+b'14320067.gadi-pbs\n'
+qsub opt_ile_c23
+b'14320072.gadi-pbs\n'
+qsub opt_ile_c24
+b'14320076.gadi-pbs\n'
+qsub opt_ile_c25
+b'14320079.gadi-pbs\n'
+qsub opt_ile_c26
+b'14320084.gadi-pbs\n'
+qsub opt_ile_c27
+b'14320088.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:01:47:
+   Job Id:             14319904.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.21
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:03                                   
+   Memory Requested:   10.0GB                Memory Used: 299.63MB        
+   Walltime requested: 02:00:00            Walltime Used: 00:00:12        
+   JobFS requested:    3.91GB                 JobFS used: 382.0B          
+======================================================================================

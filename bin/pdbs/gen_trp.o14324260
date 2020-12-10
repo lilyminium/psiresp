@@ -1,0 +1,91 @@
+qsub opt_trp_c1
+b'14324288.gadi-pbs\n'
+qsub opt_trp_c2
+b'14324303.gadi-pbs\n'
+qsub opt_trp_c3
+b'14324314.gadi-pbs\n'
+qsub opt_trp_c4
+b'14324325.gadi-pbs\n'
+qsub opt_trp_c5
+b'14324334.gadi-pbs\n'
+qsub opt_trp_c6
+b'14324345.gadi-pbs\n'
+qsub opt_trp_c7
+b'14324355.gadi-pbs\n'
+qsub opt_trp_c8
+b'14324364.gadi-pbs\n'
+qsub opt_trp_c9
+b'14324376.gadi-pbs\n'
+qsub opt_trp_c10
+b'14324385.gadi-pbs\n'
+qsub opt_trp_c11
+b'14324395.gadi-pbs\n'
+qsub opt_trp_c12
+b'14324404.gadi-pbs\n'
+qsub opt_trp_c13
+b'14324414.gadi-pbs\n'
+qsub opt_trp_c14
+b'14324423.gadi-pbs\n'
+qsub opt_trp_c15
+b'14324432.gadi-pbs\n'
+qsub opt_trp_c16
+b'14324439.gadi-pbs\n'
+qsub opt_trp_c17
+b'14324448.gadi-pbs\n'
+qsub opt_trp_c18
+b'14324456.gadi-pbs\n'
+qsub opt_trp_c19
+b'14324467.gadi-pbs\n'
+qsub opt_trp_c20
+b'14324474.gadi-pbs\n'
+qsub opt_trp_c21
+b'14324483.gadi-pbs\n'
+qsub opt_trp_c22
+b'14324489.gadi-pbs\n'
+qsub opt_trp_c23
+b'14324495.gadi-pbs\n'
+qsub opt_trp_c24
+b'14324501.gadi-pbs\n'
+qsub opt_trp_c25
+b'14324506.gadi-pbs\n'
+qsub opt_trp_c26
+b'14324511.gadi-pbs\n'
+qsub opt_trp_c27
+b'14324514.gadi-pbs\n'
+qsub opt_trp_c28
+b'14324520.gadi-pbs\n'
+qsub opt_trp_c29
+b'14324529.gadi-pbs\n'
+qsub opt_trp_c30
+b'14324534.gadi-pbs\n'
+qsub opt_trp_c31
+b'14324541.gadi-pbs\n'
+qsub opt_trp_c32
+b'14324546.gadi-pbs\n'
+qsub opt_trp_c33
+b'14324550.gadi-pbs\n'
+qsub opt_trp_c34
+b'14324555.gadi-pbs\n'
+qsub opt_trp_c35
+b'14324560.gadi-pbs\n'
+qsub opt_trp_c36
+b'14324564.gadi-pbs\n'
+qsub opt_trp_c37
+b'14324568.gadi-pbs\n'
+qsub opt_trp_c38
+b'14324572.gadi-pbs\n'
+qsub opt_trp_c39
+b'14324576.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:00:30:
+   Job Id:             14324260.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.57
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:04                                   
+   Memory Requested:   10.0GB                Memory Used: 297.18MB        
+   Walltime requested: 02:00:00            Walltime Used: 00:00:32        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

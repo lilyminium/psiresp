@@ -1,0 +1,15 @@
+Read molecule from ala_c10.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-08 20:26:48:
+   Job Id:             14312125.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      11.15
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:10:25                                   
+   Memory Requested:   10.0GB                Memory Used: 604.73MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:10:27        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

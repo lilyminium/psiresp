@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -P q95
+#PBS -q normal
+#PBS -l walltime=2:00:00
+#PBS -l mem=10GB
+#PBS -l jobfs=4000MB
+#PBS -l ncpus=32
+#PBS -l wd
+#PBS -r y
+
+function die () {
+    local msg="$1" err=${2:-1}
+    echo "ERROR: $msg [$err]"
+    exit $err
+}
+
+
+test -n "${file}" || die "$file unset. Please submit with -v file=my_file.pdb" 100
+module load python3-as-python
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate psiresp
+/scratch/q95/SHARED/bin/rdkit_conf $file -mem "10gb" -nt 32 -nc 50 -rmsd 1.5

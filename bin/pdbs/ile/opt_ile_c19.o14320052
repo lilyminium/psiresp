@@ -1,0 +1,17 @@
+Read molecule from ile_c19.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved ile_c19_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:25:28:
+   Job Id:             14320052.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      24.04
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:22:27                                   
+   Memory Requested:   10.0GB                Memory Used: 829.93MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:22:32        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

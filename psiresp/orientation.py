@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from . import utils
+from . import base, utils
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 BOHR_TO_ANGSTROM = 0.52917721092
 
 
-class Orientation(object):
+class Orientation(base.CachedBase):
     """
     Class to manage one Psi4 molecule.
 
@@ -59,8 +59,20 @@ class Orientation(object):
         is called.
     """
 
-    def __init__(self, molecule, symbols=None, grid_name='grid.dat',
-                 esp_name='grid_esp.dat', load_files=False):
+    kwargnames = ["method", "basis", "vdw_radii",
+                  "rmin", "rmax", "use_radii", "scale_factors",
+                  "density", "solvent"]
+
+    def __init__(self, molecule,
+                 method="scf", solvent=None,
+                 basis="6-31g*", name=None,
+                 force=False, verbose=False,
+                 n_atoms = None, symbols=None,
+                 rmin=0, rmax=-1, use_radii="msk",
+                 vdw_radii={},
+                 scale_factors=(1.4, 1.6, 1.8, 2.0),
+                 density=1.0, psi4_options={}):
+        super().__init__(force=force, verbose=verbose)
         self.name = molecule.name()
         self.n_atoms = molecule.natom()
         if symbols is None:
@@ -69,48 +81,34 @@ class Orientation(object):
         self.bohr = 'Bohr' in str(molecule.units())
         self.indices = np.arange(self.n_atoms).astype(int)
         self.molecule = molecule
-        self._grid_name = grid_name
-        self._esp_name = esp_name
-        self.grid_filename = utils.prepend_name_to_file(self.name, grid_name)
-        self.esp_filename = utils.prepend_name_to_file(self.name, esp_name)
-        self._grid = self._esp = self._r_inv = None
-        self._load_files = load_files
+        self.method = method
+        self.solvent = solvent
+        self.psi4_options = dict(**psi4_options)
+        self.psi4_options["basis"] = basis
+        self.basis = basis
+        self.rmin = rmin
+        self.rmax = rmax
+        self.use_radii = use_radii
+        self.scale_factors = scale_factors
+        self.density = density
+        self.vdw_radii = vdw_radii
 
     @property
-    def grid(self):
-        return self._grid
+    def kwargs(self):
+        dct = {}
+        for kw in self.kwargnames:
+            dct[kw] = getattr(self, kw)
+        return kw
 
-    @grid.setter
-    def grid(self, values):
-        # ESP and inverse distance depend on grid; redo
-        self._grid = values
-        self._esp = None
-        self._r_inv = None
+    def get_coordinates(self):
+        return self.molecule.geometry().np.astype('float')*BOHR_TO_ANGSTROM
 
-    @property
-    def esp(self):
-        return self._esp
+    def get_r_inv(self):
+        points = self.grid.reshape((len(self.grid), 1, 3))
+        disp = self.coordinates - points
+        inverse = 1/np.sqrt(np.einsum('ijk, ijk->ij', disp, disp))
+        return inverse * BOHR_TO_ANGSTROM
 
-    @esp.setter
-    def esp(self, values):
-        self._esp = values
-        self._r_inv = None
-
-    @property
-    def r_inv(self):
-        """Inverse distance from each grid point to each atom, in atomic units."""
-        if self._r_inv is None and self.grid is not None:
-            points = self.grid.reshape((len(self.grid), 1, 3))
-            disp = self.coordinates-points
-            inverse = 1/np.sqrt(np.einsum('ijk, ijk->ij', disp, disp))
-            self._r_inv = inverse*BOHR_TO_ANGSTROM
-
-        return self._r_inv
-
-    @property
-    def coordinates(self):
-        coords = self.molecule.geometry().np.astype('float')*BOHR_TO_ANGSTROM
-        return coords
 
     def clone(self, name=None):
         """Clone into another instance of Orientation
@@ -127,243 +125,46 @@ class Orientation(object):
         mol = self.molecule.clone()
         if name is not None:
             mol.set_name(name)
-        new = type(self)(name, symbols=self.symbols,
-                         grid_name=self._grid_name,
-                         esp_name=self._esp_name,
-                         load_files=self._load_files)
+        new = type(self)(name, symbols=self.symbols, **self.kwargs)
         return new
 
-    def get_esp_matrices(self, vdw_points=None, rmin=0, rmax=-1,
-                         basis='6-31g*', method='scf', solvent=None,
-                         vdw_radii={}, use_radii='msk',
-                         vdw_point_density=1.0,
-                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                         psi4_options={}, save_files=False):
-        """
-        Get A and B matrices to solve for charges, from Bayly:93:Eq.11:: Aq=B
+    def get_esp_mat_a(self):
+        return np.einsum('ij, ik->jk', self.r_inv, self.r_inv)
+    
+    def get_esp_mat_b(self):
+        return np.einsum('i, ij->j', self.esp, self.r_inv)
 
-        Parameters
-        ----------
-        vdw_points: list of tuples (optional)
-            List of tuples of (unit_shell_coordinates, scaled_atom_radii).
-            If this is ``None`` or empty, new points are generated from 
-            utils.gen_connolly_shells and the variables ``vdw_radii``,
-            ``use_radii``, ``vdw_scale_factors``, ``vdw_point_density``.
-        use_radii: str (optional)
-            which set of van der Waals' radii to use. 
-            Ignored if ``vdw_points`` is provided.
-        vdw_scale_factors: iterable of floats (optional)
-            scale factors. Ignored if ``vdw_points`` is provided.
-        vdw_point_density: float (optional)
-            point density. Ignored if ``vdw_points`` is provided.
-        vdw_radii: dict (optional)
-            van der Waals' radii. If elements in the molecule are not
-            defined in the chosen ``use_radii`` set, they must be given here.
-            Ignored if ``vdw_points`` is provided.
-        rmin: float (optional)
-            inner boundary of shell to keep grid points from
-        rmax: float (optional)
-            outer boundary of shell to keep grid points from. If < 0,
-            all points are selected.
-        basis: str (optional)
-            Basis set to compute ESP
-        method: str (optional)
-            Method to compute ESP
-        solvent: str (optional)
-            Solvent for computing in implicit solvent
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed ESP
-            and grids are written to files.
+    def get_vdw_points(self):
+        return utils.gen_connolly_shells(self.symbols,
+                                         vdw_radii=self.vdw_radii,
+                                         use_radii=self.use_radii,
+                                         scale_factors=self.scale_factors,
+                                         density=self.density)
 
-        Returns
-        -------
-        a: ndarray
-        b: ndarray
-        """
-
-        if self.grid is None:
-            self.get_grid(vdw_points=vdw_points, rmin=rmin,
-                          rmax=rmax, vdw_radii=vdw_radii,
-                          use_radii=use_radii, density=vdw_point_density,
-                          scale_factors=vdw_scale_factors,
-                          save_files=save_files)
-
-        if self.esp is None:
-            self.get_esp(basis=basis, method=method,
-                         psi4_options=psi4_options,
-                         save_files=save_files, solvent=solvent)
-
-        a = np.einsum('ij, ik->jk', self.r_inv, self.r_inv)
-        b = np.einsum('i, ij->j', self.esp, self.r_inv)
-
-        return a, b
-
-    def get_grid(self, vdw_points=None, rmin=0, rmax=-1, fmt='%15.10f',
-                 save_files=False, vdw_radii={}, use_radii='msk',
-                 scale_factors=(1.4, 1.6, 1.8, 2.0),
-                 density=1.0, load_files=False):
-        """
-        Get ESP grid from a given file or compute it from the
-        van der Waals' surfaces.
-
-        Parameters
-        ----------
-        vdw_points: list of tuples (optional)
-            List of tuples of (unit_shell_coordinates, scaled_atom_radii).
-            If this is ``None`` or empty, new points are generated from 
-            utils.gen_connolly_shells and the variables ``vdw_radii``,
-            ``use_radii``, ``scale_factors``, ``density``.
-        rmin: float (optional)
-            inner boundary of shell to keep grid points from
-        rmax: float (optional)
-            outer boundary of shell to keep grid points from. If < 0,
-            all points are selected.
-        use_radii: str (optional)
-            which set of van der Waals' radii to use. 
-            Ignored if ``vdw_points`` is provided.
-        scale_factors: iterable of floats (optional)
-            scale factors. Ignored if ``vdw_points`` is provided.
-        density: float (optional)
-            point density. Ignored if ``vdw_points`` is provided.
-        vdw_radii: dict (optional)
-            van der Waals' radii. If elements in the molecule are not
-            defined in the chosen ``use_radii`` set, they must be given here.
-            Ignored if ``vdw_points`` is provided.
-        fmt: str (optional)
-            float format
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed grid
-            is written to a file.
-
-        Returns
-        -------
-        grid: ndarray
-        """
-        if load_files or self._load_files:
-            try:
-                self.grid = np.loadtxt(self.grid_filename)
-            except OSError:
-                warnings.warn(f'Could not read data from {self.grid_filename}')
-            else:
-                if self.bohr:
-                    self.grid *= BOHR_TO_ANGSTROM
-                log.info(f'Read grid from {self.grid_filename}')
-                return self.grid
-
-        # usually generated in RESP or Conformer
-        if vdw_points is None or len(vdw_points) == 0:
-            vdw_points = utils.gen_connolly_shells(self.symbols,
-                                                   vdw_radii=vdw_radii,
-                                                   use_radii=use_radii,
-                                                   scale_factors=scale_factors,
-                                                   density=density)
+    @utils.datafile
+    def get_grid(self):
         points = []
-        for pts, rad in vdw_points:
+        for pts, rad in self.vdw_points:
             points.append(utils.gen_vdw_surface(pts, rad, self.coordinates,
-                                                rmin=rmin, rmax=rmax))
-        points = to_save = np.concatenate(points)
+                                                rmin=self.rmin,
+                                                rmax=self.rmax))
+        return np.concatenate(points)
 
-        if save_files:
-            if self.bohr:
-                to_save = points/BOHR_TO_ANGSTROM
-            np.savetxt(self.grid_filename, to_save, fmt=fmt)
-
-        self.grid = points
-        log.debug(f'Computed grid for {self.name} with {len(points)} points')
-        return points
-
-    def get_esp(self, basis='6-31g*', method='scf', solvent=None,
-                psi4_options={}, fmt='%15.10f', save_files=False,
-                load_files=False):
-        """
-        Get ESP at each point on a grid from a given file or compute it with Psi4.
-
-        Parameters
-        ----------
-        basis: str (optional)
-            Basis set to compute ESP
-        method: str (optional)
-            Method to compute ESP
-        solvent: str (optional)
-            Solvent for computing in implicit solvent
-        psi4_options: dict (optional)
-            additional Psi4 options
-        fmt: str
-            float format
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed ESP 
-            is written to a file.
-
-        Returns
-        -------
-        grid_esp: ndarray
-        """
-        if load_files or self._load_files:
-            try:
-                self.esp = np.loadtxt(self.esp_filename)
-            except OSError:
-                warnings.warn(f'Could not read data from {self.esp_filename}')
-            else:
-                log.info(f'Read esp from {self.esp_filename}')
-                return self.esp
-
-        if not save_files:
-            cwd = os.getcwd()
-            with tempfile.TemporaryDirectory(prefix='tmp') as tmpdir:
-                os.chdir(tmpdir)
-                self._get_esp(method=method, basis=basis,
-                              psi4_options=psi4_options, solvent=solvent,
-                              fmt=fmt)
-                os.chdir(cwd)
-        else:
-            self._get_esp(method=method, basis=basis,
-                          psi4_options=psi4_options, solvent=solvent,
-                          fmt=fmt)
-        return self.esp
-
-    def _get_esp(self, basis='6-31g*', method='scf', solvent=None,
-                 psi4_options={}, fmt='%15.10f'):
-        """
-        Get ESP at each point on a grid from a given file or compute it with Psi4.
-
-        Parameters
-        ----------
-        basis: str (optional)
-            Basis set to compute ESP
-        method: str (optional)
-            Method to compute ESP
-        solvent: str (optional)
-            Solvent for computing in implicit solvent
-        psi4_options: dict (optional)
-            additional Psi4 options
-        fmt: str
-            float format
-
-        Returns
-        -------
-        grid_esp: ndarray
-        """
+    @utils.datafile
+    def get_esp(self):
         import psi4
-        grid_fn, esp_fn = 'grid.dat', 'grid_esp.dat'
-        logfile = self.esp_filename.rsplit('.', maxsplit=1)[0]+'.log'
-        if self.bohr:  # I THINK psi4 converts units based on molecule units
-            np.savetxt(grid_fn, self.grid/BOHR_TO_ANGSTROM, fmt=fmt)
-        else:
-            np.savetxt(grid_fn, self.grid, fmt=fmt)
 
-        psi4.set_output_file(logfile)
-        psi4.set_options({'basis': basis})
-        psi4.set_options(psi4_options)
+        psi4.set_output_file(f"{self.name}_grid_esp.log")
+        psi4.set_options(self.psi4_options)
+        msg = f"Computing grid ESP for {self.name} with "
+        msg += f"{self.method}/{self.basis}, solvent={self.solvent}"
+        log.debug(msg)
 
-        msg = 'Computing grid ESP for {} with {}/{}, solvent={}'
-        log.debug(msg.format(self.name, method, basis, solvent))
-
-        if solvent:
+        if self.solvent:
             psi4.set_options({'pcm': True,
                               'pcm_scf_type': 'total'})
-            fname = psi4.core.get_local_option('PCM', 'PCMSOLVER_PARSED_FNAME')
+            fname = psi4.core.get_local_option('PCM', 
+                                               'PCMSOLVER_PARSED_FNAME')
             if not fname or not os.path.exists(fname):
                 block = textwrap.dedent("""
                     units = angstrom
@@ -378,18 +179,17 @@ class Orientation(object):
                         area = 0.3
                         mode = implicit
                     }}
-                """.format(solvent))
+                """.format(self.solvent))
                 psi4.pcm_helper(block)
-
-        E, wfn = psi4.prop(method, properties=['GRID_ESP'], molecule=self.molecule,
+        
+        E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
+                           molecule=self.molecule,
                            return_wfn=True)
-
         if solvent:
             import pcmsolver  # clear pcmsolver or it's sad the next time
             pcmsolver.getkw.GetkwParser.bnf = None
-
-        self.esp = np.array(wfn.oeprop.Vvals())
+        
+        esp = np.array(wfn.oeprop.Vvals())
         psi4.core.clean()
         psi4.core.clean_options()
-        np.savetxt(self.esp_filename, self.esp, fmt=fmt)
-        return self.esp
+        return esp

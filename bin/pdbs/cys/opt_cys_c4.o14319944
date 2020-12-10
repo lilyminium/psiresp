@@ -1,0 +1,17 @@
+Read molecule from cys_c4.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved cys_c4_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:12:15:
+   Job Id:             14319944.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      9.76
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:09:05                                   
+   Memory Requested:   10.0GB                Memory Used: 763.39MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:09:09        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

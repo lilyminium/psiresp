@@ -1,0 +1,15 @@
+Read molecule from asn_c18.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:33:24:
+   Job Id:             14320023.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      32.48
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:30:21                                   
+   Memory Requested:   10.0GB                Memory Used: 823.71MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:30:27        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

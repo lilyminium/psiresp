@@ -1,0 +1,79 @@
+qsub opt_his_c1
+b'14319967.gadi-pbs\n'
+qsub opt_his_c2
+b'14319974.gadi-pbs\n'
+qsub opt_his_c3
+b'14319981.gadi-pbs\n'
+qsub opt_his_c4
+b'14319988.gadi-pbs\n'
+qsub opt_his_c5
+b'14319995.gadi-pbs\n'
+qsub opt_his_c6
+b'14320001.gadi-pbs\n'
+qsub opt_his_c7
+b'14320008.gadi-pbs\n'
+qsub opt_his_c8
+b'14320015.gadi-pbs\n'
+qsub opt_his_c9
+b'14320022.gadi-pbs\n'
+qsub opt_his_c10
+b'14320029.gadi-pbs\n'
+qsub opt_his_c11
+b'14320036.gadi-pbs\n'
+qsub opt_his_c12
+b'14320043.gadi-pbs\n'
+qsub opt_his_c13
+b'14320050.gadi-pbs\n'
+qsub opt_his_c14
+b'14320055.gadi-pbs\n'
+qsub opt_his_c15
+b'14320060.gadi-pbs\n'
+qsub opt_his_c16
+b'14320063.gadi-pbs\n'
+qsub opt_his_c17
+b'14320068.gadi-pbs\n'
+qsub opt_his_c18
+b'14320073.gadi-pbs\n'
+qsub opt_his_c19
+b'14320077.gadi-pbs\n'
+qsub opt_his_c20
+b'14320081.gadi-pbs\n'
+qsub opt_his_c21
+b'14320085.gadi-pbs\n'
+qsub opt_his_c22
+b'14320087.gadi-pbs\n'
+qsub opt_his_c23
+b'14320090.gadi-pbs\n'
+qsub opt_his_c24
+b'14320091.gadi-pbs\n'
+qsub opt_his_c25
+b'14320093.gadi-pbs\n'
+qsub opt_his_c26
+b'14320094.gadi-pbs\n'
+qsub opt_his_c27
+b'14320096.gadi-pbs\n'
+qsub opt_his_c28
+b'14320098.gadi-pbs\n'
+qsub opt_his_c29
+b'14320099.gadi-pbs\n'
+qsub opt_his_c30
+b'14320101.gadi-pbs\n'
+qsub opt_his_c31
+b'14320103.gadi-pbs\n'
+qsub opt_his_c32
+b'14320105.gadi-pbs\n'
+qsub opt_his_c33
+b'14320107.gadi-pbs\n'
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:01:49:
+   Job Id:             14319903.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      0.25
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:00:04                                   
+   Memory Requested:   10.0GB                Memory Used: 285.17MB        
+   Walltime requested: 02:00:00            Walltime Used: 00:00:14        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

@@ -1,0 +1,17 @@
+Read molecule from val_c21.xyz
+Optimising!
+Optimizer: Optimization complete!
+Saved val_c21_opt.xyz
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:14:29:
+   Job Id:             14324458.gadi-pbs
+   Project:            q95
+   Exit Status:        0
+   Service Units:      12.98
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:12:07                                   
+   Memory Requested:   10.0GB                Memory Used: 794.36MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:12:10        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

@@ -1,0 +1,15 @@
+Read molecule from his_c29.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 04:41:21:
+   Job Id:             14320099.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      40.91
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:38:22                                   
+   Memory Requested:   10.0GB                Memory Used: 1.25GB          
+   Walltime requested: 48:00:00            Walltime Used: 00:38:21        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================

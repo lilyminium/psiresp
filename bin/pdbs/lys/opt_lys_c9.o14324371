@@ -1,0 +1,15 @@
+Read molecule from lys_c9.xyz
+Optimising!
+
+======================================================================================
+                  Resource Usage on 2020-12-09 09:36:19:
+   Job Id:             14324371.gadi-pbs
+   Project:            q95
+   Exit Status:        1
+   Service Units:      36.43
+   NCPUs Requested:    32                     NCPUs Used: 32              
+                                           CPU Time Used: 00:34:01                                   
+   Memory Requested:   10.0GB                Memory Used: 962.12MB        
+   Walltime requested: 48:00:00            Walltime Used: 00:34:09        
+   JobFS requested:    3.91GB                 JobFS used: 0B              
+======================================================================================
