@@ -158,7 +158,6 @@ class Orientation(base.CachedBase):
         psi4.set_options(self.psi4_options)
         msg = f"Computing grid ESP for {self.name} with "
         msg += f"{self.method}/{self.basis}, solvent={self.solvent}"
-        log.debug(msg)
 
         if self.solvent:
             psi4.set_options({'pcm': True,
@@ -181,6 +180,8 @@ class Orientation(base.CachedBase):
                     }}
                 """.format(self.solvent))
                 psi4.pcm_helper(block)
+
+        print(self.psi4_options)
         
         E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
                            molecule=self.molecule,

@@ -109,8 +109,7 @@ def read_csv(path):
     return pd.read_csv(path, index_col=0, header=0)
 
 
-def try_load_data(filename, force=False, verbose=False, name=""):
-    path = f"{name}_{filename}"
+def try_load_data(path, force=False, verbose=False):
     suffix = path.split(".")[-1]
 
     if not force:
@@ -175,7 +174,7 @@ def datafile(func):
     """Try to load data from file. If not found, saves data to same path"""
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        filename = func.__name__[4:] + ".dat"
+        filename = self.name + "_" + func.__name__[4:] + ".dat"
         data, path = try_load_data(filename, force=self.force,
                                    verbose=self.verbose)
         if data is not None:
