@@ -180,13 +180,15 @@ class Orientation(base.CachedBase):
                     }}
                 """.format(self.solvent))
                 psi4.pcm_helper(block)
-
-        print(self.psi4_options)
         
+        #... this dies unless you have grid.dat
+        # well that's fucking stupid
+        np.savetxt("grid.dat", self.grid)
+
         E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
                            molecule=self.molecule,
                            return_wfn=True)
-        if solvent:
+        if self.solvent:
             import pcmsolver  # clear pcmsolver or it's sad the next time
             pcmsolver.getkw.GetkwParser.bnf = None
         

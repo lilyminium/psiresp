@@ -170,6 +170,7 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
     n_atoms = mol.GetNumAtoms()
     
     for file in coordfiles:
+        print(file)
         conf = Chem.Conformer(n_atoms)
         pos = mda.Universe(file).atoms.positions.astype(float)
         for i, row in enumerate(pos):

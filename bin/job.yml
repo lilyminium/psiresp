@@ -7,49 +7,49 @@ basis: 6-31g*
 method: scf
 opt: false
 save_opt_geometry: false
-force: false
+force: true
 verbose: true
-coords: "pdbs/{name}/opt_{name}*.xyz"
-rdmol: "pdbs/{name}.pdb"
+coords: "pdbs/{name}/{name}*opt.xyz"
+# rdmol: "pdbs/{name}.pdb"
 out: "{name}_charged.pdb"
 
 
 molecules:
-  ala:
-    charge: 0
-  asp:
-    charge: -1
+  # ala:
+  #   charge: 0
+  # asp:
+  #   charge: -1
   glu:
-    charge: -1
+    charge: 0
   leu:
     charge: 0
-  phe:
-    charge: 0
-  thr:
-    charge: 0
-  val:
-    charge: 0
-  arg:
-    charge: 1
-  cys:
-    charge: 0
-  his:
-    charge: 1
-  lys:
-    charge: 1
-  pro:
-    charge: 0
-  trp:
-    charge: 0
-  asn:
-    charge: 0
-  gln:
-    charge: 0
-  ile:
-    charge: 0
-  met:
-    charge: 0
-  ser:
-    charge: 0
-  tyr:
-    charge: 0
+  # phe:
+  #   charge: 0
+  # thr:
+  #   charge: 0
+  # val:
+  #   charge: 0
+  # arg:
+  #   charge: 1
+  # cys:
+  #   charge: 0
+  # his:
+  #   charge: 1
+  # lys:
+  #   charge: 1
+  # pro:
+  #   charge: 0
+  # trp:
+  #   charge: 0
+  # asn:
+  #   charge: 0
+  # gln:
+  #   charge: 0
+  # ile:
+  #   charge: 0
+  # met:
+  #   charge: 0
+  # ser:
+  #   charge: 0
+  # tyr:
+  #   charge: 0
