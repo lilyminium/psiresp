@@ -133,10 +133,10 @@ def read_rdmol(filename):
         Chem.MolFromTPLBlock,
     )
     if suffix in FILE:
-        return FILE[suffix](filename, removeHs=False)
+        return FILE[suffix](filename, removeHs=False, sanitize=False)
     
     for parser in STR:
-        mol = parser(filename, removeHs=False)
+        mol = parser(filename, removeHs=False, sanitize=False)
         if mol is not None:
             return mol
     raise ValueError(f"Could not parse {filename}")
@@ -171,6 +171,7 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
         mol = mol.atoms.convert_to("RDKIT")
     
     n_atoms = mol.GetNumAtoms()
+    mol.
     
     for file in coordfiles:
         conf = Chem.Conformer(n_atoms)
