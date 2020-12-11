@@ -5,6 +5,7 @@ import glob
 import tempfile
 import argparse
 
+from dask.distributed import Client
 from rdkit import Chem
 import MDAnalysis as mda
 import psiresp as sip
@@ -51,7 +52,7 @@ def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
     return intra_chrconstr, intra_chrequiv
 
 
-def run_job(equiv_mcs=False, mcs_natoms=4,
+def run_job(client, equiv_mcs=False, mcs_natoms=4,
             stage_2=True, intra_chrconstr=[],
             intra_chrequiv=[], inter_chrconstr=[],
             inter_chrequiv=[], equal_methyls=False,
@@ -84,13 +85,12 @@ def run_job(equiv_mcs=False, mcs_natoms=4,
     resps = []
     out_files = []
     for rdmol, molkwargs in zip(rdmols, mol_kwargs):
-        molkwargs.pop("coords", None)
-        molkwargs.pop("rdmol", None)
         out = molkwargs.pop("out", "{name}_charged.pdb")
         out_files.append(out.format(**molkwargs))
+        molkwargs.pop("coords", None)
+        molkwargs.pop("rdmol", None)
 
-        confs = rdmol_to_psi4mols(rdmol, molkwargs["name"])
-        rp = sip.Resp.from_molecules(confs, **molkwargs)
+        rp = sip.Resp.from_rdmol(rdmol, client=client, **molkwargs)
         resps.append(rp)
     
     mresp = sip.MultiResp(resps)
@@ -156,7 +156,10 @@ def read_psi4mol(filename):
 
 
 def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
-    coordfiles = glob.glob(coords.format(name=name))
+    if coords is not None:
+        coordfiles = glob.glob(coords.format(name=name))
+    else:
+        coordfiles = []
     if rdmol is not None:
         rdfile = glob.glob(rdmol.format(name=name))[0]
         mol = read_rdmol(rdfile)
@@ -170,7 +173,6 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
     n_atoms = mol.GetNumAtoms()
     
     for file in coordfiles:
-        print(file)
         conf = Chem.Conformer(n_atoms)
         pos = mda.Universe(file).atoms.positions.astype(float)
         for i, row in enumerate(pos):
@@ -187,7 +189,8 @@ if __name__ == "__main__":
     psi4.set_num_threads(args.nthreads)
 
     contents = read(args.input)
-    print(contents)
     molecules = contents.pop("molecules", {})
+    client = Client()
+    print("client: ", client)
 
-    run_job(**contents, molecules=molecules)
+    run_job(client, **contents, molecules=molecules)

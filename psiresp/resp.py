@@ -92,8 +92,8 @@ class Resp:
 
 
     @classmethod
-    def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=True,
-                   n_confs=50, **kwargs):
+    def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
+                   n_confs=0, **kwargs):
         rdmol = Chem.AddHs(rdmol)
         confs = []
 
@@ -103,19 +103,20 @@ class Resp:
         if minimize:
             # TODO: is UFF good?
             AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
-        charge = Chem.GetFormalCharge(rdmol)
+        # charge = Chem.GetFormalCharge(rdmol)
         molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
 
-        return cls.from_molecules(molecules, name=name, charge=charge, **kwargs)
+        return cls.from_molecules(molecules, name=name, **kwargs)
         
 
     def __init__(self, conformers, name="Resp", chrconstr=[], chrequiv=[],
-                 weights=1, save_opt_geometry=False, opt=False,
+                 weights=1, save_opt_geometry=False,
                  psi4_options={}, n_orient=0, n_rotate=0, n_translate=0,
-                 orient=[], rotate=[], translate=[], **kwargs):
+                 orient=[], rotate=[], translate=[], client=None, **kwargs):
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
         self.conformers = utils.asiterable(conformers)
+        self._client = client
 
         self.name = name
         self.n_conf = len(self.conformers)
@@ -147,8 +148,7 @@ class Resp:
             self.add_charge_equivalences(chrequiv)
 
         if opt:
-            self.optimize_geometry(psi4_options=psi4_options,
-                                   save_opt_geometry=save_opt_geometry)
+            self.optimize_geometry(psi4_options=psi4_options)
         
         self.add_orientations(n_orient=n_orient, orient=orient,
                               n_rotate=n_rotate, rotate=rotate,
@@ -275,7 +275,7 @@ class Resp:
         for ids in chrequiv:
             self.add_charge_equivalence(ids)
 
-    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
+    def optimize_geometry(self, psi4_options={}):
         """
         Optimise geometry for all conformers.
 
@@ -294,8 +294,7 @@ class Resp:
             writing optimised geometries to files. 
         """
         for conf in self.conformers:
-            conf.optimize_geometry(psi4_options=psi4_options,
-                                   save_opt_geometry=save_opt_geometry)
+            conf.optimize_geometry(psi4_options=psi4_options)
 
     def set_user_constraints(self, chrconstr=[], chrequiv=[]):
         """

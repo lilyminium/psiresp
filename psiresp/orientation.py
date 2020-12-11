@@ -69,7 +69,7 @@ class Orientation(base.CachedBase):
                  force=False, verbose=False,
                  n_atoms = None, symbols=None,
                  rmin=0, rmax=-1, use_radii="msk",
-                 vdw_radii={},
+                 vdw_radii={}, client=None,
                  scale_factors=(1.4, 1.6, 1.8, 2.0),
                  density=1.0, psi4_options={}):
         super().__init__(force=force, verbose=verbose)
@@ -78,6 +78,7 @@ class Orientation(base.CachedBase):
         if symbols is None:
             symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
         self.symbols = symbols
+        self._client = client
         self.bohr = 'Bohr' in str(molecule.units())
         self.indices = np.arange(self.n_atoms).astype(int)
         self.molecule = molecule
@@ -152,6 +153,13 @@ class Orientation(base.CachedBase):
 
     @utils.datafile
     def get_esp(self):
+        if self._client:
+            future = self._client.submit(self._get_esp)
+            return future.result()
+        else:
+            return self._get_esp()
+
+    def _get_esp(self):
         import psi4
 
         psi4.set_output_file(f"{self.name}_grid_esp.log")
@@ -181,13 +189,18 @@ class Orientation(base.CachedBase):
                 """.format(self.solvent))
                 psi4.pcm_helper(block)
         
-        #... this dies unless you have grid.dat
+        # ... this dies unless you have grid.dat
         # well that's fucking stupid
-        np.savetxt("grid.dat", self.grid)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig = os.getcwd()
+            os.chdir(tmpdir)
+            np.savetxt("grid.dat", self.grid)
 
-        E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
-                           molecule=self.molecule,
-                           return_wfn=True)
+            E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
+                                molecule=self.molecule,
+                                return_wfn=True)
+            os.chdir(orig)
+
         if self.solvent:
             import pcmsolver  # clear pcmsolver or it's sad the next time
             pcmsolver.getkw.GetkwParser.bnf = None

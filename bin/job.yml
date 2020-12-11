@@ -1,17 +1,20 @@
 
 equiv_mcs: true
+n_confs: 50
+minimize: true
 mcs_natoms: 4
 inter_chrconstr: []
 intra_chrequiv: []
 basis: 6-31g*
 method: scf
-opt: false
+opt: true
 save_opt_geometry: false
 force: true
 verbose: true
-coords: "pdbs/{name}/{name}*opt.xyz"
-# rdmol: "pdbs/{name}.pdb"
+coords: null
+rdmol: "pdbs/{name}.pdb"
 out: "{name}_charged.pdb"
+
 
 
 molecules:

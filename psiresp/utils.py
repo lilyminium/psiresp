@@ -27,7 +27,7 @@ def rdmol_to_psi4mols(rdmol, name=None):
     for i, c in enumerate(confs, 1):
         pos = c.GetPositions()
         xyz = [ATOM.format(sym=a, x=x) for a, x in zip(symbols, pos)]
-        txt = f"{n_atoms}\n{name}_c{i}\n" + "\n".join(xyz)
+        txt = f"{n_atoms}\n{name}_c{i:03d}\n" + "\n".join(xyz)
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
         mols.append(mol)
     
@@ -109,6 +109,11 @@ def read_csv(path):
     return pd.read_csv(path, index_col=0, header=0)
 
 
+def load_text(file):
+    with open(file, "r") as f:
+        return f.read()
+
+
 def try_load_data(path, force=False, verbose=False):
     suffix = path.split(".")[-1]
 
@@ -119,6 +124,8 @@ def try_load_data(path, force=False, verbose=False):
             loader = np.loadtxt
         elif suffix in ('npy', 'npz'):
             loader = np.load
+        elif suffix in ('xyz', 'pdb', 'mol2'):
+            loader = load_text
         else:
             raise ValueError(f"Can't find loader for {suffix} file")
         
@@ -144,6 +151,8 @@ def save_data(data, path, comments=None, verbose=False):
             np.save(path, data)
         elif suffix == 'npz':
             np.savez(path, **data)
+        elif suffix == "xyz":
+            data.save_xyz_file(path, True)
         else:
             raise ValueError(f"Can't find saver for {suffix} file")
         if verbose:
@@ -170,18 +179,28 @@ def cached(func):
 
 
     
-def datafile(func):
+def datafile(func=None, filename=None):
     """Try to load data from file. If not found, saves data to same path"""
+
+    if func is None:
+        return functools.partial(datafile, filename=filename)
+    
+    fname = func.__name__
+    if fname.startswith("get_"):
+        fname = fname[4:]
+
+    filename = filename if filename else fname + ".dat"
+
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        filename = self.name + "_" + func.__name__[4:] + ".dat"
-        data, path = try_load_data(filename, force=self.force,
-                                   verbose=self.verbose)
+        fn = self.name + "_" + filename
+        data, path = try_load_data(fn, force=self.force,
+                                verbose=self.verbose)
         if data is not None:
             return data
 
         data = func(self, *args, **kwargs)
-        
+
         comments = None
         if path.endswith('npy'):
             try:
@@ -192,6 +211,8 @@ def datafile(func):
                     verbose=self.verbose)
         return data
     return wrapper
+    
+
 
 
     

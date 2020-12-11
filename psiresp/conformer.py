@@ -68,12 +68,15 @@ class Conformer(base.CachedBase):
         
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
-                 force=False, verbose=False,
+                 force=False, verbose=False, opt=False,
+                 save_opt_geometry=True, client=None, method="scf",
+                 basis="6-31g*",
                  weight=1, orient=[], rotate=[], translate=[], **kwargs):
         super().__init__(force=force, verbose=verbose)
         if name and name != molecule.name():
             molecule.set_name(name)
         self.name = molecule.name()
+        self._client = None
         if charge != molecule.molecular_charge():
             molecule.set_molecular_charge(charge)
         if multiplicity != molecule.multiplicity():
@@ -82,6 +85,8 @@ class Conformer(base.CachedBase):
         self.charge = charge
         self.multiplicity = multiplicity
         self.weight = weight
+        self.basis = basis
+        self.method = method
 
         self.or_kwargs = {}
         for kw in self.or_kwargnames:
@@ -95,7 +100,13 @@ class Conformer(base.CachedBase):
         self._rotate = rotate[:]
         self._translate = translate[:]
         self._orientations = []
-        self._orientation = Orientation(self.molecule, symbols=self.symbols)
+        if opt:
+            self.optimize_geometry()
+
+        self._orientation = Orientation(self.molecule, symbols=self.symbols,
+                                        verbose=self.verbose, force=self.force,
+                                        method=self.method, basis=self.basis,
+                                        client=self._client, **self.or_kwargs)
 
     
     @property
@@ -192,11 +203,12 @@ class Conformer(base.CachedBase):
         cmol.fix_com(True)
         cmol.fix_orientation(True)
         cmol.update_geometry()
-        name = '{}_o{}'.format(self.name, len(self._orientations)+1)
+        name = '{}_o{:03d}'.format(self.name, len(self._orientations)+1)
         cmol.set_name(name)
         omol = Orientation(cmol, symbols=self.symbols, name=name,
                            n_atoms=len(self.symbols), verbose=self.verbose,
-                           force=self.force,
+                           force=self.force, client=self._client,
+                           method=self.method, basis=self.basis,
                            **self.or_kwargs)
         self._orientations.append(omol)
 
@@ -231,7 +243,8 @@ class Conformer(base.CachedBase):
             self._gen_orientations(orient=orient, rotate=rotate,
                                    translate=translate, load_files=load_files)
 
-    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
+    @utils.datafile(filename="opt.xyz")
+    def get_opt_mol(self, psi4_options={}):
         import psi4
         psi4.set_options({'basis': self.basis,
                           'geom_maxiter': 200,
@@ -244,9 +257,19 @@ class Conformer(base.CachedBase):
         psi4.optimize(self.method, molecule=self.molecule)
         psi4.core.clean()
         self._orientations = []
-        if save_opt_geometry:
-            self.molecule.save_xyz_file(self.name+'_opt.xyz', True)
+        return self.molecule.to_string(dtype="xyz")
 
+    def optimize_geometry(self, psi4_options={}):
+        import psi4
+
+        if self._client:
+            future = self._client.submit(self.get_opt_mol)
+            txt = future.result()
+        else:
+            txt = self.opt_mol
+        mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
+        for i in range(self.n_atoms):
+            self.molecule.SetAtomPosition(i, mol.GetAtomPosition(i))
 
     @utils.datafile
     def get_unweighted_ab(self):
