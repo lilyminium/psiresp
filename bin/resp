@@ -171,7 +171,6 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
         mol = mol.atoms.convert_to("RDKIT")
     
     n_atoms = mol.GetNumAtoms()
-    mol.
     
     for file in coordfiles:
         conf = Chem.Conformer(n_atoms)
