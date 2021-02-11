@@ -264,10 +264,10 @@ class Conformer(base.CachedBase):
 
         if self._client:
             future = self._client.submit(self.get_opt_mol)
-            txt = future.result()
+            mol = self._client.submit(utils.xyz2psi4, future)
         else:
             txt = self.opt_mol
-        mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
+            mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
         for i in range(self.n_atoms):
             self.molecule.SetAtomPosition(i, mol.GetAtomPosition(i))
 

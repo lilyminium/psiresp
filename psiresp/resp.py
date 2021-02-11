@@ -100,6 +100,7 @@ class Resp:
         cids = AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
                                           pruneRmsThresh=rmsd_threshold,
                                           ignoreSmoothingFailures=True)
+
         if minimize:
             # TODO: is UFF good?
             AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)

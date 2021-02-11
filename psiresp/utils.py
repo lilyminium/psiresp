@@ -21,7 +21,7 @@ def rdmol_to_psi4mols(rdmol, name=None):
 
     if name is None:
         name = "Mol"
-    
+
     mols = []
 
     for i, c in enumerate(confs, 1):
@@ -30,13 +30,16 @@ def rdmol_to_psi4mols(rdmol, name=None):
         txt = f"{n_atoms}\n{name}_c{i:03d}\n" + "\n".join(xyz)
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
         mols.append(mol)
-    
+
     return mols
 
 
 def psi4mol_to_rdmol(mol):
     txt = mol.format_molecule_for_mol()
     return Chem.MolFromMol2Block(txt)
+
+def xyz2psi4(txt):
+    return psi4.core.Molecule.from_string(txt, dtype="xyz")
 
 
 def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
@@ -52,7 +55,7 @@ def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
                              timeout=1)
         if not res.canceled and res.numAtoms >= n_atoms:
             matches.add(res.smartsString)
-    
+
     submols = [Chem.MolFromSmarts(x) for x in matches]
     chrequiv = []
     for ref in submols:
@@ -70,7 +73,7 @@ def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
                     break
             else:
                 chrequiv.append(cmp)
-    
+
     return [list(x) for x in chrequiv]
 
 
@@ -128,7 +131,7 @@ def try_load_data(path, force=False, verbose=False):
             loader = load_text
         else:
             raise ValueError(f"Can't find loader for {suffix} file")
-        
+
         try:
             data = loader(path)
         except:
@@ -162,7 +165,7 @@ def save_data(data, path, comments=None, verbose=False):
 def cached(func):
     """
     Cache the output of functions so they appear as properties.
-    
+
     Adapted from MDAnalysis. Definitely want to replace this with
     functools.cached_property when we can guarantee python >= 3.8.
     """
@@ -178,13 +181,13 @@ def cached(func):
     return property(wrapper)
 
 
-    
+
 def datafile(func=None, filename=None):
     """Try to load data from file. If not found, saves data to same path"""
 
     if func is None:
         return functools.partial(datafile, filename=filename)
-    
+
     fname = func.__name__
     if fname.startswith("get_"):
         fname = fname[4:]
@@ -211,11 +214,11 @@ def datafile(func=None, filename=None):
                     verbose=self.verbose)
         return data
     return wrapper
-    
 
 
 
-    
+
+
 
 def rotate_x(n, coords):
     """
@@ -292,10 +295,10 @@ def rotate_z(n, coords):
 def orient_rigid(i, j, k, coords):
     """
     Rigid-body reorientation such that the ``i`` th coordinate
-    is the new origin; the ``j` `th coordinate defines the new 
+    is the new origin; the ``j` `th coordinate defines the new
     x-axis; and the ``k`` th coordinate defines the XY plane.
 
-    ``i``, ``j``, and ``k`` should all be different. They are 
+    ``i``, ``j``, and ``k`` should all be different. They are
     indexed from 0.
 
     Adapted from R.E.D. in perl.
@@ -327,11 +330,11 @@ def orient_rigid(i, j, k, coords):
 
 def rotate_rigid(i, j, k, coords):
     """
-    Rigid-body rotation such that the ``i`` th and ``j`` th coordinate 
-    define a vector parallel to the x-axis; and the ``k`` th coordinate 
+    Rigid-body rotation such that the ``i`` th and ``j`` th coordinate
+    define a vector parallel to the x-axis; and the ``k`` th coordinate
     defines a plane parallel to the XY plane.
 
-    ``i`` , ``j`` , and ``k`` should all be different. They are 
+    ``i`` , ``j`` , and ``k`` should all be different. They are
     indexed from 0.
 
     Adapted from R.E.D. in perl.
@@ -395,7 +398,7 @@ def scale_radii(symbols, scale_factor, vdw_radii={}, use_radii='msk'):
 
 def gen_unit_sphere(n):
     """
-    Get coordinates of n points on a unit sphere. 
+    Get coordinates of n points on a unit sphere.
 
     Adapted from GAMESS.
 
