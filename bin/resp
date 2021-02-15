@@ -4,12 +4,16 @@ import yaml
 import glob
 import tempfile
 import argparse
+import functools
 
-from dask.distributed import Client
+from dask.distributed import Client, LocalCluster
+import dask
 from rdkit import Chem
+from rdkit.Chem import AllChem
+
 import MDAnalysis as mda
 import psiresp as sip
-from psiresp.utils import rdmols_to_inter_chrequiv, rdmol_to_psi4mols
+from psiresp.utils import rdmols_to_inter_chrequiv, rdmol_to_psi4mols, psi42xyz
 import psi4
 
 parser = argparse.ArgumentParser("Run resp")
@@ -28,7 +32,7 @@ def read(yamlfile):
 def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
                 chrequiv=[], chrconstr=[], molecules={}):
     if isinstance(intra_chrconstr, dict):
-        intra_chrconstr = intra_chrconstr.items()
+        intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
     intra_chrconstr = list(intra_chrconstr)
 
     if not len(intra_chrconstr):
@@ -50,6 +54,25 @@ def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
         intra_chrequiv[i].extend(chrequiv)
     
     return intra_chrconstr, intra_chrequiv
+
+
+def gen_rdconfs(rdmol, name="Mol", rmsd_threshold=1.5, minimize=False, n_confs=0,
+                **kwargs):
+    rdmol = Chem.AddHs(rdmol)
+    confs = []
+
+    cids = AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
+                                        pruneRmsThresh=rmsd_threshold,
+                                        ignoreSmoothingFailures=True)
+
+    if minimize:
+        # TODO: is UFF good?
+        AllChem.MMFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
+    # charge = Chem.GetFormalCharge(rdmol)
+    molecules = rdmol_to_psi4mols(rdmol, name=name)
+    # mols = [utils.psi42xyz(m) for m in molecules]
+
+    return molecules
 
 
 def run_job(client, equiv_mcs=False, mcs_natoms=4,
@@ -84,16 +107,53 @@ def run_job(client, equiv_mcs=False, mcs_natoms=4,
 
     resps = []
     out_files = []
+    confs = []
+    
     for rdmol, molkwargs in zip(rdmols, mol_kwargs):
         out = molkwargs.pop("out", "{name}_charged.pdb")
         out_files.append(out.format(**molkwargs))
         molkwargs.pop("coords", None)
         molkwargs.pop("rdmol", None)
+        molconfs = gen_rdconfs(rdmol, **molkwargs)
+        name = molkwargs.pop("name", "Mol")
 
-        rp = sip.Resp.from_rdmol(rdmol, client=client, **molkwargs)
-        resps.append(rp)
+        conformers = []
+        for i, mol in enumerate(molconfs, 1):
+            cname = f"{name}_c{i:03d}"
+            mol_ = psi42xyz(mol)
+            conformers.append(client.submit(sip.conformer.Conformer, mol_, name=cname, actor=False, **molkwargs))
+        
+        confs.append(conformers)
+        # resps.append(sip.Resp([c.result() for c in conformers]))
+
+        # resps.append()
+        # resps.append(client.submit(sip.Resp.from_rdmol, rdmol, client=client, **molkwargs))
+
+
+
+
+
+
+        # functions.append(functools.partial(sip.Resp.from_rdmol, client=client, **molkwargs))
+
+    # resps = client.map(functions)
+
+        # rp = dask.delayed(sip.Resp.from_rdmol)(rdmol, client=client, **molkwargs)
+        # resps.append(rp)
     
+    # mresp = sip.MultiResp([x.result() for x in resps])
+    # mresp.from_futures(confs)
+    conformers = client.gather(confs)
+    # conformers = [[y.result() for y in x] for x in confs]
+    resps = [sip.Resp(x) for x in conformers]
     mresp = sip.MultiResp(resps)
+
+    all_orientations = [y for mol in mresp.molecules for conf in mol.conformers for y in conf.orientations]
+    esps_ = client.map(lambda x: getattr(x, "esp"), all_orientations)
+    esps = client.gather(esps_)
+
+
+
     mresp.run(stage_2=stage_2,
               intra_chrconstr=intra_chrconstr,
               inter_chrconstr=inter_chrconstr,
@@ -185,12 +245,19 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    psi4.set_memory(args.memory)
-    psi4.set_num_threads(args.nthreads)
+    # psi4.set_memory(args.memory)
+    # psi4.set_num_threads(args.nthreads)
 
     contents = read(args.input)
     molecules = contents.pop("molecules", {})
-    client = Client()
+    client = Client(
+                            memory_limit='30GB',
+                            n_workers=4, 
+                            threads_per_worker=1,
+                            processes=False,
+                            )
+    # client = Client(cluster)
+    # client = Client(processes=False, n_workers=2, threads_per_worker=1)
     print("client: ", client)
 
     run_job(client, **contents, molecules=molecules)

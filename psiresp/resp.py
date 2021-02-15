@@ -3,6 +3,7 @@ import warnings
 import itertools
 import logging
 import io
+import pickle
 
 import numpy as np
 from rdkit import Chem
@@ -64,7 +65,36 @@ class Resp:
     """
 
     @classmethod
-    def from_molecules(cls, molecules, name="Mol", **kwargs):
+    def from_molecule_string(cls, molecules, name="Mol", client=None, **kwargs):
+        """
+        Create Resp class from Psi4 molecules.
+
+        Parameters
+        ----------
+        molecules: iterable of Psi4 molecules
+            conformers of the molecule. They must all have the same atoms
+            in the same order.
+        name: str (optional)
+            name of the molecule. This is used to name output files. If not
+            given, defaults to 'Mol'.
+        **kwargs:
+            arguments passed to ``Resp.__init__()``.
+
+        Returns
+        -------
+        resp: Resp
+        """
+        conformers = []
+        for i, mol in enumerate(molecules, 1):
+            cname = f"{name}_c{i:03d}"
+            conformers.append(client.submit(Conformer, mol, name=cname, **kwargs))
+            # conformers.append(Conformer(mol.clone(), name=cname,
+            #                             **kwargs))
+        return cls([c.result() for c in conformers], name=name, **kwargs)
+
+
+    @classmethod
+    def from_molecules(cls, molecules, name="Mol", client=None, **kwargs):
         """
         Create Resp class from Psi4 molecules.
 
@@ -86,14 +116,16 @@ class Resp:
         molecules = utils.asiterable(molecules)
         conformers = []
         for i, mol in enumerate(molecules, 1):
-            conformers.append(Conformer(mol.clone(), name=f"{name}_c{i:03d}",
-                                        **kwargs))
-        return cls(conformers, name=name, **kwargs)
+            cname = f"{name}_c{i:03d}"
+            conformers.append(client.submit(Conformer, mol.clone(), name=cname, actor=True, **kwargs))
+            # conformers.append(Conformer(mol.clone(), name=cname,
+            #                             **kwargs))
+        return cls([c.result() for c in conformers], name=name, **kwargs)
 
 
     @classmethod
     def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
-                   n_confs=0, **kwargs):
+                   n_confs=0, client=None, **kwargs):
         rdmol = Chem.AddHs(rdmol)
         confs = []
 
@@ -106,18 +138,19 @@ class Resp:
             AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
         # charge = Chem.GetFormalCharge(rdmol)
         molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
+        mols = [utils.psi42xyz(m) for m in molecules]
 
-        return cls.from_molecules(molecules, name=name, **kwargs)
+        return cls.from_molecule_string(mols, name=name, client=client, **kwargs)
         
 
     def __init__(self, conformers, name="Resp", chrconstr=[], chrequiv=[],
-                 weights=1, save_opt_geometry=False,
+                 weights=1, save_opt_geometry=False, opt=False,
                  psi4_options={}, n_orient=0, n_rotate=0, n_translate=0,
-                 orient=[], rotate=[], translate=[], client=None, **kwargs):
+                 orient=[], rotate=[], translate=[], **kwargs):
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
+        print(f"Found {len(conformers)} conformers")
         self.conformers = utils.asiterable(conformers)
-        self._client = client
 
         self.name = name
         self.n_conf = len(self.conformers)
@@ -159,6 +192,23 @@ class Resp:
         log.debug(f'Resp(name={self.name}) created with '
                   f'{self.n_conf} conformers, {len(self.chrconstr)} charge '
                   f'constraints and {len(self.chrequiv)} charge equivalences')
+    
+
+    def __getstate__(self):
+        dct = {}
+        for key in ("name", "n_conf", "charge", "symbols",
+                    "n_atoms", "weights", "kwargs", "indices",
+                    "atom_ids", "heavy_ids", "h_ids",
+                    "chrconstr", "chrequiv"):
+            dct[key] = getattr(self, key)
+        dct[utils.PKL_CFKEY] = [pickle.dumps(c) for c in self.conformers]
+        return dct
+
+    def __setstate__(self, state):
+        self.conformers = [pickle.loads(c) for c in state.pop(utils.PKL_CFKEY)]
+        for key, attr in state.items():
+            setattr(self, key, attr)
+
 
     @property
     def _conf(self):
@@ -294,7 +344,9 @@ class Resp:
             if ``True``, Psi4 files are saved. This does not affect 
             writing optimised geometries to files. 
         """
+        # self._client.map(lambda x: x.optimize_geometry, self.conformers, psi4_options=psi4_options)
         for conf in self.conformers:
+        #     self._client.submit(conf.optimize_geometry, psi4_options=psi4_options)
             conf.optimize_geometry(psi4_options=psi4_options)
 
     def set_user_constraints(self, chrconstr=[], chrequiv=[]):

@@ -12,6 +12,23 @@ from rdkit.Chem import AllChem, rdFMCS
 from . import vdwradii
 
 
+PKL_MOLKEY = "molecule_xyz"
+PKL_CACHEKEY = "_cache"
+PKL_ORKEY = "orientations"
+PKL_CFKEY = "conformers"
+
+
+def prefix_file(path, prefix=None):
+    if prefix:
+        head, tail = os.path.split(path)
+        tail = "_".join([prefix, tail])
+        
+        if head:
+            path = "/".join([head, tail])
+        else:
+            path = tail
+    return path
+
 def rdmol_to_psi4mols(rdmol, name=None):
     confs = rdmol.GetConformers()
     n_atoms = rdmol.GetNumAtoms()
@@ -34,12 +51,54 @@ def rdmol_to_psi4mols(rdmol, name=None):
     return mols
 
 
+def log2xyz(logfile):
+    with open(logfile, "r") as f:
+        contents = f.read()
+    last_lines = contents.split("OPTKING Finished Execution")[-1].split("\n")
+    symbols = []
+    xs = []
+    ys = []
+    zs = []
+    for line in last_lines:
+        line = line.strip().split()
+        if len(line) == 4:
+            try:
+                x = float(line[1])
+                y = float(line[2])
+                z = float(line[3])
+            except ValueError:
+                continue
+            else:
+                symbols.append(line[0])
+                xs.append(x)
+                ys.append(y)
+                zs.append(z)
+    
+    ATOM = "{sym} {x} {y} {z}"
+    name = logfile.strip(".log")
+    lines = [len(symbols), name]
+    for sym, x, y, z in zip(symbols, xs, ys, zs):
+        lines.append(ATOM.format(sym=sym, x=x, y=y, z=z))
+    txt = "\n".join(lines)
+    return txt
+
+def log2mol(logfile):
+    txt = log2xyz(logfile)
+    mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
+    return mol
+
+
+
+
 def psi4mol_to_rdmol(mol):
     txt = mol.format_molecule_for_mol()
     return Chem.MolFromMol2Block(txt)
 
 def xyz2psi4(txt):
     return psi4.core.Molecule.from_string(txt, dtype="xyz")
+
+def psi42xyz(mol):
+    return mol.to_string(dtype="xyz")
 
 
 def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
@@ -74,7 +133,8 @@ def rdmols_to_inter_chrequiv(rdmols, n_atoms=4):
             else:
                 chrequiv.append(cmp)
 
-    return [list(x) for x in chrequiv]
+    res = [[list(y) for y in x] for x in chrequiv]
+    return res
 
 
 def iterable(obj):
@@ -117,6 +177,26 @@ def load_text(file):
         return f.read()
 
 
+
+
+def cached(func):
+    """
+    Cache the output of functions so they appear as properties.
+
+    Adapted from MDAnalysis. Definitely want to replace this with
+    functools.cached_property when we can guarantee python >= 3.8.
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        key = func.__name__[4:]
+        try:
+            return self.__dict__[key]
+        except KeyError:
+            self.__dict__[key] = ret = func(self, *args, **kwargs)
+            return ret
+
+    return property(wrapper)
+
 def try_load_data(path, force=False, verbose=False):
     suffix = path.split(".")[-1]
 
@@ -145,41 +225,26 @@ def try_load_data(path, force=False, verbose=False):
 
 
 def save_data(data, path, comments=None, verbose=False):
-        suffix = path.split('.')[-1]
-        if suffix == 'csv':
-            data.to_csv(path)
-        elif suffix in ('dat', 'txt'):
-            np.savetxt(path, data, comments=comments)
-        elif suffix == 'npy':
-            np.save(path, data)
-        elif suffix == 'npz':
-            np.savez(path, **data)
-        elif suffix == "xyz":
-            data.save_xyz_file(path, True)
+    suffix = path.split('.')[-1]
+
+    if suffix == 'csv':
+        data.to_csv(path)
+    elif suffix in ('dat', 'txt'):
+        np.savetxt(path, data, comments=comments)
+    elif suffix == 'npy':
+        np.save(path, data)
+    elif suffix == 'npz':
+        np.savez(path, **data)
+    elif suffix == "xyz":
+        if isinstance(data, str):
+            with open(path, "w") as f:
+                f.write(data)
         else:
-            raise ValueError(f"Can't find saver for {suffix} file")
-        if verbose:
-            print('Saved to', path)
-
-
-def cached(func):
-    """
-    Cache the output of functions so they appear as properties.
-
-    Adapted from MDAnalysis. Definitely want to replace this with
-    functools.cached_property when we can guarantee python >= 3.8.
-    """
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        key = func.__name__[4:]
-        try:
-            return self.__dict__[key]
-        except KeyError:
-            self.__dict__[key] = ret = func(self, *args, **kwargs)
-            return ret
-
-    return property(wrapper)
-
+            data.save_xyz_file(path, True)
+    else:
+        raise ValueError(f"Can't find saver for {suffix} file")
+    if verbose:
+        print('Saved to', path)
 
 
 def datafile(func=None, filename=None):
@@ -197,6 +262,7 @@ def datafile(func=None, filename=None):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         fn = self.name + "_" + filename
+
         data, path = try_load_data(fn, force=self.force,
                                 verbose=self.verbose)
         if data is not None:

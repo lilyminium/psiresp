@@ -59,9 +59,9 @@ class Orientation(base.CachedBase):
         is called.
     """
 
-    kwargnames = ["method", "basis", "vdw_radii",
+    kwargnames = ["method", "basis", "vdw_radii", "symbols",
                   "rmin", "rmax", "use_radii", "scale_factors",
-                  "density", "solvent"]
+                  "density", "solvent", "psi4_options"]
 
     def __init__(self, molecule,
                  method="scf", solvent=None,
@@ -69,16 +69,14 @@ class Orientation(base.CachedBase):
                  force=False, verbose=False,
                  n_atoms = None, symbols=None,
                  rmin=0, rmax=-1, use_radii="msk",
-                 vdw_radii={}, client=None,
-                 scale_factors=(1.4, 1.6, 1.8, 2.0),
-                 density=1.0, psi4_options={}):
-        super().__init__(force=force, verbose=verbose)
-        self.name = molecule.name()
+                 vdw_radii={},
+                 scale_factors=[1.4, 1.6, 1.8, 2.0],
+                 density=1.0, psi4_options={}, **kwargs):
+        super().__init__(force=force, verbose=verbose, name=molecule.name())
         self.n_atoms = molecule.natom()
         if symbols is None:
             symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
         self.symbols = symbols
-        self._client = client
         self.bohr = 'Bohr' in str(molecule.units())
         self.indices = np.arange(self.n_atoms).astype(int)
         self.molecule = molecule
@@ -94,12 +92,31 @@ class Orientation(base.CachedBase):
         self.density = density
         self.vdw_radii = vdw_radii
 
+    def __getstate__(self):
+        dct = self.kwargs
+        for key in ("bohr", "indices", "n_atoms"):
+            dct[key] = getattr(self, key)
+        dct[utils.PKL_MOLKEY] = utils.psi42xyz(self.molecule)
+        dct[utils.PKL_CACHEKEY] = {**self._cache}
+        return dct
+    
+    def __setstate__(self, state):
+        mol = state.pop(utils.PKL_MOLKEY)
+        cache = state.pop(utils.PKL_CACHEKEY)
+        for key, attr in state.items():
+            setattr(self, key, attr)
+        self._cache = {**cache}
+        self.molecule = utils.xyz2psi4(mol)
+        self.name = self.molecule.name()
+        
+        
+
     @property
     def kwargs(self):
         dct = {}
         for kw in self.kwargnames:
             dct[kw] = getattr(self, kw)
-        return kw
+        return dct
 
     def get_coordinates(self):
         return self.molecule.geometry().np.astype('float')*BOHR_TO_ANGSTROM
@@ -126,7 +143,7 @@ class Orientation(base.CachedBase):
         mol = self.molecule.clone()
         if name is not None:
             mol.set_name(name)
-        new = type(self)(name, symbols=self.symbols, **self.kwargs)
+        new = type(self)(name, **self.kwargs)
         return new
 
     def get_esp_mat_a(self):
@@ -153,11 +170,11 @@ class Orientation(base.CachedBase):
 
     @utils.datafile
     def get_esp(self):
-        if self._client:
-            future = self._client.submit(self._get_esp)
-            return future.result()
-        else:
-            return self._get_esp()
+        # if self._client:
+        #     future = self._client.submit(self._get_esp)
+        #     return future.result()
+        # else:
+        return self._get_esp()
 
     def _get_esp(self):
         import psi4

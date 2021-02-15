@@ -2,6 +2,9 @@ import logging
 import os
 import tempfile
 import warnings
+import pickle
+import subprocess
+import textwrap
 
 import numpy as np
 
@@ -64,18 +67,22 @@ class Conformer(base.CachedBase):
                      "rmin", "rmax", "use_radii", "scale_factors",
                      "density", "solvent"]
     kwargnames = or_kwargnames + ["charge", "multiplicity", "weight"]
-    
-        
+
+
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
                  force=False, verbose=False, opt=False,
                  save_opt_geometry=True, client=None, method="scf",
                  basis="6-31g*",
                  weight=1, orient=[], rotate=[], translate=[], **kwargs):
-        super().__init__(force=force, verbose=verbose)
+        if isinstance(molecule, str):
+            molecule = utils.xyz2psi4(molecule)
+
         if name and name != molecule.name():
             molecule.set_name(name)
-        self.name = molecule.name()
+
+        super().__init__(force=force, verbose=verbose, name=molecule.name())
+        
         self._client = None
         if charge != molecule.molecular_charge():
             molecule.set_molecular_charge(charge)
@@ -108,11 +115,30 @@ class Conformer(base.CachedBase):
                                         method=self.method, basis=self.basis,
                                         client=self._client, **self.or_kwargs)
 
+    def __getstate__(self):
+        dct = self.kwargs
+        dct[utils.PKL_CACHEKEY] = {**self._cache}
+        dct[utils.PKL_MOLKEY] = utils.psi42xyz(self.molecule)
+        dct[utils.PKL_ORKEY] = [pickle.dumps(o) for o in self.orientations]
+        return dct
+
+    
+    def __setstate__(self, state):
+        mol = state.pop(utils.PKL_MOLKEY)
+        cache = state.pop(utils.PKL_CACHEKEY)
+        orients = [pickle.loads(o) for o in state.pop(utils.PKL_ORKEY)]
+        for key, attr in state.items():
+            setattr(self, key, attr)
+        self._cache = {**cache}
+        self.molecule = utils.xyz2psi4(mol)
+        self._orientations = orients
+        self._orientation = orients[0]
+
     
     @property
     def kwargs(self):
         dct = dict(**self.or_kwargs)
-        for kw in ("charge", "multiplicity", "weight"):
+        for kw in ("charge", "multiplicity", "weight", "name"):
             dct[kw] = getattr(self, kw)
         dct["orient"] = self._orient
         dct["rotate"] = self._rotate
@@ -245,31 +271,63 @@ class Conformer(base.CachedBase):
 
     @utils.datafile(filename="opt.xyz")
     def get_opt_mol(self, psi4_options={}):
-        import psi4
-        psi4.set_options({'basis': self.basis,
-                          'geom_maxiter': 200,
-                          'full_hess_every': 10,
-                          'g_convergence': 'gau_tight',
-                          })
-        psi4.set_options(psi4_options)
-        logfile = self.name+'_opt.log'
-        psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
-        psi4.optimize(self.method, molecule=self.molecule)
-        psi4.core.clean()
-        self._orientations = []
-        return self.molecule.to_string(dtype="xyz")
+
+        # xyz = self.molecule.to_string(dtype="xyz")
+        # with open(f"{self.name}.xyz", "w") as f:
+        #     f.write(xyz)
+
+        mol = self.molecule.create_psi4_string_from_molecule()
+        opt_file = "memory 60gb\n\nmolecule " + self.name + " {\n" + mol + "\n}\n\n"
+        opt_file += textwrap.dedent(f"""
+        set {{
+            basis {self.basis}
+            geom_maxiter 200
+            full_hess_every 10
+            g_convergence gau_tight
+        }}
+
+        optimize('{self.method}')
+        """)
+
+        infile = f"{self.name}_opt.in"
+        with open(infile, "w") as f:
+            f.write(opt_file)
+        
+        outfile = f"{self.name}_opt.out"
+        subprocess.run(f"psi4 -i {infile} -o {outfile} -n 4", shell=True)
+
+        return utils.log2xyz(outfile)
+
+
+
+        # import psi4
+        # psi4.set_options({'basis': self.basis,
+        #                   'geom_maxiter': 600,
+        #                 #   'full_hess_every': 10,
+        #                 #   'g_convergence': 'gau_tight',
+        #                   })
+        # psi4.set_options(psi4_options)
+        # logfile = self.name+'_opt.log'
+        # psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
+        # psi4.optimize(self.method, molecule=self.molecule)
+        # psi4.core.clean()
+        # self._orientations = []
+        # # return self.molecule
+        # return self.molecule.to_string(dtype="xyz")
 
     def optimize_geometry(self, psi4_options={}):
         import psi4
 
-        if self._client:
-            future = self._client.submit(self.get_opt_mol)
-            mol = self._client.submit(utils.xyz2psi4, future)
-        else:
-            txt = self.opt_mol
-            mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
-        for i in range(self.n_atoms):
-            self.molecule.SetAtomPosition(i, mol.GetAtomPosition(i))
+        # if self._client:
+        #     future = self._client.submit(self.get_opt_mol)
+        #     txt = future.result()
+        # else:
+        txt = self.opt_mol
+        mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
+        self.molecule.set_geometry(mol.geometry())
+        # mol = self.opt_mol
+        # for i in range(self.n_atoms):
+        #     self.molecule.SetAtomPosition(i, mol.GetAtomPosition(i))
 
     @utils.datafile
     def get_unweighted_ab(self):
