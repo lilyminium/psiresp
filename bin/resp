@@ -29,32 +29,34 @@ def read(yamlfile):
         return yaml.load(f, Loader=yaml.FullLoader)
 
 
-def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
-                chrequiv=[], chrconstr=[], molecules={}):
-    if isinstance(intra_chrconstr, dict):
-        intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
-    intra_chrconstr = list(intra_chrconstr)
+# def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
+#                 chrequiv=[], chrconstr=[], molecules={}):
+#     if isinstance(intra_chrconstr, dict):
+#         intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
+#     intra_chrconstr = list(intra_chrconstr)
 
-    if not len(intra_chrconstr):
-        for i in range(len(molecules)):
-            intra_chrconstr.append([])
+#     if not len(intra_chrconstr):
+#         for i in range(len(molecules)):
+#             intra_chrconstr.append([])
 
-    intra_chrequiv = intra_chrequiv[:]
-    if not len(intra_chrequiv):
-        for i in range(len(molecules)):
-            intra_chrequiv.append([])
+#     intra_chrequiv = intra_chrequiv[:]
+#     if not len(intra_chrequiv):
+#         for i in range(len(molecules)):
+#             intra_chrequiv.append([])
     
-    chrequiv = list(chrequiv)
-    if isinstance(chrconstr, dict):
-        chrconstr = chrconstr.items()
-    chrconstr = list(chrconstr)
+#     chrequiv = list(chrequiv)
+#     if isinstance(chrconstr, dict):
+#         chrconstr = chrconstr.items()
+#     chrconstr = list(chrconstr)
 
-    for i in range(len(molecules)):
-        intra_chrconstr[i].extend(chrconstr)
-        intra_chrequiv[i].extend(chrequiv)
+#     for i in range(len(molecules)):
+#         intra_chrconstr[i].extend(chrconstr)
+#         intra_chrequiv[i].extend(chrequiv)
     
-    return intra_chrconstr, intra_chrequiv
+#     return intra_chrconstr, intra_chrequiv
 
+
+         
 
 def gen_rdconfs(rdmol, name="Mol", rmsd_threshold=1.5, minimize=False, n_confs=0,
                 **kwargs):
@@ -67,7 +69,7 @@ def gen_rdconfs(rdmol, name="Mol", rmsd_threshold=1.5, minimize=False, n_confs=0
 
     if minimize:
         # TODO: is UFF good?
-        AllChem.MMFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
+        AllChem.MMFFOptimizeMoleculeConfs(rdmol, maxIters=3000)
     # charge = Chem.GetFormalCharge(rdmol)
     molecules = rdmol_to_psi4mols(rdmol, name=name)
     # mols = [utils.psi42xyz(m) for m in molecules]
@@ -76,19 +78,19 @@ def gen_rdconfs(rdmol, name="Mol", rmsd_threshold=1.5, minimize=False, n_confs=0
 
 
 def run_job(client, equiv_mcs=False, mcs_natoms=4,
-            stage_2=True, intra_chrconstr=[],
-            intra_chrequiv=[], inter_chrconstr=[],
+            stage_2=True, inter_chrconstr=[],
             inter_chrequiv=[], equal_methyls=False,
             hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
             ihfree=True, tol=1e-5, maxiter=50,
-            restraint=True, molecules={},
-            chrequiv=[], chrconstr=[],
+            restraint=True, molecules={}, n_orient=8,
+            n_translate=0, n_rotate=0,
             **kwargs):
 
-    intra_chrconstr, intra_chrequiv = clean_intra(intra_chrconstr,
-                                                  intra_chrequiv,
-                                                  chrequiv, chrconstr,
-                                                  molecules)
+    intra_chrconstr = [m.pop("chrconstr", []) for m in molecules.values()]
+    intra_chrequiv = [m.pop("chrequiv", []) for m in molecules.values()]
+
+    # intra_chrconstr, intra_chrequiv = clean_intra(intra_chrconstr,
+    #                                               intra_chrequiv)
 
     mol_kwargs = []
     for name, molkwargs in molecules.items():
@@ -146,6 +148,9 @@ def run_job(client, equiv_mcs=False, mcs_natoms=4,
     conformers = client.gather(confs)
     # conformers = [[y.result() for y in x] for x in confs]
     resps = [sip.Resp(x) for x in conformers]
+
+    for resp in resps:
+        resp.add_orientations(n_orient=n_orient, n_rotate=n_rotate, n_translate=n_translate)
     mresp = sip.MultiResp(resps)
 
     all_orientations = [y for mol in mresp.molecules for conf in mol.conformers for y in conf.orientations]

@@ -4,6 +4,7 @@ import logging
 import tempfile
 import textwrap
 import warnings
+import subprocess
 
 import numpy as np
 
@@ -59,7 +60,7 @@ class Orientation(base.CachedBase):
         is called.
     """
 
-    kwargnames = ["method", "basis", "vdw_radii", "symbols",
+    kwargnames = ["method", "basis", "vdw_radii", "symbols", "name",
                   "rmin", "rmax", "use_radii", "scale_factors",
                   "density", "solvent", "psi4_options"]
 
@@ -72,7 +73,9 @@ class Orientation(base.CachedBase):
                  vdw_radii={},
                  scale_factors=[1.4, 1.6, 1.8, 2.0],
                  density=1.0, psi4_options={}, **kwargs):
-        super().__init__(force=force, verbose=verbose, name=molecule.name())
+        super().__init__(force=force, verbose=verbose, name=name)
+        molecule.set_name(self.name)
+
         self.n_atoms = molecule.natom()
         if symbols is None:
             symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
@@ -107,8 +110,7 @@ class Orientation(base.CachedBase):
             setattr(self, key, attr)
         self._cache = {**cache}
         self.molecule = utils.xyz2psi4(mol)
-        self.name = self.molecule.name()
-        
+        self.molecule.set_name(self.name)
         
 
     @property
@@ -174,55 +176,122 @@ class Orientation(base.CachedBase):
         #     future = self._client.submit(self._get_esp)
         #     return future.result()
         # else:
-        return self._get_esp()
+        # with tempfile.TemporaryDirectory(prefix=self.name) as tmpdir:
+        #     orig = os.getcwd()
+        #     os.chdir(tmpdir)
+
+        esp = self._get_esp()
+
+            # os.chdir(orig)
+
+
+        return esp
 
     def _get_esp(self):
         import psi4
 
-        psi4.set_output_file(f"{self.name}_grid_esp.log")
-        psi4.set_options(self.psi4_options)
-        msg = f"Computing grid ESP for {self.name} with "
-        msg += f"{self.method}/{self.basis}, solvent={self.solvent}"
-
-        if self.solvent:
-            psi4.set_options({'pcm': True,
-                              'pcm_scf_type': 'total'})
-            fname = psi4.core.get_local_option('PCM', 
-                                               'PCMSOLVER_PARSED_FNAME')
-            if not fname or not os.path.exists(fname):
-                block = textwrap.dedent("""
-                    units = angstrom
-                    medium {{
-                        solvertype = CPCM
-                        solvent = {}
-                    }}
-                    cavity {{
-                        radiiset = bondi  # Bondi | UFF | Allinger
-                        type = gepol
-                        scaling = True  # radii for spheres scaled by 1.2
-                        area = 0.3
-                        mode = implicit
-                    }}
-                """.format(self.solvent))
-                psi4.pcm_helper(block)
-        
         # ... this dies unless you have grid.dat
         # well that's fucking stupid
-        with tempfile.TemporaryDirectory() as tmpdir:
-            orig = os.getcwd()
-            os.chdir(tmpdir)
-            np.savetxt("grid.dat", self.grid)
+        
 
-            E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
-                                molecule=self.molecule,
-                                return_wfn=True)
-            os.chdir(orig)
+        esp_file = utils.create_psi4_molstr(self.molecule)
+        esp_file += f"set basis {self.basis}\n"
 
         if self.solvent:
-            import pcmsolver  # clear pcmsolver or it's sad the next time
-            pcmsolver.getkw.GetkwParser.bnf = None
+            esp_file += textwrap.dedent(f"""
+            set {{
+                pcm true
+                pcm_scf_type total
+            }}
+
+            pcm = {{
+                Units = Angstrom
+                Medium {{
+                    SolverType = CPCM
+                    Solvent = {self.solvent}
+                }}
+
+                Cavity {{
+                    RadiiSet = bondi # Bondi | UFF | Allinger
+                    Type = GePol
+                    Scaling = True # radii for spheres scaled by 1.2
+                    Area = 0.3
+                    Mode = Implicit
+                }}
+            }}
+
+            """)
         
-        esp = np.array(wfn.oeprop.Vvals())
-        psi4.core.clean()
-        psi4.core.clean_options()
-        return esp
+        esp_file += textwrap.dedent(f"""
+        E, wfn = prop('{self.method}', properties=['GRID_ESP'], return_wfn=True)
+        esp = wfn.oeprop.Vvals()
+            """)
+        
+        tmpdir = f"{self.name}_esp"
+        try:
+            os.mkdir(tmpdir)
+        except FileExistsError:
+            pass
+
+        np.savetxt(os.path.join(tmpdir, "grid.dat"), self.grid)
+
+        infile = f"{self.name}_esp.in"
+        with open(os.path.join(tmpdir, infile), "w") as f:
+            f.write(esp_file)
+        
+        subprocess.run(f"cd {tmpdir}; psi4 -i {infile} -n 4; cd -", shell=True)
+
+        return np.loadtxt(os.path.join(tmpdir, "grid_esp.dat"))
+
+
+
+        
+
+        # psi4.set_output_file(f"{self.name}_grid_esp.log")
+        # psi4.set_options(self.psi4_options)
+        # msg = f"Computing grid ESP for {self.name} with "
+        # msg += f"{self.method}/{self.basis}, solvent={self.solvent}"
+
+        # if self.solvent:
+        #     psi4.set_options({'pcm': True,
+        #                       'pcm_scf_type': 'total'})
+        #     fname = psi4.core.get_local_option('PCM', 
+        #                                        'PCMSOLVER_PARSED_FNAME')
+        #     if not fname or not os.path.exists(fname):
+        #         block = textwrap.dedent("""
+        #             units = angstrom
+        #             medium {{
+        #                 solvertype = CPCM
+        #                 solvent = {}
+        #             }}
+        #             cavity {{
+        #                 radiiset = bondi  # Bondi | UFF | Allinger
+        #                 type = gepol
+        #                 scaling = True  # radii for spheres scaled by 1.2
+        #                 area = 0.3
+        #                 mode = implicit
+        #             }}
+        #         """.format(self.solvent))
+        #         psi4.pcm_helper(block)
+        
+        # # ... this dies unless you have grid.dat
+        # # well that's fucking stupid
+        # with tempfile.TemporaryDirectory() as tmpdir:
+        #     orig = os.getcwd()
+        #     os.chdir(tmpdir)
+        #     np.savetxt("grid.dat", self.grid)
+
+        #     E, wfn = psi4.prop(self.method, properties=['GRID_ESP'],
+        #                         molecule=self.molecule,
+        #                         return_wfn=True)
+        #     os.chdir(orig)
+        
+
+        # if self.solvent:
+        #     import pcmsolver  # clear pcmsolver or it's sad the next time
+        #     pcmsolver.getkw.GetkwParser.bnf = None
+        
+        # esp = np.array(wfn.oeprop.Vvals())
+        # psi4.core.clean()
+        # psi4.core.clean_options()
+        # return esp

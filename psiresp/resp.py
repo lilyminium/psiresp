@@ -219,8 +219,8 @@ class Resp:
         return sum([c.n_orientations for c in self.conformers])
 
     def to_mda(self):
-        mol = self._conf.molecule.format_molecule_for_mol()
-        u = mda.Universe(io.StringIO(mol), format="MOL2")
+        mol = utils.psi42xyz(self.conformers[0].molecule)
+        u = mda.Universe(io.StringIO(mol), format="XYZ")
         u.add_TopologyAttr("charges", self.charges)
         return u
     

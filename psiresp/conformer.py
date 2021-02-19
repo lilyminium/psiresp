@@ -80,7 +80,7 @@ class Conformer(base.CachedBase):
 
         if name and name != molecule.name():
             molecule.set_name(name)
-
+        
         super().__init__(force=force, verbose=verbose, name=molecule.name())
         
         self._client = None
@@ -110,10 +110,12 @@ class Conformer(base.CachedBase):
         if opt:
             self.optimize_geometry()
 
-        self._orientation = Orientation(self.molecule, symbols=self.symbols,
-                                        verbose=self.verbose, force=self.force,
-                                        method=self.method, basis=self.basis,
-                                        client=self._client, **self.or_kwargs)
+        self._add_orientation()
+
+        # self._orientation = Orientation(self.molecule, symbols=self.symbols,
+        #                                 verbose=self.verbose, force=self.force,
+        #                                 method=self.method, basis=self.basis,
+        #                                 client=self._client, **self.or_kwargs)
 
     def __getstate__(self):
         dct = self.kwargs
@@ -221,16 +223,19 @@ class Conformer(base.CachedBase):
             xyz = self.coordinates+translation
             self._add_orientation(xyz)
 
-    def _add_orientation(self, coordinates):
+    def _add_orientation(self, coordinates=None):
         import psi4
-        mat = psi4.core.Matrix.from_array(coordinates)
+
         cmol = self.molecule.clone()
-        cmol.set_geometry(mat)
-        cmol.fix_com(True)
-        cmol.fix_orientation(True)
-        cmol.update_geometry()
+        if coordinates is not None:
+            mat = psi4.core.Matrix.from_array(coordinates)
+            cmol.set_geometry(mat)
+            cmol.fix_com(True)
+            cmol.fix_orientation(True)
+            cmol.update_geometry()
         name = '{}_o{:03d}'.format(self.name, len(self._orientations)+1)
         cmol.set_name(name)
+
         omol = Orientation(cmol, symbols=self.symbols, name=name,
                            n_atoms=len(self.symbols), verbose=self.verbose,
                            force=self.force, client=self._client,
@@ -238,8 +243,7 @@ class Conformer(base.CachedBase):
                            **self.or_kwargs)
         self._orientations.append(omol)
 
-    def add_orientations(self, orient=[], translate=[], rotate=[],
-                         load_files=False):
+    def add_orientations(self, orient=[], translate=[], rotate=[]):
         """
         Add new orientations to generate.
 
@@ -267,17 +271,16 @@ class Conformer(base.CachedBase):
         self._rotate.extend(rotate)
         if self._orientations:
             self._gen_orientations(orient=orient, rotate=rotate,
-                                   translate=translate, load_files=load_files)
+                                   translate=translate)
 
     @utils.datafile(filename="opt.xyz")
     def get_opt_mol(self, psi4_options={}):
 
-        # xyz = self.molecule.to_string(dtype="xyz")
-        # with open(f"{self.name}.xyz", "w") as f:
-        #     f.write(xyz)
+        xyz = self.molecule.to_string(dtype="xyz")
+        with open(f"{self.name}.xyz", "w") as f:
+            f.write(xyz)
 
-        mol = self.molecule.create_psi4_string_from_molecule()
-        opt_file = "memory 60gb\n\nmolecule " + self.name + " {\n" + mol + "\n}\n\n"
+        opt_file = "memory 60gb\n" + utils.create_psi4_molstr(self.molecule)
         opt_file += textwrap.dedent(f"""
         set {{
             basis {self.basis}
@@ -294,7 +297,7 @@ class Conformer(base.CachedBase):
             f.write(opt_file)
         
         outfile = f"{self.name}_opt.out"
-        subprocess.run(f"psi4 -i {infile} -o {outfile} -n 4", shell=True)
+        # subprocess.run(f"psi4 -i {infile} -o {outfile} -n 4", shell=True)
 
         return utils.log2xyz(outfile)
 

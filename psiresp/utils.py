@@ -17,6 +17,10 @@ PKL_CACHEKEY = "_cache"
 PKL_ORKEY = "orientations"
 PKL_CFKEY = "conformers"
 
+def create_psi4_molstr(molecule):
+    mol = molecule.create_psi4_string_from_molecule()
+    return f"molecule {molecule.name()} {{\n{mol}\n}}\n\n"
+
 
 def prefix_file(path, prefix=None):
     if prefix:
