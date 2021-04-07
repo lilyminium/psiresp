@@ -1,7 +1,0 @@
-New linear angles
-Traceback (most recent call last):
-  File "/scratch/q95/SHARED/bin/opt", line 35, in <module>
-    psi4.optimize(args.method, molecule=mol)
-  File "/home/507/lxw507/miniconda3/envs/psiresp/lib/python3.7/site-packages/psi4/driver/driver.py", line 1159, in optimize
-    raise OptimizationConvergenceError("""geometry optimization""", n - 1, wfn)
-psi4.driver.p4util.exceptions.OptimizationConvergenceError: Could not converge geometry optimization in 50 iterations.

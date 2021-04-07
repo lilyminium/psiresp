@@ -1,58 +1,22 @@
 
-equiv_mcs: true
-n_confs: 50
+equiv_mcs: false
+n_confs: 8
+n_orient: 8
 minimize: true
 mcs_natoms: 4
 inter_chrconstr: []
-intra_chrequiv: []
 basis: 6-31g*
 method: scf
 opt: true
 save_opt_geometry: false
-force: true
+force: false
 verbose: true
 coords: null
-rdmol: "pdbs/{name}.pdb"
-out: "{name}_charged.pdb"
-
-
+run_qm: true
+out: "{name}_charged.mol2"
 
 molecules:
-  # ala:
-  #   charge: 0
-  # asp:
-  #   charge: -1
-  glu:
+  m1_u4:
+    rdmol: 'CCC(C)(CC)C(=O)OCCOCCOCCOCCOC'
     charge: 0
-  leu:
-    charge: 0
-  # phe:
-  #   charge: 0
-  # thr:
-  #   charge: 0
-  # val:
-  #   charge: 0
-  # arg:
-  #   charge: 1
-  # cys:
-  #   charge: 0
-  # his:
-  #   charge: 1
-  # lys:
-  #   charge: 1
-  # pro:
-  #   charge: 0
-  # trp:
-  #   charge: 0
-  # asn:
-  #   charge: 0
-  # gln:
-  #   charge: 0
-  # ile:
-  #   charge: 0
-  # met:
-  #   charge: 0
-  # ser:
-  #   charge: 0
-  # tyr:
-  #   charge: 0
+

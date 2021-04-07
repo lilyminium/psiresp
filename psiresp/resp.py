@@ -4,6 +4,7 @@ import itertools
 import logging
 import io
 import pickle
+import concurrent.futures
 
 import numpy as np
 from rdkit import Chem
@@ -65,7 +66,7 @@ class Resp:
     """
 
     @classmethod
-    def from_molecule_string(cls, molecules, name="Mol", client=None, **kwargs):
+    def from_molecule_string(cls, molecules, name="Mol", executor=None, **kwargs):
         """
         Create Resp class from Psi4 molecules.
 
@@ -85,16 +86,18 @@ class Resp:
         resp: Resp
         """
         conformers = []
+        if executor is None:
+            executor = concurrent.futures.ThreadPoolExecutor()
         for i, mol in enumerate(molecules, 1):
             cname = f"{name}_c{i:03d}"
-            conformers.append(client.submit(Conformer, mol, name=cname, **kwargs))
-            # conformers.append(Conformer(mol.clone(), name=cname,
-            #                             **kwargs))
-        return cls([c.result() for c in conformers], name=name, **kwargs)
+            conformers.append(executor.submit(Conformer, mol, name=cname, **kwargs))
+        confs = [c.result() for c in conformers]
+        return cls(confs, name=name, executor=executor, **kwargs)
 
 
     @classmethod
-    def from_molecules(cls, molecules, name="Mol", client=None, **kwargs):
+    def from_molecules(cls, molecules, name="Mol", executor=None, run_qm=True,
+                       **kwargs):
         """
         Create Resp class from Psi4 molecules.
 
@@ -114,18 +117,20 @@ class Resp:
         resp: Resp
         """
         molecules = utils.asiterable(molecules)
+        if executor is None:
+            executor = ThreadPoolExecutor()
         conformers = []
+        futures = []
         for i, mol in enumerate(molecules, 1):
             cname = f"{name}_c{i:03d}"
-            conformers.append(client.submit(Conformer, mol.clone(), name=cname, actor=True, **kwargs))
-            # conformers.append(Conformer(mol.clone(), name=cname,
-            #                             **kwargs))
-        return cls([c.result() for c in conformers], name=name, **kwargs)
+            conf = Conformer(mol.clone(), name=cname, run_qm=run_qm, **kwargs)
+            conformers.append(conf)
+        return cls(conformers, name=name, executor=executor, **kwargs)
 
 
     @classmethod
     def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
-                   n_confs=0, client=None, **kwargs):
+                   n_confs=0, **kwargs):
         rdmol = Chem.AddHs(rdmol)
         confs = []
 
@@ -138,21 +143,44 @@ class Resp:
             AllChem.UFFOptimizeMoleculeConfs(rdmol, maxIters=2000)
         # charge = Chem.GetFormalCharge(rdmol)
         molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
-        mols = [utils.psi42xyz(m) for m in molecules]
+        # mols = [utils.psi42xyz(m) for m in molecules]
 
-        return cls.from_molecule_string(mols, name=name, client=client, **kwargs)
+        return cls.from_molecules(molecules, name=name, **kwargs)
+
+
+    def compute_opt(self):
+        if not self.opt:
+            return
+        futures = [self.executor.submit(conf.get_opt_mol)
+                   for conf in self.conformers]
+        return utils.compute(self.executor, futures, self.conformers)
+
+    def compute_esp(self):
+        futures = []
+        orientations = []
+        for conf in self.conformers:
+            for orient in conf.orientations:
+                future = self.executor.submit(orient.get_esp)
+                futures.append(future)
+                orientations.append(orient)
+        return utils.compute(self.executor, futures, orientations)
         
 
     def __init__(self, conformers, name="Resp", chrconstr=[], chrequiv=[],
                  weights=1, save_opt_geometry=False, opt=False,
                  psi4_options={}, n_orient=0, n_rotate=0, n_translate=0,
-                 orient=[], rotate=[], translate=[], **kwargs):
+                 orient=[], rotate=[], translate=[],
+                 executor=None, **kwargs):
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
-        print(f"Found {len(conformers)} conformers")
         self.conformers = utils.asiterable(conformers)
 
+        if executor is None:
+            executor = concurrent.futures.ThreadPoolExecutor()
+        self.executor = executor
+
         self.name = name
+        self.opt = opt
         self.n_conf = len(self.conformers)
         self.charge = self._conf.charge
         self.symbols = self._conf.symbols
@@ -180,14 +208,13 @@ class Resp:
             self.add_charge_constraints(chrconstr)
         if chrequiv is not None:
             self.add_charge_equivalences(chrequiv)
-
-        if opt:
-            self.optimize_geometry(psi4_options=psi4_options)
         
         self.add_orientations(n_orient=n_orient, orient=orient,
                               n_rotate=n_rotate, rotate=rotate,
                               n_translate=n_translate,
                               translate=translate)
+        
+        
 
         log.debug(f'Resp(name={self.name}) created with '
                   f'{self.n_conf} conformers, {len(self.chrconstr)} charge '
@@ -326,28 +353,28 @@ class Resp:
         for ids in chrequiv:
             self.add_charge_equivalence(ids)
 
-    def optimize_geometry(self, psi4_options={}):
-        """
-        Optimise geometry for all conformers.
+    # def optimize_geometry(self, psi4_options={}):
+    #     """
+    #     Optimise geometry for all conformers.
 
-        Parameters
-        ----------
-        basis: str (optional)
-            Basis set to optimise geometry
-        method: str (optional)
-            Method to optimise geometry
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_opt_geometry: bool (optional)
-            if ``True``, saves optimised geometries to XYZ file
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved. This does not affect 
-            writing optimised geometries to files. 
-        """
-        # self._client.map(lambda x: x.optimize_geometry, self.conformers, psi4_options=psi4_options)
-        for conf in self.conformers:
-        #     self._client.submit(conf.optimize_geometry, psi4_options=psi4_options)
-            conf.optimize_geometry(psi4_options=psi4_options)
+    #     Parameters
+    #     ----------
+    #     basis: str (optional)
+    #         Basis set to optimise geometry
+    #     method: str (optional)
+    #         Method to optimise geometry
+    #     psi4_options: dict (optional)
+    #         additional Psi4 options
+    #     save_opt_geometry: bool (optional)
+    #         if ``True``, saves optimised geometries to XYZ file
+    #     save_files: bool (optional)
+    #         if ``True``, Psi4 files are saved. This does not affect 
+    #         writing optimised geometries to files. 
+    #     """
+    #     # self._client.map(lambda x: x.optimize_geometry, self.conformers, psi4_options=psi4_options)
+    #     for conf in self.conformers:
+    #     #     self._client.submit(conf.optimize_geometry, psi4_options=psi4_options)
+    #         conf.optimize_geometry(psi4_options=psi4_options)
 
     def set_user_constraints(self, chrconstr=[], chrequiv=[]):
         """
@@ -767,7 +794,7 @@ class Resp:
 
     def run(self, stage_2=True, chrconstr=[], chrequiv=[],
             hyp_a1=0.0005, hyp_a2=0.001, equal_methyls=False,
-            retraint=False, **kwargs):
+            opt=True, restraint=False, **kwargs):
         """
         Perform a 1- or 2-stage ESP or RESP fit.
 
@@ -840,6 +867,15 @@ class Resp:
         -------
         charges: ndarray
         """
+
+        if opt:
+            results = self.compute_opt()
+            if results is not None:
+                return results
+
+        results = self.compute_esp()
+        if results is not None:
+            return results
 
         chrequiv = self.chrequiv + chrequiv
         chrconstr = self.chrconstr + chrconstr

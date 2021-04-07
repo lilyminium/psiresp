@@ -5,6 +5,7 @@ import warnings
 import pickle
 import subprocess
 import textwrap
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -72,9 +73,13 @@ class Conformer(base.CachedBase):
 
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
                  force=False, verbose=False, opt=False,
-                 save_opt_geometry=True, client=None, method="scf",
-                 basis="6-31g*",
+                 save_opt_geometry=True, executor=None, method="scf",
+                 basis="6-31g*", run_qm=True,
                  weight=1, orient=[], rotate=[], translate=[], **kwargs):
+        if executor is None:
+            executor = ThreadPoolExecutor()
+        self.executor = executor
+        self.run_qm = run_qm
         if isinstance(molecule, str):
             molecule = utils.xyz2psi4(molecule)
 
@@ -83,7 +88,6 @@ class Conformer(base.CachedBase):
         
         super().__init__(force=force, verbose=verbose, name=molecule.name())
         
-        self._client = None
         if charge != molecule.molecular_charge():
             molecule.set_molecular_charge(charge)
         if multiplicity != molecule.multiplicity():
@@ -94,6 +98,8 @@ class Conformer(base.CachedBase):
         self.weight = weight
         self.basis = basis
         self.method = method
+        self.opt = opt
+        self.optimized = False
 
         self.or_kwargs = {}
         for kw in self.or_kwargnames:
@@ -107,15 +113,9 @@ class Conformer(base.CachedBase):
         self._rotate = rotate[:]
         self._translate = translate[:]
         self._orientations = []
-        if opt:
-            self.optimize_geometry()
 
         self._add_orientation()
 
-        # self._orientation = Orientation(self.molecule, symbols=self.symbols,
-        #                                 verbose=self.verbose, force=self.force,
-        #                                 method=self.method, basis=self.basis,
-        #                                 client=self._client, **self.or_kwargs)
 
     def __getstate__(self):
         dct = self.kwargs
@@ -230,17 +230,20 @@ class Conformer(base.CachedBase):
         if coordinates is not None:
             mat = psi4.core.Matrix.from_array(coordinates)
             cmol.set_geometry(mat)
+            cmol.set_molecular_charge(self.charge)
+            cmol.set_multiplicity(self.multiplicity)
             cmol.fix_com(True)
             cmol.fix_orientation(True)
             cmol.update_geometry()
         name = '{}_o{:03d}'.format(self.name, len(self._orientations)+1)
         cmol.set_name(name)
 
-        omol = Orientation(cmol, symbols=self.symbols, name=name,
-                           n_atoms=len(self.symbols), verbose=self.verbose,
-                           force=self.force, client=self._client,
+        omol = Orientation(cmol, conformer=self, symbols=self.symbols,
+                           name=name, n_atoms=len(self.symbols),
+                           verbose=self.verbose,
+                           force=self.force, executor=self.executor,
                            method=self.method, basis=self.basis,
-                           **self.or_kwargs)
+                           run_qm=self.run_qm, **self.or_kwargs)
         self._orientations.append(omol)
 
     def add_orientations(self, orient=[], translate=[], rotate=[]):
@@ -274,11 +277,9 @@ class Conformer(base.CachedBase):
                                    translate=translate)
 
     @utils.datafile(filename="opt.xyz")
-    def get_opt_mol(self, psi4_options={}):
+    def get_opt_mol(self):
 
         xyz = self.molecule.to_string(dtype="xyz")
-        with open(f"{self.name}.xyz", "w") as f:
-            f.write(xyz)
 
         opt_file = "memory 60gb\n" + utils.create_psi4_molstr(self.molecule)
         opt_file += textwrap.dedent(f"""
@@ -292,45 +293,32 @@ class Conformer(base.CachedBase):
         optimize('{self.method}')
         """)
 
-        infile = f"{self.name}_opt.in"
+        tmpdir = f"{self.name}"
+        try:
+            os.mkdir(tmpdir)
+        except FileExistsError:
+            pass
+
+        infile = os.path.abspath(os.path.join(tmpdir, f"{self.name}_opt.in"))
         with open(infile, "w") as f:
             f.write(opt_file)
         
-        outfile = f"{self.name}_opt.out"
-        # subprocess.run(f"psi4 -i {infile} -o {outfile} -n 4", shell=True)
-
+        outfile = os.path.abspath(os.path.join(tmpdir,
+                                               f"{self.name}_opt.out"))
+        cmd = f"cd {tmpdir}; psi4 -i {infile} -o {outfile}; cd -"
+        if self.run_qm:
+            subprocess.run(cmd, shell=True)
+        elif not os.path.isfile(outfile):
+            self.exec = cmd
+            raise ValueError("Not executing")
         return utils.log2xyz(outfile)
 
-
-
-        # import psi4
-        # psi4.set_options({'basis': self.basis,
-        #                   'geom_maxiter': 600,
-        #                 #   'full_hess_every': 10,
-        #                 #   'g_convergence': 'gau_tight',
-        #                   })
-        # psi4.set_options(psi4_options)
-        # logfile = self.name+'_opt.log'
-        # psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
-        # psi4.optimize(self.method, molecule=self.molecule)
-        # psi4.core.clean()
-        # self._orientations = []
-        # # return self.molecule
-        # return self.molecule.to_string(dtype="xyz")
-
-    def optimize_geometry(self, psi4_options={}):
+    def optimize_geometry(self):
         import psi4
-
-        # if self._client:
-        #     future = self._client.submit(self.get_opt_mol)
-        #     txt = future.result()
-        # else:
         txt = self.opt_mol
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
         self.molecule.set_geometry(mol.geometry())
-        # mol = self.opt_mol
-        # for i in range(self.n_atoms):
-        #     self.molecule.SetAtomPosition(i, mol.GetAtomPosition(i))
+        self.optimized = True
 
     @utils.datafile
     def get_unweighted_ab(self):

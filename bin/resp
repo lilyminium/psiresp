@@ -5,6 +5,7 @@ import glob
 import tempfile
 import argparse
 import functools
+import concurrent.futures
 
 from dask.distributed import Client, LocalCluster
 import dask
@@ -29,55 +30,21 @@ def read(yamlfile):
         return yaml.load(f, Loader=yaml.FullLoader)
 
 
-# def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
-#                 chrequiv=[], chrconstr=[], molecules={}):
-#     if isinstance(intra_chrconstr, dict):
-#         intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
-#     intra_chrconstr = list(intra_chrconstr)
-
-#     if not len(intra_chrconstr):
-#         for i in range(len(molecules)):
-#             intra_chrconstr.append([])
-
-#     intra_chrequiv = intra_chrequiv[:]
-#     if not len(intra_chrequiv):
-#         for i in range(len(molecules)):
-#             intra_chrequiv.append([])
-    
-#     chrequiv = list(chrequiv)
-#     if isinstance(chrconstr, dict):
-#         chrconstr = chrconstr.items()
-#     chrconstr = list(chrconstr)
-
-#     for i in range(len(molecules)):
-#         intra_chrconstr[i].extend(chrconstr)
-#         intra_chrequiv[i].extend(chrequiv)
-    
-#     return intra_chrconstr, intra_chrequiv
+def submit(executor, method, objects):
+    futures = [executor.submit(getattr(o, method)) for o in objects]
+    try:
+        concurrent.futures.wait(futures)
+    except KeyboardInterrupt:
+        executor.shutdown(wait=False)
+        raise KeyboardInterrupt()
+    else:
+        results = [f.result() for f in futures]
+        not_none = [x for x in results if x]
+        if not_none:
+            return "\n".join(not_none)
 
 
-         
-
-def gen_rdconfs(rdmol, name="Mol", rmsd_threshold=1.5, minimize=False, n_confs=0,
-                **kwargs):
-    rdmol = Chem.AddHs(rdmol)
-    confs = []
-
-    cids = AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
-                                        pruneRmsThresh=rmsd_threshold,
-                                        ignoreSmoothingFailures=True)
-
-    if minimize:
-        # TODO: is UFF good?
-        AllChem.MMFFOptimizeMoleculeConfs(rdmol, maxIters=3000)
-    # charge = Chem.GetFormalCharge(rdmol)
-    molecules = rdmol_to_psi4mols(rdmol, name=name)
-    # mols = [utils.psi42xyz(m) for m in molecules]
-
-    return molecules
-
-
-def run_job(client, equiv_mcs=False, mcs_natoms=4,
+def run_job(executor, equiv_mcs=False, mcs_natoms=4,
             stage_2=True, inter_chrconstr=[],
             inter_chrequiv=[], equal_methyls=False,
             hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
@@ -116,48 +83,21 @@ def run_job(client, equiv_mcs=False, mcs_natoms=4,
         out_files.append(out.format(**molkwargs))
         molkwargs.pop("coords", None)
         molkwargs.pop("rdmol", None)
-        molconfs = gen_rdconfs(rdmol, **molkwargs)
-        name = molkwargs.pop("name", "Mol")
 
-        conformers = []
-        for i, mol in enumerate(molconfs, 1):
-            cname = f"{name}_c{i:03d}"
-            mol_ = psi42xyz(mol)
-            conformers.append(client.submit(sip.conformer.Conformer, mol_, name=cname, actor=False, **molkwargs))
-        
-        confs.append(conformers)
-        # resps.append(sip.Resp([c.result() for c in conformers]))
-
-        # resps.append()
-        # resps.append(client.submit(sip.Resp.from_rdmol, rdmol, client=client, **molkwargs))
-
-
-
-
-
-
-        # functions.append(functools.partial(sip.Resp.from_rdmol, client=client, **molkwargs))
-
-    # resps = client.map(functions)
-
-        # rp = dask.delayed(sip.Resp.from_rdmol)(rdmol, client=client, **molkwargs)
-        # resps.append(rp)
+        resps.append(sip.Resp.from_rdmol(rdmol, executor=executor, **molkwargs))
     
-    # mresp = sip.MultiResp([x.result() for x in resps])
-    # mresp.from_futures(confs)
-    conformers = client.gather(confs)
-    # conformers = [[y.result() for y in x] for x in confs]
-    resps = [sip.Resp(x) for x in conformers]
+    result = submit(executor, "compute_opt", resps)
+    if result:
+        return result
 
     for resp in resps:
         resp.add_orientations(n_orient=n_orient, n_rotate=n_rotate, n_translate=n_translate)
+    
+    result = submit(executor, "compute_esp", resps)
+    if result:
+        return result
+
     mresp = sip.MultiResp(resps)
-
-    all_orientations = [y for mol in mresp.molecules for conf in mol.conformers for y in conf.orientations]
-    esps_ = client.map(lambda x: getattr(x, "esp"), all_orientations)
-    esps = client.gather(esps_)
-
-
 
     mresp.run(stage_2=stage_2,
               intra_chrconstr=intra_chrconstr,
@@ -172,52 +112,6 @@ def run_job(client, equiv_mcs=False, mcs_natoms=4,
     for out, mol in zip(out_files, mresp.molecules):
         mol.write(out)
         print(f"Wrote {out}")
-    print("Completed.")
-
-
-def read_rdmol(filename):
-    suffix = filename.split('.')[-1]
-    FILE = {
-        "pdb": Chem.MolFromPDBFile,
-        "tpl": Chem.MolFromTPLFile,
-        "mol2": Chem.MolFromMol2File,
-        "mol": Chem.MolFromMolFile,
-        "png": Chem.MolFromPNGFile,
-    }
-    STR = (
-        Chem.MolFromSmiles,
-        Chem.MolFromSmarts,
-        Chem.MolFromFASTA,
-        Chem.MolFromHELM,
-        Chem.MolFromSequence,
-        Chem.MolFromMol2Block,
-        Chem.MolFromMolBlock,
-        Chem.MolFromPDBBlock,
-        Chem.MolFromPNGString,
-        Chem.MolFromRDKitSVG,
-        Chem.MolFromTPLBlock,
-    )
-    if suffix in FILE:
-        return FILE[suffix](filename, removeHs=False, sanitize=False)
-    
-    for parser in STR:
-        mol = parser(filename, removeHs=False, sanitize=False)
-        if mol is not None:
-            return mol
-    raise ValueError(f"Could not parse {filename}")
-
-
-def read_psi4mol(filename):
-    u = mda.Universe(filename)
-    with tempfile.TemporaryDirectory() as tmpdir:
-        file = f"{tmpdir}/temp.xyz"
-        u.atoms.write(file)
-        with open(file, "r") as f:
-            geom = f.read()
-    mol = psi4.core.Molecule.from_string(geom, fix_com=True,
-                                         fix_orientation=True)
-    mol.update_geometry()
-    return mol
 
 
 def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
@@ -225,24 +119,22 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
         coordfiles = glob.glob(coords.format(name=name))
     else:
         coordfiles = []
-    if rdmol is not None:
-        rdfile = glob.glob(rdmol.format(name=name))[0]
-        mol = read_rdmol(rdfile)
-    else:
+    if rdmol is None:
         try:
-            mol = mda.Universe(coordfiles[0])
+            rdmol = coordfiles[0]
         except IndexError:
-            raise ValueError(f"Could not find file for {coords}") from None
-        mol = mol.atoms.convert_to("RDKIT")
-    
+            raise ValueError("At least one of `coords` or `rdmol` "
+                             "must be provided")
+
+    mol = sip.utils.get_rdmol(rdmol, name)
     n_atoms = mol.GetNumAtoms()
-    
     for file in coordfiles:
         conf = Chem.Conformer(n_atoms)
         pos = mda.Universe(file).atoms.positions.astype(float)
         for i, row in enumerate(pos):
             conf.SetAtomPosition(i, row)
         mol.AddConformer(conf)
+    Chem.SanitizeMol(mol)
     Chem.AssignStereochemistryFrom3D(mol)
     Chem.SetDoubleBondNeighborDirections(mol)
     return mol
@@ -250,19 +142,10 @@ def load_rdmol(name=None, coords="{name}*.xyz", rdmol=None, **kwargs):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    # psi4.set_memory(args.memory)
-    # psi4.set_num_threads(args.nthreads)
-
     contents = read(args.input)
     molecules = contents.pop("molecules", {})
-    client = Client(
-                            memory_limit='30GB',
-                            n_workers=4, 
-                            threads_per_worker=1,
-                            processes=False,
-                            )
-    # client = Client(cluster)
-    # client = Client(processes=False, n_workers=2, threads_per_worker=1)
-    print("client: ", client)
+    executor = concurrent.futures.ThreadPoolExecutor()
 
-    run_job(client, **contents, molecules=molecules)
+    returned = run_job(executor, **contents, molecules=molecules)
+    if returned is not None:
+        print(returned)

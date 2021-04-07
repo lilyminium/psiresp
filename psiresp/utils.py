@@ -2,12 +2,15 @@ import itertools
 import os
 from collections import defaultdict
 import functools
+import glob
+import concurrent.futures
 
 import pandas as pd
 import psi4
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdFMCS
+import MDAnalysis as mda
 
 from . import vdwradii
 
@@ -16,6 +19,85 @@ PKL_MOLKEY = "molecule_xyz"
 PKL_CACHEKEY = "_cache"
 PKL_ORKEY = "orientations"
 PKL_CFKEY = "conformers"
+
+def compute(executor, futures, objects):
+    to_print = []
+    try:
+        concurrent.futures.wait(futures)
+    except KeyboardInterrupt:
+        executor.shutdown(wait=False)
+        raise KeyboardInterrupt()
+    else:
+        for i, f in enumerate(futures):
+            try:
+                res = f.result()
+            except ValueError:
+                to_print.append(objects[i].exec)
+        if len(to_print):
+            return ";\n".join(to_print)
+
+def read_rdmol(filename):
+    suffix = filename.split('.')[-1]
+    FILE = {
+        "pdb": Chem.MolFromPDBFile,
+        "tpl": Chem.MolFromTPLFile,
+        "mol2": Chem.MolFromMol2File,
+        "mol": Chem.MolFromMolFile,
+        "png": Chem.MolFromPNGFile,
+    }
+    STR = (
+        Chem.MolFromSmiles,
+        Chem.MolFromSmarts,
+        Chem.MolFromFASTA,
+        Chem.MolFromHELM,
+        Chem.MolFromSequence,
+        Chem.MolFromMol2Block,
+        Chem.MolFromMolBlock,
+        Chem.MolFromPDBBlock,
+        Chem.MolFromPNGString,
+        Chem.MolFromRDKitSVG,
+        Chem.MolFromTPLBlock,
+    )
+    if suffix in FILE:
+        return FILE[suffix](filename, sanitize=False)
+    
+    for parser in STR:
+        mol = parser(filename, sanitize=False)
+        if mol is not None:
+            return mol
+    raise ValueError(f"Could not parse {filename}")
+
+
+def get_rdmol(filename, name):
+    try:
+        rdfile = glob.glob(filename.format(name=name))[0]
+    except IndexError:
+        rdfile = filename
+    
+    try:
+        return read_rdmol(rdfile)
+    except ValueError:
+        pass
+
+    mol = mda.Universe(rdfile)
+    mol = mol.atoms.convert_to("RDKIT")
+
+    mol = Chem.AddHs(mol, addCoords=True)
+    return mol
+
+
+def read_psi4mol(filename):
+    u = mda.Universe(filename)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file = f"{tmpdir}/temp.xyz"
+        u.atoms.write(file)
+        with open(file, "r") as f:
+            geom = f.read()
+    mol = psi4.core.Molecule.from_string(geom, fix_com=True,
+                                         fix_orientation=True)
+    mol.update_geometry()
+    return mol
+
 
 def create_psi4_molstr(molecule):
     mol = molecule.create_psi4_string_from_molecule()
@@ -48,8 +130,10 @@ def rdmol_to_psi4mols(rdmol, name=None):
     for i, c in enumerate(confs, 1):
         pos = c.GetPositions()
         xyz = [ATOM.format(sym=a, x=x) for a, x in zip(symbols, pos)]
-        txt = f"{n_atoms}\n{name}_c{i:03d}\n" + "\n".join(xyz)
+        txt = f"{n_atoms}\n0 1 {name}_c{i:03d}\n" + "\n".join(xyz)
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
+        mol.set_molecular_charge(0)
+        mol.set_multiplicity(1)
         mols.append(mol)
 
     return mols
@@ -182,6 +266,35 @@ def load_text(file):
 
 
 
+def clean_intra(intra_chrconstr=[], intra_chrequiv=[],
+                chrequiv=[], chrconstr=[], molecules={}):
+    if isinstance(intra_chrconstr, dict):
+        intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
+    intra_chrconstr = list(intra_chrconstr)
+
+    if not len(intra_chrconstr):
+        for i in range(len(molecules)):
+            intra_chrconstr.append([])
+
+    intra_chrequiv = intra_chrequiv[:]
+    if not len(intra_chrequiv):
+        for i in range(len(molecules)):
+            intra_chrequiv.append([])
+    
+    chrequiv = list(chrequiv)
+    if isinstance(chrconstr, dict):
+        chrconstr = chrconstr.items()
+    chrconstr = list(chrconstr)
+
+    for i in range(len(molecules)):
+        intra_chrconstr[i].extend(chrconstr)
+        intra_chrequiv[i].extend(chrequiv)
+    
+    return intra_chrconstr, intra_chrequiv
+
+
+
+
 
 def cached(func):
     """
@@ -220,7 +333,7 @@ def try_load_data(path, force=False, verbose=False):
             data = loader(path)
         except:
             if verbose:
-                print(f'Could not load data from {path}: rerun(ning).')
+                print(f'Could not load data from {path}: (re)running.')
         else:
             if verbose:
                 print(f'Loaded from {path}.')
