@@ -78,7 +78,7 @@ jobs:
 
     - name: run_tests
       run: |
-        PYTEST_FLAGS="-m fast--disable-pytest-warnings --durations=50"
+        PYTEST_FLAGS="-m fast --disable-pytest-warnings --durations=50"
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
         fi
