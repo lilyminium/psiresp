@@ -341,7 +341,7 @@ class Conformer(base.CachedBase):
 
     def get_esp_matrices(self, weight=1.0, vdw_points=None, rmin=0, rmax=-1,
                          basis='6-31g*', method='scf', solvent=None,
-                         psi4_options={}, save_files=False,
+                         psi4_options={},
                          use_radii='msk', vdw_point_density=1.0,
                          vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
                          load_files=False):
@@ -412,14 +412,13 @@ class Conformer(base.CachedBase):
                 a, b = mol.get_esp_matrices(vdw_points=vdw_points,
                                             basis=basis, method=method,
                                             solvent=solvent,
-                                            psi4_options=psi4_options,
-                                            save_files=save_files)
+                                            psi4_options=psi4_options)
                 AB[:self.n_atoms] += a
                 AB[-1] += b
         
-        if save_files:
-            np.savetxt(self.mat_filename, AB)
-            log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
+        # if save_files:
+        #     np.savetxt(self.mat_filename, AB)
+        #     log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
         
         AB *= (weight**2)
         A, B = AB[:self.n_atoms], AB[-1]

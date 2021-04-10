@@ -169,7 +169,7 @@ def resp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
                                     vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
                                     vdw_point_density=1.0, vdw_radii={},
                                     rmin=0, rmax=-1,
-                                    psi4_options={}, save_files=False, **kwargs):
+                                    psi4_options={}, **kwargs):
             """
             Get A and B matrices to solve for charges, including charge constraints.
 
@@ -219,8 +219,7 @@ def resp_config(stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
                                                             vdw_scale_factors=vdw_scale_factors,
                                                             vdw_radii=vdw_radii, rmin=rmin,
                                                             rmax=rmax, solvent=solvent,
-                                                            psi4_options=psi4_options,
-                                                            save_files=save_files)
+                                                            psi4_options=psi4_options)
         cls.run = run
         cls.optimize_geometry = optimize_geometry
         cls.fit = fit

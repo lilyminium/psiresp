@@ -68,7 +68,7 @@ class BaseTestRespConfigOpt:
         r = self.cls.from_molecules([dmso])
         with tmpdir.as_cwd():
             charges = r.run(opt=True, n_orient=2, equal_methyls=True,
-                            save_files=False, save_opt_geometry=False)
+                            save_opt_geometry=False)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 

@@ -73,33 +73,33 @@ class TestConformer:
         diff = np.linalg.norm(xyz_post_opt-xyz_pre_opt)
         assert diff > 0.01
 
-    @pytest.mark.optimize
-    @pytest.mark.slow
-    @pytest.mark.parametrize('save_xyz,save_files', [
-        (False, False),
-        (False, True),
-        (True, False),
-        (True, True),
-    ])
-    def test_optimize_geometry(self, conformer, opt_mol, save_xyz,
-                               save_files, tmpdir):
-        xyz = 'default_opt.xyz'
-        log = 'default_opt.log'
-        opt = opt_mol.geometry().np
-        with tmpdir.as_cwd():
-            conformer.optimize_geometry(save_opt_geometry=save_xyz,
-                                        save_files=save_files)
-            assert_allclose(conformer.molecule.geometry().np, opt,
-                            rtol=0.05, atol=1e-4)
-            if save_files:
-                assert os.path.exists(log)
-            else:
-                assert not os.path.exists(log)
+    # @pytest.mark.optimize
+    # @pytest.mark.slow
+    # @pytest.mark.parametrize('save_xyz,save_files', [
+    #     (False, False),
+    #     (False, True),
+    #     (True, False),
+    #     (True, True),
+    # ])
+    # def test_optimize_geometry(self, conformer, opt_mol, save_xyz,
+    #                            save_files, tmpdir):
+    #     xyz = 'default_opt.xyz'
+    #     log = 'default_opt.log'
+    #     opt = opt_mol.geometry().np
+    #     with tmpdir.as_cwd():
+    #         conformer.optimize_geometry(save_opt_geometry=save_xyz,
+    #                                     save_files=save_files)
+    #         assert_allclose(conformer.molecule.geometry().np, opt,
+    #                         rtol=0.05, atol=1e-4)
+    #         if save_files:
+    #             assert os.path.exists(log)
+    #         else:
+    #             assert not os.path.exists(log)
 
-            if save_xyz:
-                assert os.path.exists(xyz)
-            else:
-                assert not os.path.exists(xyz)
+    #         if save_xyz:
+    #             assert os.path.exists(xyz)
+    #         else:
+    #             assert not os.path.exists(xyz)
 
     @pytest.mark.fast
     def test_clone(self, conformer):

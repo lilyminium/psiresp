@@ -75,7 +75,7 @@ class TestMultiRespNoOptNoOrient(object):
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             intra_chrequiv=self.intra_chrequiv[1:],
                             intra_chrconstr=self.intra_chrconstr[1:],
-                            n_orient=self.n_orient, save_files=False)
+                            n_orient=self.n_orient)
         assert_allclose(charges[0], nme2ala2_charges, rtol=self.rtol, 
                         atol=self.atol)
 
@@ -87,7 +87,7 @@ class TestMultiRespNoOptNoOrient(object):
                             inter_chrconstr=self.inter_chrconstr,
                             intra_chrequiv=self.intra_chrequiv,
                             intra_chrconstr=self.intra_chrconstr,
-                            n_orient=self.n_orient, save_files=False)
+                            n_orient=self.n_orient)
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=self.rtol, atol=self.atol)
 

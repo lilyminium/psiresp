@@ -273,7 +273,7 @@ class Resp2(object):
                                          hyp_a1=0.0005, hyp_a2=0.001,
                                          equal_methyls=equal_methyls,
                                          ihfree=True, tol=tol, maxiter=maxiter,
-                                         save_files=save_files,
+                                        #  save_files=save_files,
                                          load_files=load_files)
 
         self._solv_charges = self.solv.run(stage_2=True, opt=False,
@@ -291,7 +291,7 @@ class Resp2(object):
                                            hyp_a1=0.0005, hyp_a2=0.001,
                                            equal_methyls=equal_methyls,
                                            ihfree=True, tol=tol, maxiter=maxiter,
-                                           save_files=save_files,
+                                        #    save_files=save_files,
                                            load_files=load_files)
 
         self._charges = delta*self.solv_charges + (1-delta)*self.gas_charges
@@ -354,7 +354,7 @@ class MultiResp2(object):
             intra_chrconstr=[], intra_chrequiv=[], inter_chrconstr=[],
             inter_chrequiv=[], weights=1, method='PW6B95',
             basis='aug-cc-pV(D+d)Z', vdw_radii={}, psi4_options={},
-            rmin=1.3, rmax=2.1, save_files=False, n_orient=0, orient=[],
+            rmin=1.3, rmax=2.1, n_orient=0, orient=[],
             n_rotate=0, rotate=[], n_translate=0, translate=[],
             equal_methyls=False, tol=1e-6, maxiter=50, load_files=False,
             vdw_point_density=2.5, vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
@@ -498,7 +498,7 @@ class MultiResp2(object):
                                          psi4_options=psi4_options, hyp_a1=0.0005,
                                          hyp_a2=0.001, equal_methyls=equal_methyls,
                                          ihfree=True, tol=tol, maxiter=maxiter,
-                                         save_files=save_files,
+                                        #  save_files=save_files,
                                          load_files=load_files)
 
         self._solv_charges = self.solv.run(stage_2=True, opt=False,
@@ -515,7 +515,7 @@ class MultiResp2(object):
                                            psi4_options=psi4_options, hyp_a1=0.0005,
                                            hyp_a2=0.001, equal_methyls=equal_methyls,
                                            ihfree=True, tol=tol, maxiter=maxiter,
-                                           save_files=save_files,
+                                        #    save_files=save_files,
                                            load_files=load_files)
         charges = []
         for solv, gas, sresp, gresp in zip(self.solv_charges, self.gas_charges,

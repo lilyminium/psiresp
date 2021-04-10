@@ -30,7 +30,7 @@ class TestNoOrient:
         return r
 
     def test_esp_1(self, resp):
-        charges = resp.fit(restraint=False, save_files=False)
+        charges = resp.fit(restraint=False)
         ref = np.array([-0.43877469,  0.14814998,  0.17996033,  0.18716814,  0.35743529,
                         -0.5085439, -0.46067469,  0.19091725,  0.15500465,  0.18935764])
         assert_almost_equal(charges, ref, decimal=5)
@@ -110,7 +110,7 @@ class TestRespNoOpt(object):
                                         esp_name=self.ESP)
         with tmpdir.as_cwd():
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
-                            equal_methyls=True, n_orient=2, save_files=False)
+                            equal_methyls=True, n_orient=2)
         ref = self.load_charges('dmso', 1, 2, redname,)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
@@ -128,7 +128,7 @@ class TestRespNoOpt(object):
             chrequiv = []
         with tmpdir.as_cwd():
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
-                            chrequiv=chrequiv, save_files=False)
+                            chrequiv=chrequiv)
         ref = self.load_charges('ethanol', 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
@@ -156,8 +156,7 @@ class TestRespNoOpt(object):
         with tmpdir.as_cwd():
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             equal_methyls=False, chrequiv=chrequiv,
-                            chrconstr=chrconstr, orient=orient,
-                            save_files=False)
+                            chrconstr=chrconstr, orient=orient)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
