@@ -21,3 +21,4 @@ dependencies:
   - pip:
       - duecredit
       - pytest-xdist
+      - git+https://github.com/MDAnalysis/mdanalysis@develop#egg=mdanalysis&subdirectory=package
