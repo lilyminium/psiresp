@@ -112,7 +112,7 @@ class TestRespNoOpt(object):
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
                             equal_methyls=True, n_orient=2)
         ref = self.load_charges('dmso', 1, 2, redname,)
-        assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
+        assert_allclose(charges, ref, atol=1e-2)
 
     def test_resp_multi_conf(self, stage_2, a, redname, tmpdir):
         confs = self.load_mols('ethanol', 2)
