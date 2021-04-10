@@ -212,13 +212,18 @@ class Orientation(base.CachedBase):
         E, wfn = prop('{self.method}', properties=['GRID_ESP'], return_wfn=True)
         esp = wfn.oeprop.Vvals()
             """)
+        
+        try:
+            conf_name = self.conformer.name
+        except AttributeError:
+            conf_name = self.name
 
         try:
-            os.mkdir(self.conformer.name)
+            os.mkdir(conf_name)
         except FileExistsError:
             pass
         
-        tmpdir = f"{self.conformer.name}/{self.name}_esp"
+        tmpdir = f"{conf_name}/{self.name}_esp"
         try:
             os.mkdir(tmpdir)
         except FileExistsError:

@@ -2,20 +2,14 @@
 
 import yaml
 import glob
-import tempfile
 import argparse
-import functools
 import concurrent.futures
 
-from dask.distributed import Client, LocalCluster
-import dask
 from rdkit import Chem
-from rdkit.Chem import AllChem
 
 import MDAnalysis as mda
 import psiresp as sip
-from psiresp.utils import rdmols_to_inter_chrequiv, rdmol_to_psi4mols, psi42xyz
-import psi4
+from psiresp.utils import rdmols_to_inter_chrequiv
 
 parser = argparse.ArgumentParser("Run resp")
 parser.add_argument("input", help="input yaml file")
@@ -76,7 +70,6 @@ def run_job(executor, equiv_mcs=False, mcs_natoms=4,
 
     resps = []
     out_files = []
-    confs = []
     
     for rdmol, molkwargs in zip(rdmols, mol_kwargs):
         out = molkwargs.pop("out", "{name}_charged.pdb")
