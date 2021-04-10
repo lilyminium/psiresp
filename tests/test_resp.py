@@ -158,7 +158,7 @@ class TestRespNoOpt(object):
                             equal_methyls=False, chrequiv=chrequiv,
                             chrconstr=chrconstr, orient=orient)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
-        assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
+        assert_allclose(charges, ref, atol=1e-2)
 
 
 @pytest.mark.fast

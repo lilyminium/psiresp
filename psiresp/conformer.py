@@ -140,7 +140,7 @@ class Conformer(base.CachedBase):
     @property
     def kwargs(self):
         dct = dict(**self.or_kwargs)
-        for kw in ("charge", "multiplicity", "weight", "name"):
+        for kw in ("charge", "multiplicity", "weight"):
             dct[kw] = getattr(self, kw)
         dct["orient"] = self._orient
         dct["rotate"] = self._rotate

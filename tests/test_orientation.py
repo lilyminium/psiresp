@@ -41,8 +41,8 @@ class BaseTestOrientation:
     def test_get_esp_gas(self, opt_orientation, esp, tmpdir):
         ref = esp[:, 0]
         with tmpdir.as_cwd():
-            opt_orientation.get_esp_matrices()
-        epot = opt_orientation.esp
+            # opt_orientation.get_esp_matrices()
+            epot = opt_orientation.esp
         assert_almost_equal(epot, ref, decimal=4)
 
 
