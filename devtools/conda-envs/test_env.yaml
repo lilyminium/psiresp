@@ -19,3 +19,4 @@ dependencies:
   # Pip-only installs
   - pip:
       - duecredit
+      - pytest-xdist
