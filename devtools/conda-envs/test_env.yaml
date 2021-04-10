@@ -12,6 +12,7 @@ dependencies:
   - codecov
 
   # program
+  - cython
   - numpy
   - psi4=1.3.2
   - qcelemental
