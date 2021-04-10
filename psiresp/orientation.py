@@ -75,7 +75,9 @@ class Orientation(base.CachedBase):
                  density=1.0, psi4_options={},
                  run_qm=True, **kwargs):
         super().__init__(force=force, verbose=verbose, name=name)
-        molecule.set_name(self.name)
+        if name is not None:
+            molecule.set_name(name)
+        self.name = molecule.name()
         self.conformer = conformer
 
         self.n_atoms = molecule.natom()
