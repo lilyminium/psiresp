@@ -794,6 +794,8 @@ class Resp:
 
     def run(self, stage_2=True, chrconstr=[], chrequiv=[],
             hyp_a1=0.0005, hyp_a2=0.001, equal_methyls=False,
+            n_orient=0, orient=[], n_rotate=0, rotate=[],
+            n_translate=0, translate=[],
             opt=True, restraint=False, **kwargs):
         """
         Perform a 1- or 2-stage ESP or RESP fit.
@@ -872,6 +874,11 @@ class Resp:
             results = self.compute_opt()
             if results is not None:
                 return results
+        
+        self.add_orientations(n_orient=n_orient, orient=orient,
+                              n_rotate=n_rotate, rotate=rotate,
+                              n_translate=n_translate,
+                              translate=translate)
 
         results = self.compute_esp()
         if results is not None:
