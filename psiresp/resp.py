@@ -118,7 +118,7 @@ class Resp:
         """
         molecules = utils.asiterable(molecules)
         if executor is None:
-            executor = ThreadPoolExecutor()
+            executor = concurrent.futures.ThreadPoolExecutor()
         conformers = []
         futures = []
         for i, mol in enumerate(molecules, 1):
