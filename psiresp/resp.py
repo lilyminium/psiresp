@@ -271,10 +271,7 @@ class Resp:
         if name is None:
             name = self.name+'_copy'
         mols = [c.molecule.clone() for c in self.conformers]
-        charge = self.charge
-        mult = self._conf.multiplicity
-        new = type(self).from_molecules(mols, name=name, charge=charge,
-                                        multiplicity=mult, **self.kwargs)
+        new = type(self).from_molecules(mols, name=name, **self.kwargs)
         for nc, mc in zip(new.conformers, self.conformers):
             nc.add_orientations(orient=mc._orient, rotate=mc._rotate,
                                 translate=mc._translate)

@@ -33,7 +33,7 @@ class TestConformer:
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
         assert len(conformer.orientations) == 1
-        assert len(conformer._orientations) == 0
+        # assert len(conformer.orientations) == 1
 
     @pytest.mark.fast
     def test_init_conformer_options(self, geometry):
@@ -47,19 +47,19 @@ class TestConformer:
         assert conformer.molecule.multiplicity() == 2
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
-        assert len(conformer._orientations) == 0
-        assert len(conformer.orientations) == 2
-        assert len(conformer._orientations) == 2
-        assert conformer.orientations[0].name == 'nme2ala2_o1'
-        assert conformer.orientations[1].name == 'nme2ala2_o2'
+        assert len(conformer.orientations) == 1
+        # assert len(conformer.orientations) == 2
+        # assert len(conformer._orientations) == 2
+        assert conformer.orientations[0].name == 'nme2ala2_o001'
+        assert conformer.orientations[1].name == 'nme2ala2_o002'
 
     @pytest.mark.fast
     def test_add_orientations(self, conformer):
         assert len(conformer.orientations) == 1  # original molecule
         conformer.add_orientations(orient=[(5, 18, 19), (19, 18, 5)])
-        assert len(conformer.orientations) == 2
+        assert len(conformer.orientations) == 3
         conformer.add_orientations(orient=[(6, 19, 20), (20, 19, 6)])
-        assert len(conformer.orientations) == 4
+        assert len(conformer.orientations) == 5
 
     @pytest.mark.optimize
     @pytest.mark.slow

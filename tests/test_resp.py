@@ -130,7 +130,7 @@ class TestRespNoOpt(object):
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             chrequiv=chrequiv)
         ref = self.load_charges('ethanol', 2, 4, redname)
-        assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
+        assert_allclose(charges, ref, atol=1e-2)
 
     @pytest.mark.parametrize('chargename,chrconstr', [
         ('', [(0, [1, 2, 3, 4, 5, 6]),
