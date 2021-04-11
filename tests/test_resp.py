@@ -8,6 +8,7 @@ import pytest
 import sys
 from rdkit import Chem
 import numpy as np
+from distutils.dir_util import copy_tree
 
 from numpy.testing import assert_almost_equal, assert_allclose
 from .utils import mol_from_file, charges_from_red_file, datafile
@@ -104,33 +105,32 @@ class TestRespNoOpt(object):
 
     def test_resp_single_conf(self, stage_2, a, redname, tmpdir):
         confs = self.load_mols('dmso', 1)
-        r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso',
-                                        load_files=self.load_files,
-                                        grid_name=self.GRID,
-                                        esp_name=self.ESP)
         with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            r = psiresp.Resp.from_molecules(confs, charge=0, name='dmso')
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a, restraint=True,
                             equal_methyls=True, n_orient=2)
         ref = self.load_charges('dmso', 1, 2, redname,)
-        assert_allclose(charges, ref, atol=1e-2)
+        assert_allclose(charges, ref, atol=1e-4)
 
     def test_resp_multi_conf(self, stage_2, a, redname, tmpdir):
         confs = self.load_mols('ethanol', 2)
-        r = psiresp.Resp.from_molecules(confs, charge=0, name='ethanol',
-                                        orient=[(1, 5, 8), (8, 5, 1),
-                                                (9, 8, 5), (5, 8, 9)],
-                                        load_files=self.load_files,
-                                        grid_name=self.GRID,
-                                        esp_name=self.ESP)
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
         else:
             chrequiv = []
+
         with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            r = psiresp.Resp.from_molecules(confs, charge=0, name='ethanol',
+                                            orient=[(1, 5, 8), (8, 5, 1),
+                                                    (9, 8, 5), (5, 8, 9)])
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             chrequiv=chrequiv)
         ref = self.load_charges('ethanol', 2, 4, redname)
-        assert_allclose(charges, ref, atol=1e-2)
+        assert_allclose(charges, ref, atol=1e-4)
 
     @pytest.mark.parametrize('chargename,chrconstr', [
         ('', [(0, [1, 2, 3, 4, 5, 6]),
@@ -149,16 +149,15 @@ class TestRespNoOpt(object):
         confs = self.load_mols('nme2ala2', 2)
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
-        r = psiresp.Resp.from_molecules(confs, charge=0, name='nme2ala2',
-                                        load_files=self.load_files,
-                                        grid_name=self.GRID,
-                                        esp_name=self.ESP)
         with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            r = psiresp.Resp.from_molecules(confs, charge=0, name='nme2ala2')
             charges = r.run(stage_2=stage_2, opt=self.opt, hyp_a1=a,
                             equal_methyls=False, chrequiv=chrequiv,
                             chrconstr=chrconstr, orient=orient)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
-        assert_allclose(charges, ref, atol=1e-2)
+        assert_allclose(charges, ref, atol=1e-4)
 
 
 @pytest.mark.fast

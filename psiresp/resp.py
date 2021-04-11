@@ -792,8 +792,9 @@ class Resp:
     def run(self, stage_2=True, chrconstr=[], chrequiv=[],
             hyp_a1=0.0005, hyp_a2=0.001, equal_methyls=False,
             n_orient=0, orient=[], n_rotate=0, rotate=[],
-            n_translate=0, translate=[],
-            opt=True, restraint=False, **kwargs):
+            n_translate=0, translate=[], weights=None,
+            opt=True, restraint=False,
+            use_radii="msk", **kwargs):
         """
         Perform a 1- or 2-stage ESP or RESP fit.
 
@@ -866,11 +867,15 @@ class Resp:
         -------
         charges: ndarray
         """
+        self.use_radii = use_radii
 
         if opt:
             results = self.compute_opt()
             if results is not None:
                 return results
+        
+        if weights is not None:
+            self.weights = weights
         
         self.add_orientations(n_orient=n_orient, orient=orient,
                               n_rotate=n_rotate, rotate=rotate,
