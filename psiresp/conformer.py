@@ -341,88 +341,88 @@ class Conformer(base.CachedBase):
         return self.weighted_ab[-1]
 
 
-    def get_esp_matrices(self, weight=1.0, vdw_points=None, rmin=0, rmax=-1,
-                         basis='6-31g*', method='scf', solvent=None,
-                         psi4_options={},
-                         use_radii='msk', vdw_point_density=1.0,
-                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                         load_files=False):
-        """
-        Get A and B matrices to solve for charges, from Bayly:93:Eq.11:: Aq=B
+    # def get_esp_matrices(self, weight=1.0, vdw_points=None, rmin=0, rmax=-1,
+    #                      basis='6-31g*', method='scf', solvent=None,
+    #                      psi4_options={},
+    #                      use_radii='msk', vdw_point_density=1.0,
+    #                      vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+    #                      load_files=False):
+    #     """
+    #     Get A and B matrices to solve for charges, from Bayly:93:Eq.11:: Aq=B
 
-        Parameters
-        ----------
-        weight: float (optional)
-            how much to weight the matrices
-        vdw_points: list of tuples (optional)
-            List of tuples of (unit_shell_coordinates, scaled_atom_radii).
-            If this is ``None`` or empty, new points are generated from 
-            utils.gen_connolly_shells and the variables ``vdw_radii``,
-            ``use_radii``, ``vdw_scale_factors``, ``vdw_point_density``.
-        rmin: float (optional)
-            inner boundary of shell to keep grid points from
-        rmax: float (optional)
-            outer boundary of shell to keep grid points from. If < 0,
-            all points are selected.
-        basis: str (optional)
-            Basis set to compute ESP
-        method: str (optional)
-            Method to compute ESP
-        solvent: str (optional)
-            Solvent for computing in implicit solvent
-        use_radii: str (optional)
-            which set of van der Waals' radii to use. 
-            Ignored if ``vdw_points`` is provided.
-        vdw_scale_factors: iterable of floats (optional)
-            scale factors. Ignored if ``vdw_points`` is provided.
-        vdw_point_density: float (optional)
-            point density. Ignored if ``vdw_points`` is provided.
-        vdw_radii: dict (optional)
-            van der Waals' radii. If elements in the molecule are not
-            defined in the chosen ``use_radii`` set, they must be given here.
-            Ignored if ``vdw_points`` is provided.
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed ESP
-            and grids are written to files.
+    #     Parameters
+    #     ----------
+    #     weight: float (optional)
+    #         how much to weight the matrices
+    #     vdw_points: list of tuples (optional)
+    #         List of tuples of (unit_shell_coordinates, scaled_atom_radii).
+    #         If this is ``None`` or empty, new points are generated from 
+    #         utils.gen_connolly_shells and the variables ``vdw_radii``,
+    #         ``use_radii``, ``vdw_scale_factors``, ``vdw_point_density``.
+    #     rmin: float (optional)
+    #         inner boundary of shell to keep grid points from
+    #     rmax: float (optional)
+    #         outer boundary of shell to keep grid points from. If < 0,
+    #         all points are selected.
+    #     basis: str (optional)
+    #         Basis set to compute ESP
+    #     method: str (optional)
+    #         Method to compute ESP
+    #     solvent: str (optional)
+    #         Solvent for computing in implicit solvent
+    #     use_radii: str (optional)
+    #         which set of van der Waals' radii to use. 
+    #         Ignored if ``vdw_points`` is provided.
+    #     vdw_scale_factors: iterable of floats (optional)
+    #         scale factors. Ignored if ``vdw_points`` is provided.
+    #     vdw_point_density: float (optional)
+    #         point density. Ignored if ``vdw_points`` is provided.
+    #     vdw_radii: dict (optional)
+    #         van der Waals' radii. If elements in the molecule are not
+    #         defined in the chosen ``use_radii`` set, they must be given here.
+    #         Ignored if ``vdw_points`` is provided.
+    #     psi4_options: dict (optional)
+    #         additional Psi4 options
+    #     save_files: bool (optional)
+    #         if ``True``, Psi4 files are saved and the computed ESP
+    #         and grids are written to files.
 
-        Returns
-        -------
-        A: ndarray (n_atoms, n_atoms)
-        B: ndarray (n_atoms,)
-        """
-        shape = (self.n_atoms+1, self.n_atoms)  # Ax=B
-        AB = None
+    #     Returns
+    #     -------
+    #     A: ndarray (n_atoms, n_atoms)
+    #     B: ndarray (n_atoms,)
+    #     """
+    #     shape = (self.n_atoms+1, self.n_atoms)  # Ax=B
+    #     AB = None
 
-        if load_files or self._load_files:
-            try:
-                AB = np.loadtxt(self.mat_filename)
-            except OSError:
-                warnings.warn(f'Could not read data from {self.mat_filename}')
-            else:
-                log.info(f'Read {self.name} AB matrices '
-                         f'from {self.mat_filename}')
-                if AB.shape != shape:
-                    log.info(f'{self.name} AB matrix has the wrong shape: '
-                             f'{AB.shape}, should be {shape}')
-                    AB = None
+    #     if load_files or self._load_files:
+    #         try:
+    #             AB = np.loadtxt(self.mat_filename)
+    #         except OSError:
+    #             warnings.warn(f'Could not read data from {self.mat_filename}')
+    #         else:
+    #             log.info(f'Read {self.name} AB matrices '
+    #                      f'from {self.mat_filename}')
+    #             if AB.shape != shape:
+    #                 log.info(f'{self.name} AB matrix has the wrong shape: '
+    #                          f'{AB.shape}, should be {shape}')
+    #                 AB = None
 
-        if AB is None:
-            AB = np.zeros(shape)
-            for mol in self.orientations:
-                a, b = mol.get_esp_matrices(vdw_points=vdw_points,
-                                            basis=basis, method=method,
-                                            solvent=solvent,
-                                            psi4_options=psi4_options)
-                AB[:self.n_atoms] += a
-                AB[-1] += b
+    #     if AB is None:
+    #         AB = np.zeros(shape)
+    #         for mol in self.orientations:
+    #             a, b = mol.get_esp_matrices(vdw_points=vdw_points,
+    #                                         basis=basis, method=method,
+    #                                         solvent=solvent,
+    #                                         psi4_options=psi4_options)
+    #             AB[:self.n_atoms] += a
+    #             AB[-1] += b
         
-        # if save_files:
-        #     np.savetxt(self.mat_filename, AB)
-        #     log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
+    #     # if save_files:
+    #     #     np.savetxt(self.mat_filename, AB)
+    #     #     log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
         
-        AB *= (weight**2)
-        A, B = AB[:self.n_atoms], AB[-1]
+    #     AB *= (weight**2)
+    #     A, B = AB[:self.n_atoms], AB[-1]
 
-        return A, B
+    #     return A, B

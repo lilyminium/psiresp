@@ -7,6 +7,7 @@ import numpy as np
 from numpy.testing import (assert_almost_equal, assert_equal,
                            assert_allclose)
 from .utils import mol_from_file
+from .datafiles import ABMAT
 
 
 class TestConformer:
@@ -109,3 +110,8 @@ class TestConformer:
         assert new.multiplicity == 1
         assert len(new.orientations) == len(conformer.orientations)
         assert_equal(new._orient, conformer._orient)
+
+    def test_get_unweighted_ab(self, conformer, tmpdir):
+        ref = np.loadtxt(ABMAT)
+        with tmpdir.as_cwd():
+            assert_almost_equal(conformer.unweighted_ab, ref)

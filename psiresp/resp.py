@@ -543,8 +543,12 @@ class Resp:
         # get molecule weights
         n_a = self.n_atoms
         for conf, w in zip(self.conformers, self.weights):
-            A[:n_a, :n_a] += conf.esp_a
-            B[:n_a] += conf.esp_b
+            esp = conf.unweighted_ab * (w ** 2)
+            esp_a = esp[:conf.n_atoms]
+            esp_b = esp[-1]
+            # conf.weight = w
+            A[:n_a, :n_a] += esp_a
+            B[:n_a] += esp_b
 
         A[n_a, :n_a] = A[:n_a, n_a] = 1
         B[n_a] = self.charge
