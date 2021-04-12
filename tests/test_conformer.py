@@ -48,10 +48,7 @@ class TestConformer:
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
         assert len(conformer.orientations) == 1
-        # assert len(conformer.orientations) == 2
-        # assert len(conformer._orientations) == 2
         assert conformer.orientations[0].name == 'nme2ala2_o001'
-        assert conformer.orientations[1].name == 'nme2ala2_o002'
 
     @pytest.mark.fast
     def test_add_orientations(self, conformer):

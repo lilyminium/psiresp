@@ -73,7 +73,8 @@ class Orientation(base.CachedBase):
                  vdw_radii={},
                  scale_factors=[1.4, 1.6, 1.8, 2.0],
                  density=1.0, psi4_options={},
-                 run_qm=True, **kwargs):
+                 run_qm=True,
+                 save_files=False, **kwargs):
         super().__init__(force=force, verbose=verbose, name=name)
         if name is not None:
             molecule.set_name(name)
@@ -99,6 +100,7 @@ class Orientation(base.CachedBase):
         self.density = density
         self.vdw_radii = vdw_radii
         self.run_qm = run_qm
+        self.save_files = save_files
 
     def __getstate__(self):
         dct = self.kwargs
@@ -133,7 +135,6 @@ class Orientation(base.CachedBase):
         disp = self.coordinates - points
         inverse = 1/np.sqrt(np.einsum('ijk, ijk->ij', disp, disp))
         return inverse * BOHR_TO_ANGSTROM
-
 
     def clone(self, name=None):
         """Clone into another instance of Orientation

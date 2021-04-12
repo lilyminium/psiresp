@@ -393,8 +393,9 @@ def datafile(func=None, filename=None):
                 data, comments = data
             except ValueError:
                 pass
-        save_data(data, path, comments=comments,
-                    verbose=self.verbose)
+        if self.save_files:
+            save_data(data, path, comments=comments,
+                        verbose=self.verbose)
         return data
     return wrapper
 

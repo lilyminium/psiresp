@@ -169,8 +169,9 @@ class Resp:
     def __init__(self, conformers, name="Resp", chrconstr=[], chrequiv=[],
                  weights=1, save_opt_geometry=False, opt=False,
                  psi4_options={}, n_orient=0, n_rotate=0, n_translate=0,
-                 orient=[], rotate=[], translate=[],
+                 orient=[], rotate=[], translate=[], save_files=False,
                  executor=None, **kwargs):
+        self.save_files = save_files
         if not conformers:
             raise ValueError('Resp must be created with at least one conformer')
         self.conformers = utils.asiterable(conformers)

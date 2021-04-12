@@ -66,7 +66,8 @@ class Conformer(base.CachedBase):
 
     or_kwargnames = ["method", "basis", "vdw_radii",
                      "rmin", "rmax", "use_radii", "scale_factors",
-                     "density", "solvent"]
+                     "density", "solvent",
+                     "save_files"]
     kwargnames = or_kwargnames + ["charge", "multiplicity", "weight"]
 
 
@@ -74,11 +75,12 @@ class Conformer(base.CachedBase):
     def __init__(self, molecule, charge=0, multiplicity=1, name=None,
                  force=False, verbose=False, opt=False,
                  save_opt_geometry=True, executor=None, method="scf",
-                 basis="6-31g*", run_qm=True,
+                 basis="6-31g*", run_qm=True, save_files=False,
                  weight=1, orient=[], rotate=[], translate=[], **kwargs):
         if executor is None:
             executor = ThreadPoolExecutor()
         self.executor = executor
+        self.save_files = save_files
         self.run_qm = run_qm
         if isinstance(molecule, str):
             molecule = utils.xyz2psi4(molecule)
