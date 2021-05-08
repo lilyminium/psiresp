@@ -5,10 +5,13 @@ import tempfile
 import textwrap
 import warnings
 import subprocess
+from typing import Optional, List, Dict
 
 import numpy as np
+import psi4
 
 from . import base, utils
+from .options import ESPOptions, IOOptions
 
 log = logging.getLogger(__name__)
 
@@ -16,15 +19,15 @@ log = logging.getLogger(__name__)
 BOHR_TO_ANGSTROM = 0.52917721092
 
 
-class Orientation(base.CachedBase):
+class Orientation(base.IOBase, base.Psi4MolContainerMixin):
     """
     Class to manage one Psi4 molecule.
 
     Parameters
     ----------
-    molecule: Psi4 molecule
+    psi4mol: Psi4 molecule
     symbols: list (optional)
-        molecule elements. If not given, this is generated from 
+        molecule elements. If not given, this is generated from
         the Psi4 molecule.
     grid_name: str (optional)
         template for grid filename. If ``load_files=True``, the
@@ -60,83 +63,73 @@ class Orientation(base.CachedBase):
         is called.
     """
 
-    kwargnames = ["method", "basis", "vdw_radii", "symbols", "name",
-                  "rmin", "rmax", "use_radii", "scale_factors",
-                  "density", "solvent", "psi4_options"]
-
-    def __init__(self, molecule, conformer=None,
-                 method="scf", solvent=None,
-                 basis="6-31g*", name=None,
-                 force=False, verbose=False,
-                 n_atoms = None, symbols=None,
-                 rmin=0, rmax=-1, use_radii="msk",
-                 vdw_radii={},
-                 scale_factors=[1.4, 1.6, 1.8, 2.0],
-                 density=1.0, psi4_options={},
-                 run_qm=True,
-                 save_files=False, **kwargs):
-        super().__init__(force=force, verbose=verbose, name=name)
+    def __init__(self, psi4mol, conformer, name: Optional[str]=None,
+                 io_options=IOOptions()):
         if name is not None:
-            molecule.set_name(name)
-        self.name = molecule.name()
+            psi4mol.set_name(name)
+        else:
+            name = psi4mol.name()
+        super().__init__(name=name, io_options=io_options)
+
+        self.psi4mol = psi4mol
         self.conformer = conformer
 
-        self.n_atoms = molecule.natom()
-        if symbols is None:
-            symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
-        self.symbols = symbols
-        self.bohr = 'Bohr' in str(molecule.units())
-        self.indices = np.arange(self.n_atoms).astype(int)
-        self.molecule = molecule
-        self.method = method
-        self.solvent = solvent
-        self.psi4_options = dict(**psi4_options)
-        self.psi4_options["basis"] = basis
-        self.basis = basis
-        self.rmin = rmin
-        self.rmax = rmax
-        self.use_radii = use_radii
-        self.scale_factors = scale_factors
-        self.density = density
-        self.vdw_radii = vdw_radii
-        self.run_qm = run_qm
-        self.save_files = save_files
-
-    def __getstate__(self):
-        dct = self.kwargs
-        for key in ("bohr", "indices", "n_atoms"):
-            dct[key] = getattr(self, key)
-        dct[utils.PKL_MOLKEY] = utils.psi42xyz(self.molecule)
-        dct[utils.PKL_CACHEKEY] = {**self._cache}
-        return dct
-    
-    def __setstate__(self, state):
-        mol = state.pop(utils.PKL_MOLKEY)
-        cache = state.pop(utils.PKL_CACHEKEY)
-        for key, attr in state.items():
-            setattr(self, key, attr)
-        self._cache = {**cache}
-        self.molecule = utils.xyz2psi4(mol)
-        self.molecule.set_name(self.name)
-        
+        self._grid = None
+        self._esp = None
+        self._r_inv = None
+        self._directory = None
 
     @property
-    def kwargs(self):
-        dct = {}
-        for kw in self.kwargnames:
-            dct[kw] = getattr(self, kw)
-        return dct
+    def qm_options(self):
+        return self.conformer.qm_options
 
-    def get_coordinates(self):
-        return self.molecule.geometry().np.astype('float')*BOHR_TO_ANGSTROM
+    @property
+    def grid(self):
+        if self._grid is None:
+            self._grid = self.compute_grid()
+        return self._grid
 
-    def get_r_inv(self):
+    @property
+    def esp(self):
+        if self._esp is None:
+            self._esp = self.compute_esp()
+        return self._esp
+    
+    @property
+    def r_inv(self):
+        if self._r_inv is None:
+            self._r_inv = self.compute_r_inv()
+        return self._r_inv
+
+    @property
+    def directory(self):
+        if self._directory is None:
+            path = os.path.join(self.conformer.directory, self.name)
+            try:
+                os.mkdir(path)
+            except FileExistsError:
+                pass
+            self._directory = os.path.abspath(path)
+        return self._directory
+
+    # def __getstate__(self):
+    #     return dict(psi4mol=utils.psi42xyz(self.psi4mol), name=self.name)
+
+    # def __setstate__(self, state):
+    #     self.psi4mol = utils.psi4mol_from_state(state)
+    #     self.name = self.psi4mol.name()
+
+    @property
+    def coordinates(self):
+        return self.psi4mol.geometry().np.astype("float") * BOHR_TO_ANGSTROM
+
+    def compute_r_inv(self):
         points = self.grid.reshape((len(self.grid), 1, 3))
         disp = self.coordinates - points
-        inverse = 1/np.sqrt(np.einsum('ijk, ijk->ij', disp, disp))
+        inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
         return inverse * BOHR_TO_ANGSTROM
 
-    def clone(self, name=None):
+    def clone(self, name: Optional[str]=None):
         """Clone into another instance of Orientation
 
         Parameters
@@ -148,99 +141,50 @@ class Orientation(base.CachedBase):
         -------
         Orientation
         """
-        mol = self.molecule.clone()
+        mol = self.psi4mol.clone()
         if name is not None:
             mol.set_name(name)
-        new = type(self)(name, **self.kwargs)
+        new = type(self)(mol, conformer=self.conformer)
         return new
 
     def get_esp_mat_a(self):
-        return np.einsum('ij, ik->jk', self.r_inv, self.r_inv)
-    
+        return np.einsum("ij, ik->jk", self.r_inv, self.r_inv)
+
     def get_esp_mat_b(self):
-        return np.einsum('i, ij->j', self.esp, self.r_inv)
+        print(self.esp.shape)
+        print(self.compute_esp().shape)
+        print(self.r_inv.shape)
+        print(self.compute_r_inv().shape)
+        print(self.grid.shape)
+        return np.einsum("i, ij->j", self.esp, self.r_inv)
 
-    def get_vdw_points(self):
-        return utils.gen_connolly_shells(self.symbols,
-                                         vdw_radii=self.vdw_radii,
-                                         use_radii=self.use_radii,
-                                         scale_factors=self.scale_factors,
-                                         density=self.density)
-
-    @utils.datafile
-    def get_grid(self):
+    @base.datafile(filename="grid.dat")
+    def compute_grid(self):
         points = []
-        for pts, rad in self.vdw_points:
-            points.append(utils.gen_vdw_surface(pts, rad, self.coordinates,
-                                                rmin=self.rmin,
-                                                rmax=self.rmax))
+        for pts, rad in self.conformer.vdw_points:
+            surface = utils.gen_vdw_surface(pts, rad, self.coordinates,
+                                            rmin=self.conformer.esp_options.rmin,
+                                            rmax=self.conformer.esp_options.rmax)
+            points.append(surface)
         return np.concatenate(points)
 
-    @utils.datafile
-    def get_esp(self):
+    @base.datafile(filename="esp.dat")
+    def compute_esp(self):
         import psi4
 
         # ... this dies unless you write out grid.dat
-        esp_file = utils.create_psi4_molstr(self.molecule)
-        esp_file += f"set basis {self.basis}\n"
-
-        if self.solvent:
-            esp_file += textwrap.dedent(f"""
-            set {{
-                pcm true
-                pcm_scf_type total
-            }}
-
-            pcm = {{
-                Units = Angstrom
-                Medium {{
-                    SolverType = CPCM
-                    Solvent = {self.solvent}
-                }}
-
-                Cavity {{
-                    RadiiSet = bondi # Bondi | UFF | Allinger
-                    Type = GePol
-                    Scaling = True # radii for spheres scaled by 1.2
-                    Area = 0.3
-                    Mode = Implicit
-                }}
-            }}
-
-            """)
-        
-        esp_file += textwrap.dedent(f"""
-        E, wfn = prop('{self.method}', properties=['GRID_ESP'], return_wfn=True)
-        esp = wfn.oeprop.Vvals()
-            """)
-        
-        try:
-            conf_name = self.conformer.name
-        except AttributeError:
-            conf_name = self.name
-
-        try:
-            os.mkdir(conf_name)
-        except FileExistsError:
-            pass
-        
-        tmpdir = f"{conf_name}/{self.name}_esp"
-        try:
-            os.mkdir(tmpdir)
-        except FileExistsError:
-            pass
-
+        tmpdir = self.directory
         np.savetxt(os.path.join(tmpdir, "grid.dat"), self.grid)
 
         infile = f"{self.name}_esp.in"
-        with open(os.path.join(tmpdir, infile), "w") as f:
-            f.write(esp_file)
-        
-        cmd = f"cd {tmpdir}; psi4 -i {infile}; cd -"
-        outfile = os.path.join(tmpdir, "grid_esp.dat")
-        if self.run_qm:
-            subprocess.run(cmd, shell=True)
-        elif not os.path.isfile(outfile):
-            return cmd
 
+        outfile = self.qm_options.write_esp_file(self.psi4mol,
+                                                 destination_dir=tmpdir,
+                                                 filename=infile)
+
+        cmd = f"cd {tmpdir}; psi4 -i {infile}; cd -"
+        # maybe it's already run?
+        if not self.io_options.force and os.path.isfile(outfile):
+            return np.loadtxt(outfile)
+        subprocess.run(cmd, shell=True)
         return np.loadtxt(outfile)

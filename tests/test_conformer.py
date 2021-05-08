@@ -13,7 +13,7 @@ from .datafiles import ABMAT
 class TestConformer:
 
     @pytest.fixture()
-    def geometry(self):
+    def psi4mol(self):
         return mol_from_file('nme2ala2_c1.xyz')
 
     @pytest.fixture()
@@ -21,55 +21,38 @@ class TestConformer:
         return mol_from_file('nme2ala2_opt_c1.xyz')
 
     @pytest.fixture(scope='function')
-    def conformer(self, geometry):
-        return psiresp.Conformer(geometry)
+    def conformer(self, psi4mol):
+        return psiresp.Conformer(psi4mol)
 
     @pytest.mark.fast
     def test_init_conformer_defaults(self, conformer):
-        assert conformer.name == 'default'
+        assert conformer.name == 'conf'
         assert conformer.charge == 0
-        assert conformer.molecule.molecular_charge() == 0
+        assert conformer.psi4mol.molecular_charge() == 0
         assert conformer.multiplicity == 1
-        assert conformer.molecule.multiplicity() == 1
+        assert conformer.psi4mol.multiplicity() == 1
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
         assert len(conformer.orientations) == 1
         # assert len(conformer.orientations) == 1
 
     @pytest.mark.fast
-    def test_init_conformer_options(self, geometry):
+    def test_init_conformer_options(self, psi4mol):
         orient = [(5, 18, 19), (19, 18, 5)]
-        conformer = psiresp.Conformer(geometry, name='nme2ala2', charge=2,
-                                      multiplicity=2, orient=orient)
+        options = psiresp.options.OrientationOptions(reorientations=orient)
+        
+        conformer = psiresp.Conformer(psi4mol, name='nme2ala2', charge=2,
+                                      multiplicity=2,
+                                      orientation_options=options)
         assert conformer.name == 'nme2ala2'
         assert conformer.charge == 2
-        assert conformer.molecule.molecular_charge() == 2
+        assert conformer.psi4mol.molecular_charge() == 2
         assert conformer.multiplicity == 2
-        assert conformer.molecule.multiplicity() == 2
+        assert conformer.psi4mol.multiplicity() == 2
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
         assert len(conformer.orientations) == 1
         assert conformer.orientations[0].name == 'nme2ala2_o001'
-
-    @pytest.mark.fast
-    def test_add_orientations(self, conformer):
-        assert len(conformer.orientations) == 1  # original molecule
-        conformer.add_orientations(orient=[(5, 18, 19), (19, 18, 5)])
-        assert len(conformer.orientations) == 3
-        conformer.add_orientations(orient=[(6, 19, 20), (20, 19, 6)])
-        assert len(conformer.orientations) == 5
-
-    @pytest.mark.optimize
-    @pytest.mark.slow
-    def test_add_orientations_opt(self):
-        conformer = psiresp.Conformer(mol_from_file('nme2ala2_c1.xyz'))
-        assert len(conformer.orientations) == 1  # original molecule
-        conformer.add_orientations(orient=[(5, 18, 19), (19, 18, 5)])
-        xyz_pre_opt = conformer.orientations[0].coordinates
-        conformer.optimize_geometry()
-        xyz_post_opt = conformer.orientations[0].coordinates
-        diff = np.linalg.norm(xyz_post_opt-xyz_pre_opt)
-        assert diff > 0.01
 
     # @pytest.mark.optimize
     # @pytest.mark.slow
@@ -79,15 +62,15 @@ class TestConformer:
     #     (True, False),
     #     (True, True),
     # ])
-    # def test_optimize_geometry(self, conformer, opt_mol, save_xyz,
+    # def test_optimize_psi4mol(self, conformer, opt_mol, save_xyz,
     #                            save_files, tmpdir):
     #     xyz = 'default_opt.xyz'
     #     log = 'default_opt.log'
-    #     opt = opt_mol.geometry().np
+    #     opt = opt_mol.psi4mol().np
     #     with tmpdir.as_cwd():
-    #         conformer.optimize_geometry(save_opt_geometry=save_xyz,
+    #         conformer.optimize_psi4mol(save_opt_psi4mol=save_xyz,
     #                                     save_files=save_files)
-    #         assert_allclose(conformer.molecule.geometry().np, opt,
+    #         assert_allclose(conformer.psi4mol.psi4mol().np, opt,
     #                         rtol=0.05, atol=1e-4)
     #         if save_files:
     #             assert os.path.exists(log)
@@ -102,16 +85,16 @@ class TestConformer:
     @pytest.mark.fast
     def test_clone(self, conformer):
         new = conformer.clone()
-        assert new.molecule is not conformer.molecule
-        assert_almost_equal(new.molecule.geometry().np,
-                            conformer.molecule.geometry().np)
-        assert new.name == 'default_copy'
+        assert new.psi4mol is not conformer.psi4mol
+        assert_almost_equal(new.psi4mol.geometry().np,
+                            conformer.psi4mol.geometry().np)
+        assert new.name == 'conf_copy'
         assert new.charge == 0
         assert new.multiplicity == 1
         assert len(new.orientations) == len(conformer.orientations)
-        assert_equal(new._orient, conformer._orient)
+        assert new.orientation_options == conformer.orientation_options
 
     def test_get_unweighted_ab(self, conformer, tmpdir):
         ref = np.loadtxt(ABMAT)
         with tmpdir.as_cwd():
-            assert_almost_equal(conformer.unweighted_ab, ref)
+            assert_almost_equal(conformer.get_unweighted_ab(), ref)

@@ -31,7 +31,7 @@ def load_rdmol(filename: str):
     ValueError
         If file cannot be parsed
     """
-    suffix = filename.split('.')[-1]
+    suffix = filename.split(".")[-1]
     FILE = {
         "pdb": Chem.MolFromPDBFile,
         "tpl": Chem.MolFromTPLFile,
@@ -72,7 +72,7 @@ def load_rdmol(filename: str):
     return mol
 
 
-def rdmol_from_file(filename: str, name: str=""):
+def rdmol_from_file(filename: str, name: str = ""):
     """Create an RDKit molecule from file or string.
     Loads into MDAnalysis and converts to an RDKit molecule
     if an existing RDKit function does not exist. Accepts
@@ -103,13 +103,13 @@ def rdmol_from_file(filename: str, name: str=""):
     .. code-block::python
 
         get_rdmol("mol_{name}.pdb", name="alanine")
-    
+
     """
     try:
         rdfile = glob.glob(filename.format(name=name))[0]
     except IndexError:
         rdfile = filename
-    
+
     try:
         return load_rdmol(rdfile)
     except ValueError:
@@ -144,8 +144,7 @@ def psi4mol_from_file(filename: str):
         u.atoms.write(file)
         with open(file, "r") as f:
             geom = f.read()
-    mol = psi4.core.Molecule.from_string(geom, fix_com=True,
-                                         fix_orientation=True)
+    mol = psi4.core.Molecule.from_string(geom, fix_com=True, fix_orientation=True)
     mol.update_geometry()
     return mol
 
@@ -166,7 +165,7 @@ def psi4mol_to_string(psi4mol: psi4.core.Molecule):
     return f"molecule {psi4mol.name()} {{\n{mol}\n}}\n\n"
 
 
-def rdmol_to_psi4mols(rdmol: rdkit.Chem.Mol, name: str=None):
+def rdmol_to_psi4mols(rdmol: rdkit.Chem.Mol, name: str = None):
     """Convert RDKit molecule to one or more Psi4 molecules,
     one for each conformer.
 
@@ -176,7 +175,7 @@ def rdmol_to_psi4mols(rdmol: rdkit.Chem.Mol, name: str=None):
         RDKit molecule with at least one conformer
     name: str (optional)
         Molecule name
-    
+
     Returns
     -------
     list of :class:`psi4.core.Molecule`
@@ -237,7 +236,7 @@ def log_to_xyz(logfile: str):
                 xs.append(x)
                 ys.append(y)
                 zs.append(z)
-    
+
     ATOM = "{sym} {x} {y} {z}"
     name = logfile.strip(".log")
     lines = [len(symbols), name]
@@ -249,7 +248,7 @@ def log_to_xyz(logfile: str):
 
 def log_to_psi4mol(logfile: str):
     """Create a Psi4 molecule from a Psi4 geometry optimization log file
-    
+
     Parameters
     ----------
     logfile: str
@@ -310,7 +309,7 @@ def psi4mol_to_xyz(psi4mol: psi4.core.Molecule):
     return psi4mol.to_string(dtype="xyz")
 
 
-def rdmols_to_inter_chrequiv(rdmols: list, n_atoms: int=4):
+def rdmols_to_inter_chrequiv(rdmols: list, n_atoms: int = 4):
     """Create intermolecular charge equivalence constraints
     from RDKit molecules
 
@@ -320,21 +319,23 @@ def rdmols_to_inter_chrequiv(rdmols: list, n_atoms: int=4):
         List of RDKit molecules
     n_atoms: int (optional)
         Number of atoms to include in common substructure matching
-    
+
     Returns
     -------
     list of charge equivalence constraints
     """
     matches = set()
     for pair in itertools.combinations(rdmols, 2):
-        res = rdFMCS.FindMCS(pair,
-                             # TODO: AtomCompare.CompareIsotopes?
-                             atomCompare=rdFMCS.AtomCompare.CompareElements,
-                             bondCompare=rdFMCS.BondCompare.CompareOrderExact,
-                             matchValences=True,
-                             ringMatchesRingOnly=True,
-                             completeRingsOnly=True,
-                             timeout=1)
+        res = rdFMCS.FindMCS(
+            pair,
+            # TODO: AtomCompare.CompareIsotopes?
+            atomCompare=rdFMCS.AtomCompare.CompareElements,
+            bondCompare=rdFMCS.BondCompare.CompareOrderExact,
+            matchValences=True,
+            ringMatchesRingOnly=True,
+            completeRingsOnly=True,
+            timeout=1,
+        )
         if not res.canceled and res.numAtoms >= n_atoms:
             matches.add(res.smartsString)
 

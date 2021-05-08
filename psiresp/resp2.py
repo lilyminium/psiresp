@@ -8,9 +8,9 @@ from .due import due, Doi
 
 
 @due.dcite(
-    Doi('10.1038/s42004-020-0291-4'),
-    description='RESP2',
-    path='psiresp.resp2',
+    Doi("10.1038/s42004-020-0291-4"),
+    description="RESP2",
+    path="psiresp.resp2",
 )
 class Resp2(object):
     """
@@ -49,9 +49,20 @@ class Resp2(object):
     """
 
     @classmethod
-    def from_molecules(cls, molecules, charge=0, multiplicity=1, name=None,
-                       orient=[], rotate=[], translate=[], grid_name='grid.dat',
-                       esp_name='grid_esp.dat', load_files=False, **kwargs):
+    def from_molecules(
+        cls,
+        molecules,
+        charge=0,
+        multiplicity=1,
+        name=None,
+        orient=[],
+        rotate=[],
+        translate=[],
+        grid_name="grid.dat",
+        esp_name="grid_esp.dat",
+        load_files=False,
+        **kwargs
+    ):
         """
         Create Resp class from Psi4 molecules.
 
@@ -99,31 +110,37 @@ class Resp2(object):
         """
         molecules = utils.asiterable(molecules)
         if name is not None:
-            names = ['{}_c{}'.format(name, i+1) for i in range(len(molecules))]
+            names = ["{}_c{}".format(name, i + 1) for i in range(len(molecules))]
         else:
             molnames = [m.name() for m in molecules]
-            gennames = ['Mol_c{}'.format(i+1) for i in range(len(molecules))]
-            names = np.where(molnames == 'default', molnames, gennames)
+            gennames = ["Mol_c{}".format(i + 1) for i in range(len(molecules))]
+            names = np.where(molnames == "default", molnames, gennames)
 
         conformers = []
         for mol, name in zip(molecules, names):
-            conformers.append(Conformer(mol.clone(), name=name, charge=charge,
-                                        multiplicity=multiplicity,
-                                        orient=orient, rotate=rotate,
-                                        translate=translate,
-                                        grid_name=grid_name,
-                                        esp_name=esp_name,
-                                        load_files=load_files))
+            conformers.append(
+                Conformer(
+                    mol.clone(),
+                    name=name,
+                    charge=charge,
+                    multiplicity=multiplicity,
+                    orient=orient,
+                    rotate=rotate,
+                    translate=translate,
+                    grid_name=grid_name,
+                    esp_name=esp_name,
+                    load_files=load_files,
+                )
+            )
 
         return cls(conformers, name=name, **kwargs)
 
-    def __init__(self, conformers, name=None, chrconstr=[],
-                 chrequiv=[]):
+    def __init__(self, conformers, name=None, chrconstr=[], chrequiv=[]):
         if name is None:
-            name = 'Resp'
+            name = "Resp"
         self.name = name
-        self.gas = Resp(conformers).clone(name=name+'_gas')
-        self.solv = self.gas.clone(name=name+'_solv')
+        self.gas = Resp(conformers).clone(name=name + "_gas")
+        self.solv = self.gas.clone(name=name + "_solv")
         self._gas_charges = self._solv_charges = self._charges = None
         if chrconstr is not None:
             self.gas.add_charge_constraints(chrconstr)
@@ -133,29 +150,50 @@ class Resp2(object):
     @property
     def gas_charges(self):
         if self._gas_charges is None:
-            raise ValueError('No gas charges available. Call run()')
+            raise ValueError("No gas charges available. Call run()")
         return self._gas_charges
 
     @property
     def solv_charges(self):
         if self._solv_charges is None:
-            raise ValueError('No solv charges available. Call run()')
+            raise ValueError("No solv charges available. Call run()")
         return self._solv_charges
 
     @property
     def charges(self):
         if self._charges is None:
-            raise ValueError('No Resp2 charges available. Call run()')
+            raise ValueError("No Resp2 charges available. Call run()")
         return self._charges
 
-    def run(self, opt=False, save_opt_geometry=False, delta=0.6,
-            chrconstr=[], chrequiv=[], weights=1, method='PW6B95',
-            basis='aug-cc-pV(D+d)Z', vdw_radii={}, psi4_options={},
-            rmin=1.3, rmax=2.1, save_files=False, n_orient=0, orient=[],
-            n_rotate=0, rotate=[], n_translate=0, translate=[],
-            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False,
-            vdw_point_density=2.5, vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-            use_radii='bondi'):
+    def run(
+        self,
+        opt=False,
+        save_opt_geometry=False,
+        delta=0.6,
+        chrconstr=[],
+        chrequiv=[],
+        weights=1,
+        method="PW6B95",
+        basis="aug-cc-pV(D+d)Z",
+        vdw_radii={},
+        psi4_options={},
+        rmin=1.3,
+        rmax=2.1,
+        save_files=False,
+        n_orient=0,
+        orient=[],
+        n_rotate=0,
+        rotate=[],
+        n_translate=0,
+        translate=[],
+        equal_methyls=False,
+        tol=1e-6,
+        maxiter=50,
+        load_files=False,
+        vdw_point_density=2.5,
+        vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+        use_radii="bondi",
+    ):
         """
         Perform a 2-stage RESP2 fit.
 
@@ -166,7 +204,7 @@ class Resp2(object):
         save_opt_geometry: bool (optional)
             if ``True`` , writes optimised geometries to an XYZ file
         delta: float (optional)
-            mixing parameter for aqueous and gaseous charges. delta=0.6 
+            mixing parameter for aqueous and gaseous charges. delta=0.6
             generates charges from 60% aqueous and 40% gaseous charges.
         chrconstr: list or dict (optional)
             Intramolecular charge constraints in the form of
@@ -178,7 +216,7 @@ class Resp2(object):
             e.g. [[1, 2], [3, 4, 5]] mean that atoms 1 and 2 have equal
             charges, and atoms 3, 4, and 5 have equal charges.
         weights: iterable (optional)
-            weights of each conformer. If only one number is given, this is 
+            weights of each conformer. If only one number is given, this is
             repeated for each conformer.
         method: str (optional)
             Method to compute ESP
@@ -240,68 +278,96 @@ class Resp2(object):
         charges: ndarray
         """
         if opt:
-            for m, b in [('hf', '6-31g*'),
-                         ('hf', basis),
-                         (method, basis)]:
-                self.gas.optimize_geometry(method=m, basis=b,
-                                           psi4_options=psi4_options,
-                                           save_opt_geometry=save_opt_geometry)
+            for m, b in [("hf", "6-31g*"), ("hf", basis), (method, basis)]:
+                self.gas.optimize_geometry(
+                    method=m,
+                    basis=b,
+                    psi4_options=psi4_options,
+                    save_opt_geometry=save_opt_geometry,
+                )
 
-            self.solv = self.gas.clone(name=self.name+'_solv')
+            self.solv = self.gas.clone(name=self.name + "_solv")
 
-        self.gas.add_orientations(n_orient=n_orient, orient=orient,
-                                  n_rotate=n_rotate, rotate=rotate,
-                                  n_translate=n_translate,
-                                  translate=translate)
+        self.gas.add_orientations(
+            n_orient=n_orient,
+            orient=orient,
+            n_rotate=n_rotate,
+            rotate=rotate,
+            n_translate=n_translate,
+            translate=translate,
+        )
 
-        self.solv.add_orientations(n_orient=n_orient, orient=orient,
-                                   n_rotate=n_rotate, rotate=rotate,
-                                   n_translate=n_translate,
-                                   translate=translate)
+        self.solv.add_orientations(
+            n_orient=n_orient,
+            orient=orient,
+            n_rotate=n_rotate,
+            rotate=rotate,
+            n_translate=n_translate,
+            translate=translate,
+        )
 
-        self._gas_charges = self.gas.run(stage_2=True, opt=False,
-                                         chrconstr=chrconstr,
-                                         chrequiv=chrequiv,
-                                         weights=weights, use_radii=use_radii,
-                                         vdw_scale_factors=vdw_scale_factors,
-                                         vdw_point_density=vdw_point_density,
-                                         vdw_radii=vdw_radii,
-                                         rmin=rmin, rmax=rmax, method=method,
-                                         basis=basis, solvent=None,
-                                         restraint=True,
-                                         psi4_options=psi4_options,
-                                         hyp_a1=0.0005, hyp_a2=0.001,
-                                         equal_methyls=equal_methyls,
-                                         ihfree=True, tol=tol, maxiter=maxiter,
-                                        #  save_files=save_files,
-                                         load_files=load_files)
+        self._gas_charges = self.gas.run(
+            stage_2=True,
+            opt=False,
+            chrconstr=chrconstr,
+            chrequiv=chrequiv,
+            weights=weights,
+            use_radii=use_radii,
+            vdw_scale_factors=vdw_scale_factors,
+            vdw_point_density=vdw_point_density,
+            vdw_radii=vdw_radii,
+            rmin=rmin,
+            rmax=rmax,
+            method=method,
+            basis=basis,
+            solvent=None,
+            restraint=True,
+            psi4_options=psi4_options,
+            hyp_a1=0.0005,
+            hyp_a2=0.001,
+            equal_methyls=equal_methyls,
+            ihfree=True,
+            tol=tol,
+            maxiter=maxiter,
+            #  save_files=save_files,
+            load_files=load_files,
+        )
 
-        self._solv_charges = self.solv.run(stage_2=True, opt=False,
-                                           chrconstr=chrconstr,
-                                           chrequiv=chrequiv,
-                                           weights=weights, use_radii=use_radii,
-                                           vdw_scale_factors=vdw_scale_factors,
-                                           vdw_point_density=vdw_point_density,
-                                           vdw_radii=vdw_radii,
-                                           rmin=rmin, rmax=rmax,
-                                           method=method,
-                                           basis=basis, solvent='water',
-                                           restraint=True,
-                                           psi4_options=psi4_options,
-                                           hyp_a1=0.0005, hyp_a2=0.001,
-                                           equal_methyls=equal_methyls,
-                                           ihfree=True, tol=tol, maxiter=maxiter,
-                                        #    save_files=save_files,
-                                           load_files=load_files)
+        self._solv_charges = self.solv.run(
+            stage_2=True,
+            opt=False,
+            chrconstr=chrconstr,
+            chrequiv=chrequiv,
+            weights=weights,
+            use_radii=use_radii,
+            vdw_scale_factors=vdw_scale_factors,
+            vdw_point_density=vdw_point_density,
+            vdw_radii=vdw_radii,
+            rmin=rmin,
+            rmax=rmax,
+            method=method,
+            basis=basis,
+            solvent="water",
+            restraint=True,
+            psi4_options=psi4_options,
+            hyp_a1=0.0005,
+            hyp_a2=0.001,
+            equal_methyls=equal_methyls,
+            ihfree=True,
+            tol=tol,
+            maxiter=maxiter,
+            #    save_files=save_files,
+            load_files=load_files,
+        )
 
-        self._charges = delta*self.solv_charges + (1-delta)*self.gas_charges
+        self._charges = delta * self.solv_charges + (1 - delta) * self.gas_charges
         return self._charges
 
 
 @due.dcite(
-    Doi('10.1038/s42004-020-0291-4'),
-    description='RESP2 multi-molecule fit',
-    path='psiresp.resp2',
+    Doi("10.1038/s42004-020-0291-4"),
+    description="RESP2 multi-molecule fit",
+    path="psiresp.resp2",
 )
 class MultiResp2(object):
     """
@@ -327,38 +393,59 @@ class MultiResp2(object):
     """
 
     def __init__(self, resps):
-        cresps = [r.clone(name=r.name+'_gas') for r in resps]
+        cresps = [r.clone(name=r.name + "_gas") for r in resps]
         self.gas = MultiResp(cresps)
-        self.solv = self.gas.clone(suffix='_solv')
+        self.solv = self.gas.clone(suffix="_solv")
         self._gas_charges = self._solv_charges = self._charges = None
 
     @property
     def gas_charges(self):
         if self._gas_charges is None:
-            raise ValueError('No gas charges available. Call run()')
+            raise ValueError("No gas charges available. Call run()")
         return self._gas_charges
 
     @property
     def solv_charges(self):
         if self._solv_charges is None:
-            raise ValueError('No solv charges available. Call run()')
+            raise ValueError("No solv charges available. Call run()")
         return self._solv_charges
 
     @property
     def charges(self):
         if self._charges is None:
-            raise ValueError('No Resp2 charges available. Call run()')
+            raise ValueError("No Resp2 charges available. Call run()")
         return self._charges
 
-    def run(self, opt=False, save_opt_geometry=False, delta=0.6,
-            intra_chrconstr=[], intra_chrequiv=[], inter_chrconstr=[],
-            inter_chrequiv=[], weights=1, method='PW6B95',
-            basis='aug-cc-pV(D+d)Z', vdw_radii={}, psi4_options={},
-            rmin=1.3, rmax=2.1, n_orient=0, orient=[],
-            n_rotate=0, rotate=[], n_translate=0, translate=[],
-            equal_methyls=False, tol=1e-6, maxiter=50, load_files=False,
-            vdw_point_density=2.5, vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-            use_radii='bondi',):
+    def run(
+        self,
+        opt=False,
+        save_opt_geometry=False,
+        delta=0.6,
+        intra_chrconstr=[],
+        intra_chrequiv=[],
+        inter_chrconstr=[],
+        inter_chrequiv=[],
+        weights=1,
+        method="PW6B95",
+        basis="aug-cc-pV(D+d)Z",
+        vdw_radii={},
+        psi4_options={},
+        rmin=1.3,
+        rmax=2.1,
+        n_orient=0,
+        orient=[],
+        n_rotate=0,
+        rotate=[],
+        n_translate=0,
+        translate=[],
+        equal_methyls=False,
+        tol=1e-6,
+        maxiter=50,
+        load_files=False,
+        vdw_point_density=2.5,
+        vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
+        use_radii="bondi",
+    ):
         """
         Perform a 2-stage RESP2 fit.
 
@@ -369,12 +456,12 @@ class MultiResp2(object):
         save_opt_geometry: bool (optional)
             if ``True``, writes optimised geometries to an XYZ file
         delta: float (optional)
-            mixing parameter for aqueous and gaseous charges. delta=0.6 
+            mixing parameter for aqueous and gaseous charges. delta=0.6
             generates charges from 60% aqueous and 40% gaseous charges.
         intra_chrconstr: list of lists or dicts (optional)
-            Intramolecular charge constraints for each molecule in the 
-            form of {charge: atom_number_list} or [(charge, atom_number_list)]. 
-            The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]] 
+            Intramolecular charge constraints for each molecule in the
+            form of {charge: atom_number_list} or [(charge, atom_number_list)].
+            The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]]
             mean that atoms 1 and 2 together have a charge of 0.
         intra_chrequiv: list of lists (optional)
             Lists of atoms with equivalent charges within each molecule. e.g. ::
@@ -382,28 +469,28 @@ class MultiResp2(object):
                 [
                   [[1, 2], [3, 4, 5]],
                   [[1, 3, 5, 7]]
-                 ] 
+                 ]
 
-            mean that atoms 1 and 2 in the first molecule have equal 
-            charges; atoms 3, 4, and 5 in the first molecule have 
-            equal charges; atoms 1, 3, 5, 7 in the second molecule have equal 
+            mean that atoms 1 and 2 in the first molecule have equal
+            charges; atoms 3, 4, and 5 in the first molecule have
+            equal charges; atoms 1, 3, 5, 7 in the second molecule have equal
             charges.
         inter_chrconstr: list of lists (optional)
-            Intermolecular charge constraints in the form of 
-            {charge: [(mol_number, atom_number)]} or 
-            [(charge, [(mol_number, atom_number)])]. 
+            Intermolecular charge constraints in the form of
+            {charge: [(mol_number, atom_number)]} or
+            [(charge, [(mol_number, atom_number)])].
             The numbers are indexed from 1.
             e.g. {0: [(1, 3), (2, 1)]} or [(0, [(1, 3), (2, 1)])] mean that
-            the third atom of the first molecule, and the first atom of the 
+            the third atom of the first molecule, and the first atom of the
             second molecule, combine to have a charge of 0.
         inter_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges between each molecule, 
-            in the form [(mol_number, atom_number)]. 
-            e.g. [[(1, 2), (2, 2), (3, 4)]] mean that atom 2 of molecule 1, 
-            atom 2 of molecule 2, and atom 4 of molecule 3, all have equal 
+            Lists of atoms with equivalent charges between each molecule,
+            in the form [(mol_number, atom_number)].
+            e.g. [[(1, 2), (2, 2), (3, 4)]] mean that atom 2 of molecule 1,
+            atom 2 of molecule 2, and atom 4 of molecule 3, all have equal
             charges.
         weights: iterable (optional)
-            weights of each conformer. If only one number is given, this is 
+            weights of each conformer. If only one number is given, this is
             repeated for each conformer.
         method: str (optional)
             Method to compute ESP
@@ -471,56 +558,87 @@ class MultiResp2(object):
         """
 
         if opt:
-            for m, b in [('hf', '6-31g*'),
-                         ('hf', basis),
-                         (method, basis)]:
-                self.gas.optimize_geometry(method=m, basis=b,
-                                           psi4_options=psi4_options,
-                                           save_opt_geometry=save_opt_geometry)
+            for m, b in [("hf", "6-31g*"), ("hf", basis), (method, basis)]:
+                self.gas.optimize_geometry(
+                    method=m,
+                    basis=b,
+                    psi4_options=psi4_options,
+                    save_opt_geometry=save_opt_geometry,
+                )
 
-            self.solv = self.gas.clone(suffix='_solv')
+            self.solv = self.gas.clone(suffix="_solv")
 
-        self.add_orientations(n_orient=n_orient, orient=orient,
-                              n_rotate=n_rotate, rotate=rotate,
-                              n_translate=n_translate, translate=translate)
+        self.add_orientations(
+            n_orient=n_orient,
+            orient=orient,
+            n_rotate=n_rotate,
+            rotate=rotate,
+            n_translate=n_translate,
+            translate=translate,
+        )
 
-        self._gas_charges = self.gas.run(stage_2=True, opt=False,
-                                         intra_chrconstr=intra_chrconstr,
-                                         intra_chrequiv=intra_chrequiv,
-                                         inter_chrconstr=inter_chrconstr,
-                                         inter_chrequiv=inter_chrequiv,
-                                         weights=weights, use_radii=use_radii,
-                                         vdw_scale_factors=vdw_scale_factors,
-                                         vdw_point_density=vdw_point_density,
-                                         vdw_radii=vdw_radii,
-                                         rmin=rmin, rmax=rmax, method=method,
-                                         basis=basis, solvent=None, restraint=True,
-                                         psi4_options=psi4_options, hyp_a1=0.0005,
-                                         hyp_a2=0.001, equal_methyls=equal_methyls,
-                                         ihfree=True, tol=tol, maxiter=maxiter,
-                                        #  save_files=save_files,
-                                         load_files=load_files)
+        self._gas_charges = self.gas.run(
+            stage_2=True,
+            opt=False,
+            intra_chrconstr=intra_chrconstr,
+            intra_chrequiv=intra_chrequiv,
+            inter_chrconstr=inter_chrconstr,
+            inter_chrequiv=inter_chrequiv,
+            weights=weights,
+            use_radii=use_radii,
+            vdw_scale_factors=vdw_scale_factors,
+            vdw_point_density=vdw_point_density,
+            vdw_radii=vdw_radii,
+            rmin=rmin,
+            rmax=rmax,
+            method=method,
+            basis=basis,
+            solvent=None,
+            restraint=True,
+            psi4_options=psi4_options,
+            hyp_a1=0.0005,
+            hyp_a2=0.001,
+            equal_methyls=equal_methyls,
+            ihfree=True,
+            tol=tol,
+            maxiter=maxiter,
+            #  save_files=save_files,
+            load_files=load_files,
+        )
 
-        self._solv_charges = self.solv.run(stage_2=True, opt=False,
-                                           intra_chrconstr=intra_chrconstr,
-                                           intra_chrequiv=intra_chrequiv,
-                                           inter_chrconstr=inter_chrconstr,
-                                           inter_chrequiv=inter_chrequiv,
-                                           weights=weights, use_radii=use_radii,
-                                           vdw_scale_factors=vdw_scale_factors,
-                                           vdw_point_density=vdw_point_density,
-                                           vdw_radii=vdw_radii,
-                                           rmin=rmin, rmax=rmax, method=method,
-                                           basis=basis, solvent='water', restraint=True,
-                                           psi4_options=psi4_options, hyp_a1=0.0005,
-                                           hyp_a2=0.001, equal_methyls=equal_methyls,
-                                           ihfree=True, tol=tol, maxiter=maxiter,
-                                        #    save_files=save_files,
-                                           load_files=load_files)
+        self._solv_charges = self.solv.run(
+            stage_2=True,
+            opt=False,
+            intra_chrconstr=intra_chrconstr,
+            intra_chrequiv=intra_chrequiv,
+            inter_chrconstr=inter_chrconstr,
+            inter_chrequiv=inter_chrequiv,
+            weights=weights,
+            use_radii=use_radii,
+            vdw_scale_factors=vdw_scale_factors,
+            vdw_point_density=vdw_point_density,
+            vdw_radii=vdw_radii,
+            rmin=rmin,
+            rmax=rmax,
+            method=method,
+            basis=basis,
+            solvent="water",
+            restraint=True,
+            psi4_options=psi4_options,
+            hyp_a1=0.0005,
+            hyp_a2=0.001,
+            equal_methyls=equal_methyls,
+            ihfree=True,
+            tol=tol,
+            maxiter=maxiter,
+            #    save_files=save_files,
+            load_files=load_files,
+        )
         charges = []
-        for solv, gas, sresp, gresp in zip(self.solv_charges, self.gas_charges,
-                                           self.gas.molecules, self.solv.molecules):
-            sresp.charges = gresp.charges = q = delta*solv + (1-delta)*gas
+        for solv, gas, sresp, gresp in zip(
+            self.solv_charges, self.gas_charges, self.gas.molecules, self.solv.molecules
+        ):
+            sresp.charges = gresp.charges = q = delta * solv + (1 - delta) * gas
             charges.append(q)
 
         self._charges = charges

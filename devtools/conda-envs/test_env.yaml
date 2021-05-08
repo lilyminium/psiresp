@@ -10,6 +10,7 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
+  - typing_extensions
 
   # program
   - cython

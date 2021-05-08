@@ -20,7 +20,8 @@ class BaseTestOrientation:
 
     @pytest.fixture(scope='function')
     def opt_orientation(self, opt_mol):
-        return psiresp.Orientation(opt_mol, load_files=False)
+        conformer = psiresp.Conformer(opt_mol)
+        return conformer.orientations[0]
 
     @pytest.fixture(scope='function')
     def esp(self):
@@ -70,10 +71,11 @@ class TestOrientationDMSO1(BaseTestOrientation):
 
     @pytest.fixture(scope='function')
     def orientation(self, geometry):
-        return psiresp.Orientation(geometry)
+        conformer = psiresp.Conformer(geometry, name=None)
+        return conformer.orientations[0]
 
     def test_init_orientation(self, orientation):
-        assert orientation.name == 'default'
+        assert orientation.name == 'default_o001'
         assert orientation.n_atoms == 10
         assert_equal(orientation.indices, np.arange(10).astype(int))
         assert_equal(orientation.symbols, list('CHHHSOCHHH'))
