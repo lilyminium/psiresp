@@ -37,13 +37,13 @@ class BaseTestRespConfigNoOpt:
         r = self.cls.from_molecules(dmso_orients, charge=0)
         r0 = psiresp.Resp.from_molecules(dmso_orients, charge=0)
         with tmpdir.as_cwd():
-            charges = r.run(opt=False, equal_methyls=True)
+            charges = r.run(opt=False, equivalent_methyls=True)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
     def test_resp_noopt_orient(self, dmso_opt, tmpdir, ref):
         r = self.cls.from_molecules([dmso_opt])
         with tmpdir.as_cwd():
-            charges = r.run(n_orient=2, opt=False, equal_methyls=True)
+            charges = r.run(n_orient=2, opt=False, equivalent_methyls=True)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 
@@ -67,7 +67,7 @@ class BaseTestRespConfigOpt:
     def test_resp_opt(self, dmso, tmpdir, ref):
         r = self.cls.from_molecules([dmso])
         with tmpdir.as_cwd():
-            charges = r.run(opt=True, n_orient=2, equal_methyls=True,
+            charges = r.run(opt=True, n_orient=2, equivalent_methyls=True,
                             save_opt_geometry=False)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
@@ -119,7 +119,7 @@ class BaseTestATBResp:
 
     def test_resp_noopt(self, tmpdir, resp, ref):
         with tmpdir.as_cwd():
-            charges = resp.run(opt=False, n_orient=2, equal_methyls=True,
+            charges = resp.run(opt=False, n_orient=2, equivalent_methyls=True,
                                vdw_point_density=1, solvent='water')
         # no idea which point density ATB uses
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
@@ -129,7 +129,7 @@ class BaseTestATBResp:
         mol = [mol_from_file(self.molfile)]
         r = self.cls.from_molecules(mol)
         with tmpdir.as_cwd():
-            charges = r.run(opt=True, n_orient=2, equal_methyls=True,
+            charges = r.run(opt=True, n_orient=2, equivalent_methyls=True,
                             vdw_point_density=1, solvent='water')
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 

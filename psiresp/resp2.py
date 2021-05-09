@@ -186,7 +186,7 @@ class Resp2(object):
         rotate=[],
         n_translate=0,
         translate=[],
-        equal_methyls=False,
+        equivalent_methyls=False,
         tol=1e-6,
         maxiter=50,
         load_files=False,
@@ -261,7 +261,7 @@ class Resp2(object):
             List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
             e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
             x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-        equal_methyls: bool (optional)
+        equivalent_methyls: bool (optional)
             if ``True``, all carbons in methyl groups are constrained to be
             equivalent; all carbons in methylenes are equivalent; all hydrogens
             in methyls are equivalent; and all hydrogens in methylenes are
@@ -325,7 +325,7 @@ class Resp2(object):
             psi4_options=psi4_options,
             hyp_a1=0.0005,
             hyp_a2=0.001,
-            equal_methyls=equal_methyls,
+            equivalent_methyls=equivalent_methyls,
             ihfree=True,
             tol=tol,
             maxiter=maxiter,
@@ -352,7 +352,7 @@ class Resp2(object):
             psi4_options=psi4_options,
             hyp_a1=0.0005,
             hyp_a2=0.001,
-            equal_methyls=equal_methyls,
+            equivalent_methyls=equivalent_methyls,
             ihfree=True,
             tol=tol,
             maxiter=maxiter,
@@ -438,7 +438,7 @@ class MultiResp2(object):
         rotate=[],
         n_translate=0,
         translate=[],
-        equal_methyls=False,
+        equivalent_methyls=False,
         tol=1e-6,
         maxiter=50,
         load_files=False,
@@ -535,7 +535,7 @@ class MultiResp2(object):
             List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
             e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
             x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-        equal_methyls: bool (optional)
+        equivalent_methyls: bool (optional)
             if ``True``, all carbons in methyl groups are constrained to be
             equivalent; all carbons in methylenes are equivalent; all hydrogens
             in methyls are equivalent; and all hydrogens in methylenes are
@@ -598,7 +598,7 @@ class MultiResp2(object):
             psi4_options=psi4_options,
             hyp_a1=0.0005,
             hyp_a2=0.001,
-            equal_methyls=equal_methyls,
+            equivalent_methyls=equivalent_methyls,
             ihfree=True,
             tol=tol,
             maxiter=maxiter,
@@ -627,7 +627,7 @@ class MultiResp2(object):
             psi4_options=psi4_options,
             hyp_a1=0.0005,
             hyp_a2=0.001,
-            equal_methyls=equal_methyls,
+            equivalent_methyls=equivalent_methyls,
             ihfree=True,
             tol=tol,
             maxiter=maxiter,

@@ -116,7 +116,9 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
     
     @charge.setter
     def charge(self, value):
-        self.psi4mol.set_molecular_charge(value)
+        if value != self.psi4mol.molecular_charge():
+            self.psi4mol.set_molecular_charge(value)
+            self.psi4mol.update_geometry()
 
     @property
     def multiplicity(self):
@@ -124,12 +126,14 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
 
     @multiplicity.setter
     def multiplicity(self, value):
-        self.psi4mol.set_multiplicity(value)
+        if value != self.psi4mol.multiplicity():
+            self.psi4mol.set_multiplicity(value)
+            self.psi4mol.update_geometry()
 
 
     def post_init(self):
         self._orientations = []
-        self._add_orientation()
+        self.add_orientations()
         self.directory
 
     @property
@@ -239,10 +243,12 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         self._orientations.append(omol)
 
     def add_orientations(self):
-        self._orientations = self._orientations[:1]  # original
+        self._orientations = []
+        if self.orientation_options.keep_original or not self.orientation_options.n_orientations:
+            self._add_orientation()  # original
         symbols = [self.psi4mol.symbol(i) for i in range(self.psi4mol.natom())]
         self.orientation_options.generate_orientations(symbols)
-        dct = self.to_indices()
+        dct = self.orientation_options.to_indices()
         xyzs = []
         for a, b, c in dct["reorientations"]:
             xyzs.append(utils.orient_rigid(a, b, c, self.coordinates))
@@ -275,7 +281,7 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         if not self.optimized and self.optimize_geometry:
             try:
                 future = executor.submit(self.compute_opt_mol)
-                future.add_done_callback(lambda x: self.update_geometry_from_future(x.result()))
+                future.add_done_callback(lambda x: self.update_geometry_from_xyz(x.result()))
             except AttributeError:
                 xyz = self.compute_opt_mol()
                 self.update_geometry_from_xyz(xyz)

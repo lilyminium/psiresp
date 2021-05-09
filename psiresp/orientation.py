@@ -151,11 +151,6 @@ class Orientation(base.IOBase, base.Psi4MolContainerMixin):
         return np.einsum("ij, ik->jk", self.r_inv, self.r_inv)
 
     def get_esp_mat_b(self):
-        print(self.esp.shape)
-        print(self.compute_esp().shape)
-        print(self.r_inv.shape)
-        print(self.compute_r_inv().shape)
-        print(self.grid.shape)
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 
     @base.datafile(filename="grid.dat")

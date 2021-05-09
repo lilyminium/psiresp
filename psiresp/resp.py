@@ -102,6 +102,7 @@ class Resp(base.IOBase):
                        qm_options = QMOptions(),
                        esp_options = ESPOptions(),
                        orientation_options = OrientationOptions(),
+                       charge_constraint_options = ChargeOptions(),
                        weights=None, optimize_geometry=False):
         """
         Create Resp class from Psi4 molecules.
@@ -135,13 +136,16 @@ class Resp(base.IOBase):
         conformers = []
         for i, (mol, weight) in enumerate(zip(molecules, weights), 1):
             cname = f"{name}_c{i:03d}"
+            mol.activate_all_fragments()
+            mol.set_molecular_charge(charge)
+            mol.set_multiplicity(multiplicity)
             conf = Conformer(mol.clone(), name=cname, charge=charge,
                              multiplicity=multiplicity, optimize_geometry=optimize_geometry,
                              weight=weight, io_options=io_options, qm_options=qm_options,
                              esp_options=esp_options, orientation_options=orientation_options)
             conformers.append(conf)
         return cls(conformers, name=name, charge=charge, multiplicity=multiplicity,
-                   io_options=io_options)
+                   io_options=io_options, charge_constraint_options=charge_constraint_options)
 
     @classmethod
     def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
@@ -163,7 +167,7 @@ class Resp(base.IOBase):
         return cls.from_molecules(molecules, name=name, **kwargs)
 
     def __init__(self, conformers=[], name="Resp", charge=0,
-                 multiplicity=1,
+                 multiplicity=1, charge_constraint_options=ChargeOptions(),
                  io_options=IOOptions()):
         super().__init__(name=name, io_options=io_options)
         if not conformers:
@@ -180,6 +184,7 @@ class Resp(base.IOBase):
 
         # mol info
         self.indices = np.arange(self.n_atoms)
+        self.charge_constraint_options = charge_constraint_options
 
         self.stage_1_charges = None
         self.stage_2_charges = None
@@ -212,7 +217,7 @@ class Resp(base.IOBase):
     @charge_constraint_options.setter
     def charge_constraint_options(self, options):
         self._charge_constraint_options = cc = ChargeOptions(**options)
-        if cc.equal_methyls:
+        if cc.equivalent_methyls:
             cc.add_methyl_equivalences(self.sp3_ch_ids)
     
     @property
@@ -264,7 +269,9 @@ class Resp(base.IOBase):
         if name is None:
             name = self.name + "_copy"
         mols = [c.molecule.clone() for c in self.conformers]
-        new = type(self).from_molecules(mols, name=name, **self.kwargs)
+
+        new = type(self).from_molecules(mols, name=name, charge=self.charge,
+                                        multiplicity=self.multiplicity, io_options=self.io_options)
         return new
 
     # # def optimize_geometry(self, psi4_options={}):
@@ -306,11 +313,14 @@ class Resp(base.IOBase):
 
 
     def fit(self, resp_options=RespOptions(),
-            charge_constraint_options=ChargeOptions(),
+            charge_constraint_options=None,
             executor=None):
         
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
+
+        if charge_constraint_options is None:
+            charge_constraint_options = self.charge_constraint_options
 
         A, B = charge_constraint_options.get_constraint_matrix(a_matrix,
                                                                b_matrix)
@@ -321,26 +331,29 @@ class Resp(base.IOBase):
         resp_charges.fit(A, B)
         return resp_charges
 
-
+    def compute_optimized_geometry(self, executor=None):
+        for conformer in self.conformers:
+            conformer.compute_optimized_geometry(executor=executor)
 
     def _run(self, executor=None, stage_1_options=RespOptions(hyp_a=0.0005),
             stage_2_options=RespOptions(hyp_a=0.001), stage_2=False,
-            charge_constraint_options=ChargeOptions()):
+            charge_constraint_options=None):
 
-        for conformer in self.conformers:
-            conformer.compute_optimized_geometry(executor=executor)
+        self.compute_optimized_geometry(executor=executor)
+
+        if charge_constraint_options is None:
+            charge_constraint_options = self.charge_constraint_options
 
         initial_charge_options = ChargeOptions(**charge_constraint_options)
 
         if stage_2:
             final_charge_options = ChargeOptions(**initial_charge_options)
-            initial_charge_options.chrequiv = []
+            initial_charge_options.charge_equivalences = []
         else:
             final_charge_options = initial_charge_options
 
-        if initial_charge_options.equal_methyls:
+        if initial_charge_options.equivalent_methyls:
             final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
-
         
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
@@ -354,6 +367,7 @@ class Resp(base.IOBase):
         if stage_2:
             final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
+
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
                                             n_structures=self.n_structures)
@@ -362,7 +376,7 @@ class Resp(base.IOBase):
         return self.charges
 
     def run(self, executor=None, stage_2=False,
-            charge_constraint_options=ChargeOptions(),
+            charge_constraint_options=None,
             restrained: bool=True, hyp_a1: float=0.0005,
             hyp_a2=0.001, hyp_b: float=0.1, ihfree: bool=True, tol: float=1e-6,
             maxiter: int=50):

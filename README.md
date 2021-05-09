@@ -83,7 +83,7 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
                    restraint=True,  # restrain
                    method='hf',
                    basis='6-31g*',
-                   equal_methyls=True,  # restrain methyl carbons to have the same charge
+                   equivalent_methyls=True,  # restrain methyl carbons to have the same charge
                    n_orient=2)  # automatically generate 2 molecules
 ```
 Alternatively, use the preconfigured RespA1 class in ``psiresp.configs``.
@@ -108,7 +108,7 @@ Alternatively, use the preconfigured RespA1 class in ``psiresp.configs``.
 
    r = psiresp.RespA1.from_molecules([mol], charge=0, name='dmso')
    charges = r.run(opt=True,  # geometry optimize first
-                   equal_methyls=True,  # restrain methyl carbons to have the same charge
+                   equivalent_methyls=True,  # restrain methyl carbons to have the same charge
                    n_orient=2)  # automatically generate 2 molecules
 ```
 

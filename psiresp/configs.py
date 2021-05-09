@@ -53,7 +53,7 @@ def resp_config(
             rotate=[],
             n_translate=0,
             translate=[],
-            equal_methyls=False,
+            equivalent_methyls=False,
             **kwargs
         ):
             """
@@ -102,7 +102,7 @@ def resp_config(
                 List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
                 e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
                 x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-            equal_methyls: bool (optional)
+            equivalent_methyls: bool (optional)
                 if ``True``, all carbons in methyl groups are constrained to be
                 equivalent; all carbons in methylenes are equivalent; all hydrogens
                 in methyls are equivalent; and all hydrogens in methylenes are
@@ -126,7 +126,7 @@ def resp_config(
                 rotate=rotate,
                 n_translate=n_translate,
                 translate=translate,
-                equal_methyls=equal_methyls,
+                equivalent_methyls=equivalent_methyls,
                 stage_2=stage_2,
                 hyp_a1=hyp_a1,
                 hyp_a2=hyp_a2,
@@ -675,7 +675,7 @@ def multiresp_config(
             rotate=[],
             n_translate=0,
             translate=[],
-            equal_methyls=False,
+            equivalent_methyls=False,
             psi4_options={},
             **kwargs
         ):
@@ -767,7 +767,7 @@ def multiresp_config(
                 rotate=rotate,
                 n_translate=n_translate,
                 translate=translate,
-                equal_methyls=equal_methyls,
+                equivalent_methyls=equivalent_methyls,
                 stage_2=stage_2,
                 hyp_a1=hyp_a1,
                 hyp_a2=hyp_a2,

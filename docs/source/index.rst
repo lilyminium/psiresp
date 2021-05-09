@@ -35,7 +35,7 @@ as used in AMBER, analogous to the RESP-A1 model in R.E.D. ::
                    restraint=True,  # restrain
                    method='hf',
                    basis='6=31g*',
-                   equal_methyls=True,  # restrain methyl carbons to have the same charge
+                   equivalent_methyls=True,  # restrain methyl carbons to have the same charge
                    n_orient=2)  # automatically generate 2 molecules
 
 

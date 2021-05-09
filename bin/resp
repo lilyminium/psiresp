@@ -40,7 +40,7 @@ def submit(executor, method, objects):
 
 def run_job(executor, equiv_mcs=False, mcs_natoms=4,
             stage_2=True, inter_chrconstr=[],
-            inter_chrequiv=[], equal_methyls=False,
+            inter_chrequiv=[], equivalent_methyls=False,
             hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1,
             ihfree=True, tol=1e-5, maxiter=50,
             restraint=True, molecules={}, n_orient=8,
@@ -97,7 +97,7 @@ def run_job(executor, equiv_mcs=False, mcs_natoms=4,
               inter_chrconstr=inter_chrconstr,
               intra_chrequiv=intra_chrequiv,
               inter_chrequiv=inter_chrequiv,
-              equal_methyls=equal_methyls,
+              equivalent_methyls=equivalent_methyls,
               hyp_a1=hyp_a1, hyp_a2=hyp_a2,
               ihfree=ihfree, tol=tol, maxiter=maxiter,
               restraint=restraint)

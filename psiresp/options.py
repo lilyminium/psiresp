@@ -1,9 +1,10 @@
-from collections import UserDict, defaultdict
+from collections import UserDict, UserList, defaultdict
 from typing import Dict, List, Optional, Union
 import itertools
 import textwrap
 import os
 import warnings
+import functools
 
 import numpy as np
 from . import utils
@@ -169,7 +170,7 @@ class ESPOptions(AttrDict):
 class OrientationOptions(AttrDict):
     def __init__(self, n_reorientations: int = 0, reorientations=[],
                  n_translations: int=0, translations=[],
-                 n_rotations: int=0, rotations=[]):
+                 n_rotations: int=0, rotations=[], keep_original=True):
         reorientations = list(reorientations)
         translations = list(translations)
         rotations = list(rotations)
@@ -178,18 +179,28 @@ class OrientationOptions(AttrDict):
                          n_rotations=n_rotations,
                          reorientations=reorientations,
                          translations=translations,
-                         rotations=rotations)
+                         rotations=rotations, keep_original=keep_original)
+    
+    @property
+    def n_specified_orientations(self):
+        return sum(map(len, [self.reorientations, self.rotations, self.translations]))
+
+    @property
+    def n_orientations(self):
+        return sum([self.n_specified_orientations, self.n_reorientations, self.n_translations, self.n_rotations])
 
     def generate_atom_combinations(self, symbols: List[str]):
         symbols = np.asarray(symbols)
         is_H = symbols == "H"
-        h_atoms = list(np.flatnonzero(is_H))
-        heavy_atoms = list(np.flatnonzero(~is_H))
+        h_atoms = list(np.flatnonzero(is_H) + 1)
+        heavy_atoms = list(np.flatnonzero(~is_H) + 1)
         
         comb = list(itertools.combinations(heavy_atoms, 3))
         h_comb = itertools.combinations(heavy_atoms + h_atoms, 3)
         comb += [x for x in h_comb if x not in comb]
-        return comb
+        backwards = [x[::-1] for x in comb]
+        new_comb = [x for items in zip(comb, backwards) for x in items]
+        return new_comb
 
     def generate_orientations(self, symbols: List[str]):
         atom_combinations = self.generate_atom_combinations(symbols)
@@ -212,31 +223,89 @@ class OrientationOptions(AttrDict):
         return dct
 
 
+@functools.total_ordering
+class AtomId:
+    def __init__(self, molecule_id=1, atom_id=None):
+        if isinstance(molecule_id, AtomId):
+            atom_id = molecule_id.atom_id
+            molecule_id = molecule_id.molecule_id
+        else:
+            if atom_id is None:
+                atom_id = molecule_id
+                molecule_id = 1
+        self.atom_id = atom_id
+        self.molecule_id = molecule_id
+        self.atom_increment = 0
+
+    def __lt__(self, other):
+        if isinstance(other, AtomId):
+            other = other.absolute_atom_id
+        return self.absolute_atom_id < other
 
 
+    def __eq__(self, other):
+        if isinstance(other, AtomId):
+            other = other.absolute_atom_id
+        return self.absolute_atom_id == other
 
-class BaseChargeConstraint:
+    def __hash__(self):
+        return hash((self.atom_id, self.molecule_id, self.atom_increment))
+        
+    @property
+    def absolute_atom_id(self):
+        return self.atom_increment + self.atom_id
+
+    @property
+    def absolute_atom_index(self):
+        return self.absolute_atom_id - 1
+
+    def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
+        new = type(self)(molecule_id=molecule_id, atom_id=self.atom_id)
+        new.atom_increment = atom_increment
+        return new
+
+
+class BaseChargeConstraint(UserList):
     def __init__(self, atom_ids: list = []):
-        atom_ids = [tuple(x) if isinstance(x, list) else x for x in atom_ids]
-        atom_ids = np.array(list(set(atom_ids)), dtype=int)
-        self.atom_ids = atom_ids
-        self.indices = self.atom_ids - 1
+        atom_ids = [AtomId(x) for x in atom_ids]
+        atom_ids = list(set(atom_ids))
+        super().__init__(atom_ids)
+
+    @property
+    def atom_ids(self):
+        return self.data
+        
+    @property
+    def absolute_atom_ids(self):
+        return np.array([x.absolute_atom_id for x in self.data])
+
+    @property
+    def indices(self):
+        return self.absolute_atom_ids - 1
 
     def __len__(self):
         return len(self.atom_ids)
 
+    def copy_atom_ids_to_molecule(self, molecule_id=1, atom_increment=0):
+        atom_ids = []
+        for aid in self.atom_ids:
+            atom_ids.append(aid.copy_with_molecule_id(molecule_id=molecule_id, atom_increment=atom_increment))
+        return atom_ids
+
 
 class ChargeConstraint(BaseChargeConstraint):
     def __repr__(self):
-        return f"ChargeConstraint(charge={self.charge}, atom_ids={self.atom_ids})"
+        return f"<ChargeConstraint charge={self.charge}, indices={self.indices}>"
 
     @classmethod
-    def from_dict_or_list(cls, obj):
+    def from_obj(cls, obj):
         if isinstance(obj, dict):
             if len(obj) != 1:
                 raise ValueError("dict must have only one key-value pair "
                                  "in charge: [atom_ids] format.")
             obj = list(obj.items())[0]
+        elif isinstance(obj, ChargeConstraint):
+            obj = [obj.charge, obj.atom_ids]
         return cls(charge=obj[0], atom_ids=obj[1])
 
     def __eq__(self, other):
@@ -249,11 +318,15 @@ class ChargeConstraint(BaseChargeConstraint):
     def __init__(self, charge: float=0, atom_ids: list = []):
         self.charge = charge
         super().__init__(atom_ids=atom_ids)
+
+    def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
+        atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
+        return type(self)(charge=self.charge, atom_ids=atom_ids)
         
 
 class ChargeEquivalence(BaseChargeConstraint):
     def __repr__(self):
-        return f"ChargeEquivalence(atom_ids={self.atom_ids})"
+        return f"<ChargeEquivalence indices={self.indices}>"
 
     def __init__(self, atom_ids: list=[]):
         super().__init__(atom_ids=atom_ids)
@@ -269,18 +342,35 @@ class ChargeEquivalence(BaseChargeConstraint):
             return self
         return other.__add__(self)
 
+    def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
+        atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
+        return type(self)(atom_ids=atom_ids)
+
     
 
         
 class ChargeOptions(AttrDict):
-    def __init__(self, charge_constraints=[], charge_equivalences=[], equal_methyls=False):
+
+    # @classmethod
+    # def from_multiresp(cls, resps, charge_constraints=[], charge_equivalences=[]):
+
+
+    def __init__(self, charge_constraints=[], charge_equivalences=[], equivalent_methyls=False,
+                 equivalent_sp3_hydrogens=True):
         if isinstance(charge_constraints, dict):
             charge_constraints = list(charge_constraints.items())
-        chrconstr = [ChargeConstraint.from_dict_or_list(x) for x in charge_constraints]
+        chrconstr = [ChargeConstraint.from_obj(x) for x in charge_constraints]
         chrequiv = [ChargeEquivalence(x) for x in charge_equivalences]
-        super().__init__(charge_constraints=chrconstr, charge_equivalences=chrequiv, equal_methyls=equal_methyls)
+        super().__init__(charge_constraints=chrconstr, charge_equivalences=chrequiv, equivalent_methyls=equivalent_methyls,
+                         equivalent_sp3_hydrogens=equivalent_sp3_hydrogens)
         self.clean_charge_constraints()
         self.clean_charge_equivalences()
+
+    def iterate_over_constraints(self):
+        for item in self.charge_constraints:
+            yield item
+        for item in self.charge_equivalences:
+            yield item
 
     def clean_charge_equivalences(self):
         atom_ids = []
@@ -330,30 +420,6 @@ class ChargeOptions(AttrDict):
                                      f"and {constr.charge}")
         self.charge_constraints = list(unique)
 
-        
-    # def create_constraint_matrix(self, n_atoms: int):
-    #     equiv = [x.indices for x in self.charge_equivalences]
-    #     edges = np.r_[0, np.cumsum([len(x) - 1 for x in equiv])].astype(int)
-    #     n_chrequiv = edges[-1]
-    #     n_chrconstr = len(self.charge_constraints)
-
-    #     ndim = n_chrequiv + n_chrconstr + n_atoms + 1
-    #     AB = np.zeros((ndim + 1, ndim))
-    #     A = AB[:ndim]
-    #     B = AB[-1]
-
-    #     for i, chrconstr in enumerate(self.charge_constraints, n_atoms + 1):
-    #         B[i] = chrconstr.charge
-    #         A[i, chrconstr.indices] = A[chrconstr.indices, i] = 1
-        
-    #     row_inc = n_atoms + n_chrconstr + 1
-    #     for i, indices in enumerate(equiv):
-    #         row_i = np.arange(edges[i], edges[i + 1]) + row_inc
-    #         A[(x, indices[:-1])] = A[(indices[:-1], x)] = -1
-    #         A[(x, indices[1:])] = A[(indices[1:], x)] = 1
-        
-    #     return AB
-
     def get_constraint_matrix(self, a_matrix, b_matrix):
         # preprocessing
         equiv = [x.indices for x in self.charge_equivalences]
@@ -383,37 +449,6 @@ class ChargeOptions(AttrDict):
         return A, B
 
 
-
-
-
-    # def get_constraint_matrix(self, conformer_matrix, charges=None):
-    #     if charges is not None:
-    #         self.add_atom_charge_constraints(charges=charges)
-    #     n_conf_dim = conformer_matrix.shape[-1]
-    #     equiv = [x.indices for x in self.charge_equivalences]
-    #     edges = np.r_[0, np.cumsum([len(x) - 1 for x in equiv])].astype(int)
-    #     n_chrequiv = edges[-1]
-    #     n_chrconstr = len(self.charge_constraints)
-
-    #     ndim = n_chrequiv + n_chrconstr + n_conf_dim
-    #     AB = np.zeros((ndim + 1, ndim))
-    #     A = AB[:ndim]
-    #     B = AB[-1]
-    #     A[:n_conf_dim, :n_conf_dim] = conformer_matrix[:-1]
-    #     B[:n_conf_dim] = conformer_matrix[-1]
-
-    #     for i, chrconstr in enumerate(self.charge_constraints, n_conf_dim):
-    #         B[i] = chrconstr.charge
-    #         A[i, chrconstr.indices] = A[chrconstr.indices, i] = 1
-        
-    #     row_inc = n_conf_dim + n_chrconstr
-    #     for i, indices in enumerate(equiv):
-    #         row_i = np.arange(edges[i], edges[i + 1]) + row_inc
-    #         A[(x, indices[:-1])] = A[(indices[:-1], x)] = -1
-    #         A[(x, indices[1:])] = A[(indices[1:], x)] = 1
-        
-    #     return AB
-
     def add_methyl_equivalences(self, sp3_ch_ids={}):
         c3s = []
         c2s = []
@@ -437,9 +472,12 @@ class ChargeOptions(AttrDict):
     def add_stage_2_constraints(self, charges=[], sp3_ch_ids={}):
         charges = np.asarray(charges)
         atom_ids = [i for eq in self.charge_equivalences for i in eq.atom_ids]
-        hs = [y for x in sp3_ch_ids.values() for y in x]
-        cs = list(sp3_ch_ids.keys())
-        atom_ids = np.array(atom_ids + hs + cs)
+        if self.equivalent_sp3_hydrogens:
+            print("is equivalent")
+            hs = [y for x in sp3_ch_ids.values() for y in x]
+            cs = list(sp3_ch_ids.keys())
+            atom_ids = atom_ids + hs + cs
+        atom_ids = np.array(atom_ids)
         ids = np.arange(len(charges)) + 1
         mask = ~np.in1d(ids, atom_ids)
 
@@ -447,10 +485,14 @@ class ChargeOptions(AttrDict):
             constr = ChargeConstraint(charge=q, atom_ids=[a])
             self.charge_constraints.append(constr)
 
-        if not self.equal_methyls:
-            # if self.equal_methyls, this is redundant
-            equivs = [ChargeEquivalence(list(hs)) for hs in sp3_ch_ids.values()]
-            self.charge_equivalences.extend(equivs)
+        if not self.equivalent_methyls and self.equivalent_sp3_hydrogens:
+            # if self.equivalent_methyls, this is redundant
+            # equivs = []
+            for hs in sp3_ch_ids.values():
+                if len(hs) > 1:
+                    self.charge_equivalences.append(ChargeEquivalence(hs))
+            # equivs = [ChargeEquivalence(list(hs)) for hs in sp3_ch_ids.values()]
+            # self.charge_equivalences.extend(equivs)
             # self.charge_equivalences.extend([ChargeEquivalence(list) for x in sp3_ch_ids.values()])
             self.clean_charge_equivalences()
         self.clean_charge_constraints()
@@ -466,6 +508,7 @@ class RespOptions(AttrDict):
                          maxiter=maxiter)
 
 class RespCharges:
+
     def __init__(self, resp_options=RespOptions(), symbols=[],
                  n_structures: int=1):
         
@@ -530,11 +573,21 @@ class RespCharges:
         return self.charges
 
     @property
-    def atom_charges(self):
-        return self.charges[:self.n_atoms]
-
-    @property
     def charges(self):
         if self.resp_options.restrained:
             return self.restrained_charges
         return self.unrestrained_charges
+
+    def copy(self, start_index=0, end_index=None, n_structures=None):
+        if end_index is None:
+            end_index = self.n_atoms
+        if n_structures is None:
+            n_structures = self.n_structures
+        new = type(self)(resp_options=self.resp_options,
+                         symbols=self.symbols[start_index:end_index],
+                         n_structures=n_structures)
+        if self.unrestrained_charges is not None:
+            new.unrestrained_charges = self.unrestrained_charges[start_index:end_index]
+        if self.restrained_charges is not None:
+            new.restrained_charges = self.restrained_charges[start_index:end_index]
+        return new

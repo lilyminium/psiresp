@@ -6,6 +6,7 @@ import logging
 import numpy as np
 
 from . import utils
+from .options import ChargeOptions, RespCharges, RespOptions
 
 log = logging.getLogger(__name__)
 
@@ -33,11 +34,26 @@ class MultiResp:
         (only exists after calling fit or run)
     """
 
-    def __init__(self, resps):
+    def __init__(self, resps, charge_constraint_options=ChargeOptions()):
         self.molecules = resps
         self._moldct = {r.name: i + 1 for i, r in enumerate(resps)}
-        self._unrestrained_charges = None
-        self._restrained_charges = None
+        self.symbols = np.concatenate([mol.symbols for mol in self.molecules])
+        self.n_atoms = len(self.symbols)
+        n_atoms = 0
+        self.atom_increment_mapping = {}
+        self.sp3_ch_ids = {}
+        for i, mol in enumerate(self.molecules, 1):
+            self.atom_increment_mapping[i] = n_atoms
+            self.atom_increment_mapping[mol.name] = n_atoms
+            for c, hs in mol.sp3_ch_ids.items():
+                hs = [h + n_atoms for h in hs]
+                self.sp3_ch_ids[c + n_atoms] = hs
+
+            n_atoms += mol.n_atoms
+        
+
+
+        self.charge_constraint_options = ChargeOptions(**charge_constraint_options)
 
         names = ", ".join([m.name for m in self.molecules])
         log.debug(f"Created MultiResp with {self.n_molecules} molecules: {names}")
@@ -68,677 +84,114 @@ class MultiResp:
         return len(self.molecules)
 
     @property
-    def restrained_charges(self):
-        return self._restrained_charges
+    def charges(self):
+        return [mol.charges for mol in self.molecules]
 
-    @restrained_charges.setter
-    def restrained_charges(self, charges):
-        for mol, q in zip(self.molecules, charges):
-            mol.restrained_charges = q
-        self._restrained_charges = charges
-
-    @property
-    def unrestrained_charges(self):
-        return self._unrestrained_charges
-
-    @unrestrained_charges.setter
-    def unrestrained_charges(self, charges):
-        for mol, q in zip(self.molecules, charges):
-            mol.unrestrained_charges = q
-        self._unrestrained_charges = charges
-
-    def _nmol_values(self, values, name, element):
-        """
-        Validate given values to check they are either a single value
-        or the same length as ``n_molecules``. Raises an error message
-        with the ``name`` of the variable and ``element`` description
-        if the lengths mismatch.
-        """
-        values = utils.iter_single(values, self.n_molecules)
-        try:
-            if len(values) != self.n_molecules:
-                err = (
-                    "{} must be a list with the "
-                    "same length as the number of molecules, "
-                    "where each element is a {}"
-                )
-                raise ValueError(err.format(name, element))
-        except TypeError:  # itertools repeat
-            pass
-        return values
-
-    def optimize_geometry(self, psi4_options={}, save_opt_geometry=False):
-        """
-        Optimise geometry for all molecules.
-
-        Parameters
-        ----------
-        basis: str (optional)
-            Basis set to optimise geometry
-        method: str (optional)
-            Method to optimise geometry
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_opt_geometry: bool (optional)
-            if ``True``, saves optimised geometries to XYZ file
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved. This does not affect
-            writing optimised geometries to files.
-        """
+    def get_conformer_a_matrix(self):
+        ndim = self.n_atoms + self.n_molecules
+        A = np.zeros((ndim, ndim))
+        i = 0
         for mol in self.molecules:
-            mol.optimize_geometry(
-                psi4_options=psi4_options, save_opt_geometry=save_opt_geometry
-            )
+            j = i + mol.n_atoms + 1
+            A[i:j, i:j] = mol.get_conformer_a_matrix()
+        return A
 
-    def gen_constraint_matrices(
-        self,
-        intra_chrconstr=[],
-        intra_chrequiv=[],
-        inter_chrconstr=[],
-        inter_chrequiv=[],
-    ):
-        """
-        Get A and B matrices to solve for charges, including charge constraints.
+    def get_conformer_b_matrix(self, executor=None):
+        B = np.zeros(self.n_atoms + self.n_molecules)
+        i = 0
+        for mol in self.molecules:
+            j = i + mol.n_atoms + 1
+            B[i:j] = mol.get_conformer_b_matrix(executor=None)
+        return B
 
-        Parameters
-        ----------
-        intra_chrconstr: list of lists or dicts (optional)
-            Intramolecular charge constraints for each molecule in the
-            form of, where the list of constraints has the form
-            [{charge: atom_number_list}] or [[(charge, atom_number_list)]].
-            The numbers are indexed from 1.
-            e.g. [{0: [1, 2]}, {0.2: [3, 4, 5]}]
-            mean that atoms 1 and 2 together have a charge of 0 in the first
-            molecule, whereas atoms 3, 4, and 5 combine to a charge of 0.2 in
-            the second molecule.
-        intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule. e.g. ::
+    def get_absolute_charge_constraint_options(self, charge_constraint_options):
+        multiopts = ChargeOptions(**charge_constraint_options)
 
-                [
-                  [[1, 2], [3, 4, 5]],
-                  [[1, 3, 5, 7]]
-                 ]
+        # add atom increments to atoms
+        for constr in multiopts.iterate_over_constraints():
+            for aid in constr.data:
+                aid.atom_increment = self.atom_increment_mapping[aid.molecule_id]
+        # incorporate intramolecular constraints
+        # n_atoms = 0
+        for i, mol in enumerate(self.molecules, 1):
+            opts = ChargeOptions(**mol.charge_constraint_options)
+            for constr in opts.iterate_over_constraints():
+                for aid in constr.data:
+                    aid.atom_increment = self.atom_increment_mapping[i]
+                    aid.molecule_id = i
+            multiopts.charge_equivalences.extend(opts.charge_equivalences)
+            multiopts.charge_constraints.extend(opts.charge_constraints)
+        multiopts.clean_charge_constraints()
+        multiopts.clean_charge_equivalences()
+        return multiopts
 
-            mean that atoms 1 and 2 in the first molecule have equal
-            charges; atoms 3, 4, and 5 in the first molecule have
-            equal charges; atoms 1, 3, 5, 7 in the second molecule have equal
-            charges.
-        inter_chrconstr: list of lists (optional)
-            Intermolecular charge constraints in the form of
-            {charge: [(mol_number, atom_number)]} or
-            [(charge, [(mol_number, atom_number)])].
-            The numbers are indexed from 1.
-            e.g. {0: [(1, 3), (2, 1)]} or [(0, [(1, 3), (2, 1)])] mean that
-            the third atom of the first molecule, and the first atom of the
-            second molecule, combine to have a charge of 0.
-        inter_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges between each molecule,
-            in the form [(mol_number, atom_number)].
-            e.g. [[(1, 2), (2, 2), (3, 4)]] mean that atom 2 of molecule 1,
-            atom 2 of molecule 2, and atom 4 of molecule 3, all have equal
-            charges.
-        weights: iterable (optional)
-            List of weights for each molecule, or list of lists of weights for
-            each conformer. e.g. [1, 2, [3, 4]] weights all conformers in the
-            first molecule by 1; all the conformers in the second molecule by 2;
-            the first conformer in the third molecule by 3; and the second
-            conformer in the third molecule by 4. If only one value is given, it
-            is repeated for every molecule.
-        **kwargs
-            Arguments passed to Resp.gen_constraint_matrices.
+    def _run(self, executor=None, stage_1_options=RespOptions(hyp_a=0.0005),
+            stage_2_options=RespOptions(hyp_a=0.001), stage_2=False,
+            charge_constraint_options=None):
 
-        Returns
-        -------
-        A: ndarray
-        B: ndarray
-        edges: list of tuples
-            list of start, end indices of the molecule atoms in `a` and `b`.
-            For example, ``i, j = edges[3]`` such that ``a[i:j, i:j]`` is
-            the A matrix for the 4th molecule.
-        nmol: ndarray
-            array containing the number of orientations in each Resp, with
-            the same shape as B
-        """
-        intra_chrconstr = self._nmol_values(
-            intra_chrconstr, "intra_chrconstr", "list or dict of constraints"
-        )
-        intra_chrequiv = self._nmol_values(
-            intra_chrequiv, "intra_chrequiv", "list of equivalence constraints"
-        )
+        for mol in self.molecules:
+            mol.compute_optimized_geometry(executor=executor)
 
-        if utils.empty(inter_chrconstr):
-            inter_chrconstr = []
-        if utils.empty(inter_chrequiv):
-            inter_chrequiv = []
+        if charge_constraint_options is None:
+            charge_constraint_options = self.charge_constraint_options
 
-        # gather individual A and B matrices for each Resp class
-        a_s, b_s, nmol = [], [], []
-        for m, constr, equiv in zip(self.molecules, intra_chrconstr, intra_chrequiv):
-            a, b = m.gen_constraint_matrices(chrconstr=constr, chrequiv=equiv)
-            a_s.append(a)
-            b_s.append(b)
-            nmol.extend([m.n_structures] * len(b))
+        initial_charge_options = self.get_absolute_charge_constraint_options(charge_constraint_options)
 
-        mol_edges = np.r_[0, np.cumsum([len(b) for b in b_s])].astype(int)
-        n_intra = mol_edges[-1]
-        edges = [(i, j) for i, j in zip(mol_edges[:-1], mol_edges[1:])]
+        if stage_2:
+            final_charge_options = ChargeOptions(**initial_charge_options)
+            initial_charge_options.charge_equivalences = []
+        else:
+            final_charge_options = initial_charge_options
 
-        # allow for inter constraints to be given either as (nmol, natom)
-        # or (nmol, [n_atom])  or names...
-        def groups_to_indices(groups):
-            indices = []
-            for a, b in groups:
-                if isinstance(a, str):
-                    a = self._moldct[a]
-                offset = mol_edges[a - 1]
-                if isinstance(b, (tuple, list)):
-                    indices.extend([offset + x - 1 for x in b])
-                else:
-                    indices.append(offset + b - 1)
-            return np.array(indices)
+        if initial_charge_options.equivalent_methyls:
+            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
+        
+        a_matrix = self.get_conformer_a_matrix()
+        b_matrix = self.get_conformer_b_matrix(executor=executor)
 
-        # set up intermolecular constraints
-        if isinstance(inter_chrconstr, dict):
-            inter_chrconstr = list(inter_chrconstr.items())
-        inter_constr = [(q, groups_to_indices(e)) for q, e in inter_chrconstr]
-        n_constr = len(inter_constr)
+        a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
+        stage_1_options = RespOptions(**stage_1_options)
+        self.stage_1_charges = RespCharges(stage_1_options, symbols=self.symbols,
+                                           n_structures=self.n_structures)
+        self.stage_1_charges.fit(a1, b1)
 
-        inter_equiv = [groups_to_indices(e) for e in inter_chrequiv]
-        inter_equiv = [e for e in inter_equiv if len(e) >= 2]
-        lengths = np.cumsum([len(x) - 1 for x in inter_equiv])
-        equiv_edges = np.r_[0, lengths].astype(int)
-        n_equiv = equiv_edges[-1]
+        for i, mol in enumerate(self.molecules, 1):
+            a = self.atom_increment_mapping[i]
+            b = a + mol.n_atoms
+            mol.stage_1_charges = self.stage_1_charges.copy(start_index=a, end_index=b,
+                                                            n_structures=mol.n_structures)
 
-        ndim = n_intra + n_equiv + n_constr
-        nmol.extend([self.n_structures] * (n_equiv + n_constr))
+        if stage_2:
+            final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
+                                                         sp3_ch_ids=self.sp3_ch_ids)
 
-        log.debug(f"Constructing MultiResp constraint matrices of dimension {ndim}")
+            a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
+            self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
+                                            n_structures=self.n_structures)
+            self.stage_2_charges.fit(a2, b2)
 
-        ABen = np.zeros((ndim + 3, ndim))
-        A = ABen[:ndim]
-        B = ABen[ndim]
-        ABen[ndim + 1, mol_edges[:-1]] = 1
-        ABen[-1] = nmol
+            for i, mol in enumerate(self.molecules, 1):
+                a = self.atom_increment_mapping[i]
+                b = a + mol.n_atoms
+                mol.stage_2_charges = self.stage_2_charges.copy(start_index=a, end_index=b,
+                                                                n_structures=mol.n_structures)
 
-        for (i, j), a, b in zip(edges, a_s, b_s):
-            A[i:j, i:j] = a
-            B[i:j] = b
-
-        for i, (q, ix) in enumerate(inter_constr, n_intra):
-            B[i] = q
-            A[i, ix] = A[ix, i] = 1
-
-        for i, ix in enumerate(inter_equiv):
-            x = np.arange(equiv_edges[i], equiv_edges[i + 1]) + n_intra + n_constr
-            A[(x, ix[:-1])] = A[(ix[:-1], x)] = -1
-            A[(x, ix[1:])] = A[(ix[1:], x)] = 1
-
-        A = ABen[:-3]
-        B = ABen[-3]
-        medges = np.where(ABen[-2])[0]
-        edges = [[i, i + m.n_atoms] for i, m in zip(medges, self.molecules)]
-        nmol = ABen[-1]
-        return A, B, np.array(edges), np.array(nmol)
-
-    def fit(
-        self,
-        restraint=True,
-        hyp_a=0.0005,
-        hyp_b=0.1,
-        ihfree=True,
-        tol=1e-5,
-        maxiter=50,
-        intra_chrconstr=[],
-        intra_chrequiv=[],
-        inter_chrconstr=[],
-        inter_chrequiv=[],
-    ):
-        """
-        Perform the R/ESP fits.
-
-        Parameters
-        ----------
-        restraint: bool (optional)
-            whether to perform a restrained fit
-        hyp_a: float (optional)
-            scale factor of asymptote limits of hyperbola
-        hyp_b: float (optional)
-            tightness of hyperbola at its minimum
-        ihfree: bool (optional)
-            if `True`, exclude hydrogens from restraint
-        tol: float (optional)
-            threshold for convergence
-        maxiter: int (optional)
-            maximum number of iterations
-        **kwargs:
-            arguments passed to MultiResp.gen_constraint_matrices
-
-        Returns
-        -------
-        charges: list of ndarray
-        """
-        a, b, edges, nmol = self.gen_constraint_matrices(
-            intra_chrconstr=[], intra_chrequiv=[], inter_chrconstr=[], inter_chrequiv=[]
-        )
-        try:
-            q = np.linalg.solve(a, b)
-        except np.linalg.LinAlgError:
-            np.savetxt("a_matrix.dat", a)
-            np.savetxt("b_matrix.dat", b)
-            err = (
-                "Singular matrix. Wrote A and B matrices out to "
-                "a_matrix.dat and b_matrix.dat for more info"
-            )
-            raise np.linalg.LinAlgError(err) from None
-        self.unrestrained_charges = [q[i:j] for i, j in edges]
-        if restraint:
-            q = self.iter_solve(
-                q,
-                a,
-                b,
-                edges,
-                nmol,
-                hyp_a=hyp_a,
-                hyp_b=hyp_b,
-                ihfree=ihfree,
-                tol=tol,
-                maxiter=maxiter,
-            )
-            self.restrained_charges = [q[i:j] for i, j in edges]
-        self.charges = [q[i:j] for i, j in edges]
-        for mol, q in zip(self.molecules, self.charges):
-            mol.charges = q
         return self.charges
 
-    def iter_solve(
-        self,
-        q,
-        a,
-        b,
-        edges,
-        nmol,
-        hyp_a=0.0005,
-        hyp_b=0.1,
-        ihfree=True,
-        tol=1e-5,
-        maxiter=50,
-    ):
-        """
-        Fit the charges iteratively, as required for the hyperbola penalty
-        function.
-
-        Parameters
-        ----------
-        q: ndarray
-            partial atomic charges
-        a: ndarray
-            unrestrained matrix A
-        b: ndarray
-            matrix B
-        edges: list of tuples
-            list of start, end indices for the atoms in ``a`` and ``b``
-        nmol: ndarray
-            array containing the number of orientations in each Resp, with
-            the same shape as ``b``
-        hyp_a: float (optional)
-            scale factor of asymptote limits of hyperbola
-        hyp_b: float (optional)
-            tightness of hyperbola at its minimum
-        ihfree: bool (optional)
-            if `True`, exclude hydrogens from restraint
-        tol: float (optional)
-            threshold for convergence
-        maxiter: int (optional)
-            maximum number of iterations
-
-        Returns
-        -------
-        charges: ndarray
-        """
-        mask = np.zeros(len(b), dtype=bool)
-        for i, j in edges:
-            mask[i:j] = True
-        if ihfree:
-            for mol, (i, j) in zip(self.molecules, edges):
-                mask[i:j] = mol.symbols != "H"
-        diag = np.diag_indices(len(b))
-        ix = (diag[0][mask], diag[1][mask])
-        b2 = hyp_b ** 2
-        n_mol = nmol[mask]
-
-        niter, delta = 0, 2 * tol
-        while delta > tol and niter < maxiter:
-            q_last, a_i = q.copy(), a.copy()
-            a_i[ix] = a[ix] + hyp_a / np.sqrt(q[mask] ** 2 + b2) * n_mol
-            q = np.linalg.solve(a_i, b)
-            delta = np.max((q - q_last)[mask] ** 2) ** 0.5
-            niter += 1
-
-        if delta > tol:
-            err = "Charge fitting did not converge with maxiter={}"
-            warnings.warn(err.format(maxiter))
-
-        return q
-
-    def get_stage2_constraints(
-        self,
-        qs,
-        equal_methyls=False,
-        intra_chrequiv=[],
-        inter_chrconstr=[],
-        intra_chrconstr=[],
-    ):
-        """
-        Create constraints for Resp stage 2. Atom numbers are indexed from 1.
-
-        Parameters
-        ----------
-        qs: ndarray
-            list of charges for each molecule from stage 1
-        equal_methyls: bool (optional)
-            if ``True``, all carbons in methyl groups are constrained to be
-            equivalent; all carbons in methylenes are equivalent; all hydrogens
-            in methyls are equivalent; and all hydrogens in methylenes are
-            equivalent. Ignored if ``chrequiv`` constraints are provided.
-        intra_chrconstr: list of lists or dicts (optional)
-            Intramolecular charge constraints for each molecule in the
-            form of {charge: atom_number_list} or [(charge, atom_number_list)].
-            The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]]
-            mean that atoms 1 and 2 together have a charge of 0.
-        intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule. e.g. ::
-
-                [
-                  [[1, 2], [3, 4, 5]],
-                  [[1, 3, 5, 7]]
-                 ]
-
-            mean that atoms 1 and 2 in the first molecule have equal
-            charges; atoms 3, 4, and 5 in the first molecule have
-            equal charges; atoms 1, 3, 5, 7 in the second molecule have equal
-            charges.
-        inter_chrequiv: list of lists (optional)
-            Original intermolecular charge equivalence constraints from
-            stage 1
-
-        Returns
-        -------
-        intra_chrconstr: list
-            Intramolecular charge constraints for each molecule in the
-            form of [[[charge, atom_number_list]]]
-        intra_chrequiv: list
-            Intramolecular charge equivalence constraints for each
-            molecule in the form of [[[atom_number_list]]]
-        """
-
-        intra_chrconstr = self._nmol_values(
-            intra_chrconstr, "intra_chrconstr", "list or dict of constraints"
-        )
-        intra_chrequiv = self._nmol_values(
-            intra_chrequiv, "intra_chrequiv", "list of equivalence constraints"
-        )
-
-        iconstr = []
-        iequiv = []
-
-        # add inter constraints too
-        if inter_chrconstr is None:
-            inter_chrconstr = []
-        elif isinstance(inter_chrconstr, dict):
-            inter_chrconstr = list(inter_chrconstr.items())
-
-        # anything involved in a charge constraint cannot fluctuate freely
-        # chrconstr = [list() for i in range(self.n_molecules)]
-        # print("inter", intra_chrconstr)
-        # for q, groups in inter_chrconstr:
-        #     for molid, atoms in groups:
-        #         if isinstance(atoms, (tuple, list)):
-        #             chrconstr[molid-1].extend(atoms)
-        #         else:
-        #             chrconstr[molid-1].append(atoms)
-
-        # for i, atoms in enumerate(intra_chrconstr):
-        #     chrconstr[i].extend(atoms)  # avoid any tuple+list hijinks
-
-        # print("first", chrconstr)
-
-        rows = zip(self.molecules, qs, intra_chrequiv, intra_chrconstr)
-        for i, (mol, q, eq, cr) in enumerate(rows):
-            c, e = mol.get_stage2_constraints(
-                q, chrequiv=eq, chrconstr=cr, equal_methyls=equal_methyls
-            )
-            iconstr.append(c)
-            iequiv.append(e)
-
-        equivs = []
-        for group in iequiv:
-            equivs.append([x for x in group if len(x) >= 2])
-
-        return iconstr, equivs
-
-    def gen_methyl_constraints(self):
-        """
-        Get charge equivalence arrays when all methyls are treated as
-        equivalent, and all methylenes are equivalent. Toggle this with
-        ``equal_methyls=True`` in ``run()``.
-
-        Returns
-        -------
-        equivalence arrays: list of lists of ints
-            List of equivalence arrays. First array contains methyl carbons;
-            second contains methylene carbons; third contains methyl hydrogens;
-            last contains methylene hydrogens.
-        """
-        equivs = [[], [], [], []]
-        for mol in self.molecules:
-            meqs = mol.gen_methyl_constraints()
-            for j, eqs in enumerate(meqs):
-                equivs[j].append(eqs)
-        return equivs
-
-    def add_orientations(
-        self, orient=[], n_orient=0, rotate=[], n_rotate=0, translate=[], n_translate=0
-    ):
-        """
-        Add orientations to each conformer of each Resp molecule.
-
-        Parameters
-        ----------
-        n_orient: int (optional)
-            If this is greater than 0 and ``orient`` is not given,
-            ``n_orient`` orientations are automatically generated for each
-            molcule. Heavy atoms are prioritised.
-        orient: list of lists (optional)
-            List of lists of reorientations.
-            Corresponds to REMARK REORIENT in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        n_rotate: int (optional)
-            If this is greater than 0 and ``rotate`` is not given,
-            ``n_rotate`` rotations are automatically generated for each
-            molecule. Heavy atoms are prioritised.
-        rotate: list of lists (optional)
-            List of lists of rotations.
-            Corresponds to REMARK ROTATE in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        n_translate: int (optional)
-            If this is greater than 0 and ``translate`` is not given,
-            ``n_translate`` translations are randomly generated for each
-            molcule in the domain [0, 1).
-        translate: list of lists (optional)
-            List of lists of translations.
-            Corresponds to REMARK TRANSLATE in R.E.D.
-            e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
-            x coordinates, 0 to the y coordinates, and -0.5 to the z
-            coordinates.
-        load_files: bool (optional)
-            If ``True``, tries to load ESP and grid data from file.
-        """
-
-        orient = utils.iter_single(orient)
-        rotate = utils.iter_single(rotate)
-        translate = utils.iter_single(translate)
-        for mol, o, r, t in zip(self.molecules, orient, rotate, translate):
-            mol.add_orientations(
-                orient=o, n_orient=0, rotate=r, n_rotate=0, translate=t, n_translate=0
-            )
-
-    def run(
-        self,
-        stage_2=True,
-        intra_chrconstr=[],
-        intra_chrequiv=[],
-        inter_chrconstr=[],
-        inter_chrequiv=[],
-        equal_methyls=False,
-        hyp_a1=0.0005,
-        hyp_a2=0.001,
-        hyp_b=0.1,
-        ihfree=True,
-        tol=1e-5,
-        maxiter=50,
-        restraint=True,
-        **kwargs,
-    ):
-        """
-        Parameters
-        ----------
-        stage_2: bool (optional)
-            Whether to perform a 2-stage RESP fit
-        opt: bool (optional)
-            Whether to optimise the geometry of each conformer
-        save_opt_geometry: bool (optional)
-            if ``True``, writes optimised geometries to an XYZ file
-        intra_chrconstr: list of lists or dicts (optional)
-            Intramolecular charge constraints for each molecule in the
-            form of {charge: atom_number_list} or [(charge, atom_number_list)].
-            The numbers are indexed from 1. e.g. {0: [1, 2]} or [[0, [1, 2]]]
-            mean that atoms 1 and 2 together have a charge of 0.
-        intra_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges within each molecule. e.g. ::
-
-                [
-                  [[1, 2], [3, 4, 5]],
-                  [[1, 3, 5, 7]]
-                 ]
-
-            mean that atoms 1 and 2 in the first molecule have equal
-            charges; atoms 3, 4, and 5 in the first molecule have
-            equal charges; atoms 1, 3, 5, 7 in the second molecule have equal
-            charges.
-        inter_chrconstr: list of lists (optional)
-            Intermolecular charge constraints in the form of
-            {charge: [(mol_number, atom_number)]} or
-            [(charge, [(mol_number, atom_number)])].
-            The numbers are indexed from 1.
-            e.g. {0: [(1, 3), (2, 1)]} or [(0, [(1, 3), (2, 1)])] mean that
-            the third atom of the first molecule, and the first atom of the
-            second molecule, combine to have a charge of 0.
-        inter_chrequiv: list of lists (optional)
-            Lists of atoms with equivalent charges between each molecule,
-            in the form [(mol_number, atom_number)].
-            e.g. [[(1, 2), (2, 2), (3, 4)]] mean that atom 2 of molecule 1,
-            atom 2 of molecule 2, and atom 4 of molecule 3, all have equal
-            charges.
-        n_orient: int (optional)
-            If this is greater than 0 and ``orient`` is not given,
-            ``n_orient`` orientations are automatically generated for each
-            molcule. Heavy atoms are prioritised.
-        orient: list of lists (optional)
-            List of lists of reorientations.
-            Corresponds to REMARK REORIENT in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        n_rotate: int (optional)
-            If this is greater than 0 and ``rotate`` is not given,
-            ``n_rotate`` rotations are automatically generated for each
-            molecule. Heavy atoms are prioritised.
-        rotate: list of lists (optional)
-            List of lists of rotations.
-            Corresponds to REMARK ROTATE in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-            around the first, fifth and ninth atom; and the second in reverse
-            order.
-        n_translate: int (optional)
-            If this is greater than 0 and ``translate`` is not given,
-            ``n_translate`` translations are randomly generated for each
-            molcule in the domain [0, 1).
-        translate: list of lists (optional)
-            List of lists of translations.
-            Corresponds to REMARK TRANSLATE in R.E.D.
-            e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
-            x coordinates, 0 to the y coordinates, and -0.5 to the z
-            coordinates.
-        equal_methyls: bool (optional)
-            if ``True``, all carbons in methyl groups are constrained to be
-            equivalent; all carbons in methylenes are equivalent; all hydrogens
-            in methyls are equivalent; and all hydrogens in methylenes are
-            equivalent.
-        basis: str (optional)
-            Basis set for QM
-        method: str (optional)
-            Method for QM
-        psi4_options: dict (optional)
-            additional Psi4 options
-        hyp_a1: float (optional)
-            scale factor of asymptote limits of hyperbola for first stage.
-        hyp_a2: float (optional)
-            scale factor of asymptote limits of hyperbola for second stage.
-        load_files: bool (optional)
-            If ``True``, tries to load ESP and grid data from file.
-        **kwargs:
-            arguments passed to MultiResp.fit
-
-        Returns
-        -------
-        charges: list of ndarrays
-        """
-
-        if stage_2:  # do intra-constraints in stage 2 only
-            stage_2_equiv = intra_chrequiv
-            intra_chrequiv = [[] for i in range(self.n_molecules)]
-        else:
-            stage_2_equiv = [[] for i in range(self.n_molecules)]
-
-        if equal_methyls and not stage_2:
-            equivs = self.gen_methyl_constraints()
-            intra_chrequiv = [x + y for x, y in zip(intra_chrequiv, equivs)]
-
-        qs = self.fit(
-            intra_chrconstr=intra_chrconstr,
-            intra_chrequiv=intra_chrequiv,
-            inter_chrconstr=inter_chrconstr,
-            inter_chrequiv=inter_chrequiv,
-            hyp_a=hyp_a1,
-            hyp_b=hyp_b,
-            restraint=restraint,
-            ihfree=ihfree,
-            tol=tol,
-            maxiter=maxiter,
-        )
-        log.debug(f"Finished stage 1 fit with charges: {qs}")
-        if stage_2:
-            cs = self.get_stage2_constraints(
-                qs,
-                equal_methyls=equal_methyls,
-                intra_chrequiv=stage_2_equiv,
-                inter_chrconstr=inter_chrconstr,
-                intra_chrconstr=intra_chrconstr,
-            )
-            log.debug(f"Stage 2 constraints: {cs}")
-            intra_c, intra_e = cs
-            qs = self.fit(
-                intra_chrconstr=intra_c,
-                intra_chrequiv=intra_e,
-                hyp_a=hyp_a2,
-                hyp_b=hyp_b,
-                restraint=restraint,
-                ihfree=ihfree,
-                tol=tol,
-                maxiter=maxiter,
-            )
-        return qs
+    
+    def run(self, executor=None, stage_2=False,
+            charge_constraint_options=None,
+            restrained: bool=True, hyp_a1: float=0.0005,
+            hyp_a2=0.001, hyp_b: float=0.1, ihfree: bool=True, tol: float=1e-6,
+            maxiter: int=50):
+        
+        stage_1_options = RespOptions(restrained=restrained, hyp_a=hyp_a1,
+                                      hyp_b=hyp_b, ihfree=ihfree, tol=tol,
+                                      maxiter=maxiter)
+        stage_2_options = RespOptions(restrained=restrained, hyp_a=hyp_a2,
+                                      hyp_b=hyp_b, ihfree=ihfree, tol=tol,
+                                      maxiter=maxiter)
+        return self._run(stage_1_options=stage_1_options,
+                         stage_2_options=stage_2_options,
+                         charge_constraint_options=charge_constraint_options,
+                         executor=executor, stage_2=stage_2)

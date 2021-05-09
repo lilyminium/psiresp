@@ -89,7 +89,7 @@ class TestNoOrient:
         (False, 0.0, 'espA1')
     ])
     def test_preorient_dmso(self, stage_2, a, redname, resp_c1_o2):
-        charge_options = psiresp.options.ChargeOptions(equal_methyls=True)
+        charge_options = psiresp.options.ChargeOptions(equivalent_methyls=True)
         charges = resp_c1_o2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options)
         ref = charges_from_red_file('dmso_c1_o2_{}.dat'.format(redname))
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
@@ -100,7 +100,7 @@ class TestNoOrient:
         (False, 0.0, 'espA1')
     ])
     def test_noorient_dmso(self, stage_2, a, redname, resp_opt_qmra):
-        charge_options = psiresp.options.ChargeOptions(equal_methyls=True)
+        charge_options = psiresp.options.ChargeOptions(equivalent_methyls=True)
         charges = resp_opt_qmra.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options)
         ref = charges_from_red_file('dmso_c1_o0_{}.dat'.format(redname))
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
@@ -128,7 +128,7 @@ class TestRespNoOpt(object):
     def resp_dmso(self, tmpdir):
         confs = self.load_mols('dmso', 1)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
-        orientation_options = psiresp.options.OrientationOptions(n_reorientations=2)
+        orientation_options = psiresp.options.OrientationOptions(n_reorientations=2, keep_original=False)
         with tmpdir.as_cwd():
             if self.load_files:
                 copy_tree(datafile("test_resp"), str(tmpdir))
@@ -136,13 +136,18 @@ class TestRespNoOpt(object):
                                             optimize_geometry=self.opt,
                                             orientation_options=orientation_options,
                                             io_options=io_options)
+        options = r.conformers[0].orientation_options
+        assert len(r.conformers[0].orientations) == 2
+        assert options.reorientations[0] == (1, 5, 6)
+        assert options.reorientations[1] == (6, 5, 1)
         return r
 
     @pytest.fixture()
     def resp_ethanol(self, tmpdir):
         confs = self.load_mols('ethanol', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
-        orientation_options = psiresp.options.OrientationOptions(reorientations=[(1, 5, 8), (8, 5, 1), (9, 8, 5), (5, 8, 9)])
+        orient = [(1, 5, 8), (8, 5, 1), (9, 8, 5), (5, 8, 9)]
+        orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
         with tmpdir.as_cwd():
             if self.load_files:
                 copy_tree(datafile("test_resp"), str(tmpdir))
@@ -157,7 +162,7 @@ class TestRespNoOpt(object):
         confs = self.load_mols('nme2ala2', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
-        orientation_options = psiresp.options.OrientationOptions(reorientations=orient)
+        orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
         with tmpdir.as_cwd():
             if self.load_files:
                 copy_tree(datafile("test_resp"), str(tmpdir))
@@ -169,7 +174,7 @@ class TestRespNoOpt(object):
 
     @pytest.fixture()
     def dmso_charge_options(self):
-        return psiresp.options.ChargeOptions(equal_methyls=True)
+        return psiresp.options.ChargeOptions(equivalent_methyls=True)
 
     @pytest.mark.parametrize('stage_2,a,redname', [
         (False, 0.01, 'respA2'),
@@ -177,13 +182,19 @@ class TestRespNoOpt(object):
         (False, 0.0, 'espA1')
     ])
     def test_resp_single_conf(self, stage_2, a, redname, resp_dmso,
-                              dmso_charge_options):
+                              dmso_charge_options, executor):
         charges = resp_dmso.run(stage_2=stage_2, hyp_a1=a, restrained=True,
-                                charge_constraint_options=dmso_charge_options,)
+                                charge_constraint_options=dmso_charge_options,
+                                executor=executor)
         ref = self.load_charges('dmso', 1, 2, redname,)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
-    def test_resp_multi_conf(self, stage_2, a, redname, resp_ethanol):
+    @pytest.mark.parametrize('stage_2,a,redname', [
+        (False, 0.01, 'respA2'),
+        (True, 0.0005, 'respA1'),
+        (False, 0.0, 'espA1')
+    ])
+    def test_resp_multi_conf(self, stage_2, a, redname, resp_ethanol, executor):
         confs = self.load_mols('ethanol', 2)
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
@@ -191,31 +202,52 @@ class TestRespNoOpt(object):
             chrequiv = []
 
         charge_options = psiresp.options.ChargeOptions(charge_equivalences=chrequiv)
-        charges = resp_ethanol.run(stage_2=stage_2, hyp_a1=a,
+        charges = resp_ethanol.run(stage_2=stage_2, hyp_a1=a, executor=executor,
                                    charge_constraint_options=charge_options)
         ref = self.load_charges('ethanol', 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
-    @pytest.mark.parametrize('chargename,chrconstr', [
-        ('', [(0, [1, 2, 3, 4, 5, 6]),
-              (0, [20, 21, 22, 23, 24, 25]),
-              (-0.4157, [7]), (0.2719, [8]),
-              (0.5973, [18]), (-0.5679, [19]),
-              ]),
-        # # skip this b/c tests are timing out and it's replicated in MultiResp
-        ('_multifit_constr', {
-            0: [20, 21, 22, 23, 24, 25],
-            0.6163: [18],
-            -0.5722: [19]}),
+    @pytest.mark.parametrize('stage_2,a,redname', [
+        (False, 0.01, 'respA2'),
+        (True, 0.0005, 'respA1'),
+        (False, 0.0, 'espA1')
     ])
-    def test_intra_constraints(self, chrconstr, chargename, stage_2, a, redname,
-                               resp_nme2ala2):
+    def test_intra_constraints(self, stage_2, a, redname,
+                               resp_nme2ala2, executor):
+        chargename = ""
+        chrconstr = [(0, [1, 2, 3, 4, 5, 6]),
+                     (0, [20, 21, 22, 23, 24, 25]),
+                     (-0.4157, [7]), (0.2719, [8]),
+                     (0.5973, [18]), (-0.5679, [19])]
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
         charge_options = psiresp.options.ChargeOptions(charge_constraints=chrconstr,
                                                        charge_equivalences=chrequiv,
-                                                       equal_methyls=False)
-        
-        charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options)
+                                                       equivalent_methyls=False,
+                                                       equivalent_sp3_hydrogens=False)        
+        charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
+                                    executor=executor)
+        ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
+        assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize('stage_2,a,redname', [
+        (False, 0.01, 'respA2'),
+        (True, 0.0005, 'respA1'),
+        (False, 0.0, 'espA1')
+    ])
+    def test_intra_multifit_constraints(self, stage_2, a, redname,
+                                        resp_nme2ala2, executor):
+        chargename = "_multifit_constr"
+        chrconstr = {0: [20, 21, 22, 23, 24, 25],
+                     0.6163: [18],
+                     -0.5722: [19]})
+        chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
+        charge_options = psiresp.options.ChargeOptions(charge_constraints=chrconstr,
+                                                       charge_equivalences=chrequiv,
+                                                       equivalent_methyls=False,
+                                                       equivalent_sp3_hydrogens=False)        
+        charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
+                                    executor=executor)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
