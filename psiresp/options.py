@@ -162,10 +162,10 @@ class ESPOptions(AttrDict):
                  rmax: float = -1,
                  use_radii: str = "msk", vdw_radii: Dict[str, float] = {},
                  vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0],
-                 density: float = 1.0):
+                 vdw_point_density: float = 1.0):
         super().__init__(rmin=rmin, rmax=rmax, use_radii=use_radii,
                          vdw_scale_factors=vdw_scale_factors,
-                         vdw_radii=vdw_radii, density=density)
+                         vdw_radii=vdw_radii, vdw_point_density=vdw_point_density)
 
 
 class OrientationOptions(AttrDict):
@@ -554,11 +554,12 @@ class RespCharges:
         ix = (diag[0][mask], diag[1][mask])
         indices = np.where(mask)[0]
         b2 = self.resp_options.hyp_b ** 2
+        n_structures = self.n_structures[mask]
 
         niter, delta = 0, 2 * self.resp_options.tol
         while delta > self.resp_options.tol and niter < self.resp_options.maxiter:
             q_last, a_i = charges.copy(), a_matrix.copy()
-            a_i[ix] = a_matrix[ix] + self.resp_options.hyp_a/np.sqrt(charges[indices] ** 2 + b2) * self.n_structures
+            a_i[ix] = a_matrix[ix] + self.resp_options.hyp_a/np.sqrt(charges[indices] ** 2 + b2) * n_structures
             charges = np.linalg.solve(a_i, b_matrix)
             delta = np.max((charges - q_last)[: self.n_atoms] ** 2) ** 0.5
             niter += 1
@@ -571,7 +572,6 @@ class RespCharges:
 
     
     def fit(self, a_matrix, b_matrix):
-        print(a_matrix)
         q1 = np.linalg.solve(a_matrix, b_matrix)
         self.unrestrained_charges = q1[: self.n_atoms]
         if self.resp_options.restrained:

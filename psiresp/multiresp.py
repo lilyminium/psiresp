@@ -80,6 +80,12 @@ class MultiResp:
         return sum([mol.n_structures for mol in self.molecules])
 
     @property
+    def n_structure_array(self):
+        n_atoms = [x.n_atoms for x in self.molecules]
+        n_structures = [x.n_structures for x in self.molecules]
+        return np.repeat(n_structures, n_atoms)
+
+    @property
     def n_molecules(self):
         return len(self.molecules)
 
@@ -152,53 +158,42 @@ class MultiResp:
             final_charge_options = initial_charge_options
 
         if initial_charge_options.equivalent_methyls:
-            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
-        print("initial")
-        print(initial_charge_options.charge_constraints)
-        print("")
-        print(initial_charge_options.charge_equivalences)
-        
+            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)        
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
-        print(a_matrix.shape)
-        print(a_matrix)
-        np.savetxt("a_matrix.dat", a_matrix, fmt="%8.4f")
-        np.savetxt("b_matrix.dat", b_matrix, fmt="%8.4f")
-        raise ValueError
+
 
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
 
+        np.savetxt("ac_matrix.dat", a1, fmt="%8.4f")
+        np.savetxt("bc_matrix.dat", b1, fmt="%8.4f")
+
         stage_1_options = RespOptions(**stage_1_options)
         self.stage_1_charges = RespCharges(stage_1_options, symbols=self.symbols,
-                                           n_structures=self.n_structures)
+                                           n_structures=self.n_structure_array)
         self.stage_1_charges.fit(a1, b1)
 
         for i, mol in enumerate(self.molecules, 1):
             a = self.atom_increment_mapping[i]
             b = a + mol.n_atoms
             mol.stage_1_charges = self.stage_1_charges.copy(start_index=a, end_index=b,
-                                                            n_structures=mol.n_structures)
-        print("charges")
-        print(self.stage_1_charges.charges)
+                                                            n_structures=mol.n_structure_array)
 
         if stage_2:
             final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
-            print(final_charge_options.charge_constraints)
-            print(final_charge_options.charge_equivalences)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
-                                            n_structures=self.n_structures)
+                                            n_structures=self.n_structure_array)
             self.stage_2_charges.fit(a2, b2)
 
             for i, mol in enumerate(self.molecules, 1):
                 a = self.atom_increment_mapping[i]
                 b = a + mol.n_atoms
                 mol.stage_2_charges = self.stage_2_charges.copy(start_index=a, end_index=b,
-                                                                n_structures=mol.n_structures)
+                                                                n_structures=mol.n_structure_array)
 
-            print(self.stage_2_charges.charges)
 
         return self.charges
 

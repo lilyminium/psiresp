@@ -34,16 +34,20 @@ class BaseTestRespConfigNoOpt:
     """Charges from R.E.D. jobs"""
 
     def test_resp_noopt_noorient(self, dmso_orients, tmpdir, ref):
-        r = self.cls.from_molecules(dmso_orients, charge=0)
-        r0 = psiresp.Resp.from_molecules(dmso_orients, charge=0)
+        charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
         with tmpdir.as_cwd():
-            charges = r.run(opt=False, equivalent_methyls=True)
+            r = self.cls.from_molecules(dmso_orients, charge=0)
+            charges = r.run(charge_constraint_options=charge_options)
+
+        print(charges)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
     def test_resp_noopt_orient(self, dmso_opt, tmpdir, ref):
-        r = self.cls.from_molecules([dmso_opt])
+        charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
+        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
         with tmpdir.as_cwd():
-            charges = r.run(n_orient=2, opt=False, equivalent_methyls=True)
+            r = self.cls.from_molecules([dmso_opt], orientation_options=orientation_options)
+            charges = r.run(charge_constraint_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 
@@ -65,10 +69,12 @@ class BaseTestRespConfigOpt:
 
     @pytest.mark.slow
     def test_resp_opt(self, dmso, tmpdir, ref):
-        r = self.cls.from_molecules([dmso])
+        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
+        charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
         with tmpdir.as_cwd():
-            charges = r.run(opt=True, n_orient=2, equivalent_methyls=True,
-                            save_opt_geometry=False)
+            r = self.cls.from_molecules([dmso], optimize_geometry=True,
+                                        orientation_options=orientation_options)
+            charges = r.run(charge_constraint_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 
@@ -109,8 +115,9 @@ class BaseTestATBResp:
 
     @pytest.fixture(scope='function')
     def resp(self):
+        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
         opt = [mol_from_file('{}_c1_ATB_opt.xyz'.format(self.molname))]
-        r = self.cls.from_molecules(opt)
+        r = self.cls.from_molecules(opt, orientation_options=orientation_options)
         return r
 
     @pytest.fixture()
@@ -118,19 +125,26 @@ class BaseTestATBResp:
         return charges_from_itp_file(self.chargefile)
 
     def test_resp_noopt(self, tmpdir, resp, ref):
+        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
+        opt = [mol_from_file('{}_c1_ATB_opt.xyz'.format(self.molname))]
+        charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
         with tmpdir.as_cwd():
-            charges = resp.run(opt=False, n_orient=2, equivalent_methyls=True,
-                               vdw_point_density=1, solvent='water')
+            resp = self.cls.from_molecules(opt, orientation_options=orientation_options,
+                                    optimize_geometry=False)
+            charges = resp.run(charge_options=charge_options)
         # no idea which point density ATB uses
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
     @pytest.mark.slow
     def test_resp_opt(self, tmpdir, ref):
         mol = [mol_from_file(self.molfile)]
-        r = self.cls.from_molecules(mol)
+        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
+        charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
+        
         with tmpdir.as_cwd():
-            charges = r.run(opt=True, n_orient=2, equivalent_methyls=True,
-                            vdw_point_density=1, solvent='water')
+            r = self.cls.from_molecules(mol, orientation_options=orientation_options,
+                                    optimize_geometry=True)
+            charges = r.run(charge_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
 

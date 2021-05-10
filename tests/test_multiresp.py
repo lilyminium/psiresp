@@ -72,16 +72,6 @@ class TestMultiRespNoOptNoOrient(object):
                                             name='methylammonium')
         return resp
 
-    # @pytest.fixture()
-    # def nme2ala2_charges(self, redname):
-    #     fn = 'nme2ala2_multifit_constr_c2_o4_{}.dat'.format(redname)
-    #     return charges_from_red_file(fn)
-
-    # @pytest.fixture()
-    # def multifit_charges(self, redname):
-    #     fn = 'amm_dimethyl_{}.dat'.format(redname)
-    #     return charges_from_red_file(fn)
-
     # @pytest.mark.parametrize('stage_2,a,redname', [
     #     (False, 0.01, 'respA2'),  # really off
     #     (True, 0.0005, 'respA1'),
@@ -104,15 +94,6 @@ class TestMultiRespNoOptNoOrient(object):
                        redname):
         multifit_charges = charges_from_red_file(f"amm_dimethyl_{redname}.dat")
         xyz = methylammonium.conformers[0].orientations[0].coordinates
-        ref_xyz = np.array([[ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,],
-                            [-3.35678171e-01,  5.12209814e-01,  8.87177025e-01,],
-                            [-3.35678541e-01,  5.12212883e-01, -8.87175090e-01,],
-                            [-3.35678404e-01, -1.02442265e+00, -1.62827916e-06,],
-                            [ 1.50737182e+00,  3.36974637e-18, -2.39073353e-16,],
-                            [ 1.87952508e+00, -4.70269354e-01, -8.14529724e-01,],
-                            [ 1.87952460e+00,  9.40538016e-01, -2.93752362e-17,],
-                            [ 1.87952437e+00, -4.70268969e-01,  8.14530435e-01,]])
-        assert_almost_equal(xyz, ref_xyz)
         r = psiresp.MultiResp([methylammonium, nme2ala2])
         chrconstrs = {0: [(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8)]}
         ch_options = psiresp.ChargeOptions(charge_constraints=[chrconstrs], equivalent_sp3_hydrogens=False)

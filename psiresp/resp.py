@@ -242,6 +242,10 @@ class Resp(base.IOBase):
     @property
     def n_structures(self):
         return sum([c.n_orientations for c in self.conformers])
+    
+    @property
+    def n_structure_array(self):
+        return np.repeat(self.n_structures, self.n_atoms)
 
     def to_mda(self):
         mol = utils.psi42xyz(self.conformers[0].molecule)
@@ -327,7 +331,7 @@ class Resp(base.IOBase):
 
         resp_options = RespOptions(**resp_options)
         resp_charges = RespCharges(resp_options, symbols=self.symbols,
-                                   n_structures=self.n_structures)
+                                   n_structures=self.n_structure_array)
         resp_charges.fit(A, B)
         return resp_charges
 
@@ -361,7 +365,7 @@ class Resp(base.IOBase):
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
         stage_1_options = RespOptions(**stage_1_options)
         self.stage_1_charges = RespCharges(stage_1_options, symbols=self.symbols,
-                                           n_structures=self.n_structures)
+                                           n_structures=self.n_structure_array)
         self.stage_1_charges.fit(a1, b1)
 
         if stage_2:
@@ -370,7 +374,7 @@ class Resp(base.IOBase):
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
-                                            n_structures=self.n_structures)
+                                            n_structures=self.n_structure_array)
             self.stage_2_charges.fit(a2, b2)
 
         return self.charges

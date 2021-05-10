@@ -339,4 +339,4 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
                                          vdw_radii=self.esp_options.vdw_radii,
                                          use_radii=self.esp_options.use_radii,
                                          scale_factors=self.esp_options.vdw_scale_factors,
-                                         density=self.esp_options.density)
+                                         density=self.esp_options.vdw_point_density)

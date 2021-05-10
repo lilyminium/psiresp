@@ -19,9 +19,9 @@ class RespA1(Resp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
-                    tol=tol, maxiter=maxiter, stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
-                    hyp_b=0.1, restrained=True, ihfree=True)
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+                           tol=tol, maxiter=maxiter, stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
+                           hyp_b=0.1, restrained=True, ihfree=True)
 
 @due.dcite(
     Doi("10.1039/c0cp00111b"),
@@ -41,7 +41,7 @@ class RespA2(Resp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.01, hyp_a2=0.0,
                     hyp_b=0.1, restrained=True, ihfree=True)
 
@@ -64,7 +64,7 @@ class EspA1(Resp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=True)
 
@@ -85,7 +85,7 @@ class EspA2(Resp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=True)
 
@@ -106,7 +106,7 @@ class ATBResp(Resp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=False)
 
@@ -127,7 +127,7 @@ class MultiRespA1(MultiResp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=True, hyp_a1=0.0005, hyp_a2=0.001,
                     hyp_b=0.1, restrained=True, ihfree=True)
 
@@ -148,7 +148,7 @@ class MultiRespA2(MultiResp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.01, hyp_a2=0.0,
                     hyp_b=0.1, restrained=True, ihfree=True)
 @due.dcite(
@@ -168,7 +168,7 @@ class MultiEspA1(MultiResp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=True)
 
@@ -190,7 +190,7 @@ class MultiEspA2(MultiResp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=True)
 
@@ -212,6 +212,6 @@ class ATBMultiResp(MultiResp):
 
     def run(self, executor=None, charge_constraint_options=None,
             tol: float=1e-6, maxiter: int=50):
-        super().run(executor=executor, charge_constraint_options=charge_constraint_options,
+        return super().run(executor=executor, charge_constraint_options=charge_constraint_options,
                     tol=tol, maxiter=maxiter, stage_2=False, hyp_a1=0.0, hyp_a2=0.0,
                     hyp_b=0.1, restrained=False, ihfree=False)
