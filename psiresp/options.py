@@ -54,7 +54,7 @@ class IOOptions(AttrDict):
             else:
                 if self.verbose:
                     print(f"Loaded from {path}.")
-                    return data, path
+                return data, path
         return None, path
 
     def save_data(self, data, path, comments=None):

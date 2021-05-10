@@ -129,8 +129,6 @@ class TestRespNoOpt(object):
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
         orientation_options = psiresp.options.OrientationOptions(n_reorientations=2, keep_original=False)
         with tmpdir.as_cwd():
-            if self.load_files:
-                copy_tree(datafile("test_resp"), str(tmpdir))
             r = psiresp.Resp.from_molecules(confs, charge=0, name="dmso",
                                             optimize_geometry=self.opt,
                                             orientation_options=orientation_options,
@@ -147,8 +145,6 @@ class TestRespNoOpt(object):
         orient = [(1, 5, 8), (8, 5, 1), (9, 8, 5), (5, 8, 9)]
         orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
         with tmpdir.as_cwd():
-            if self.load_files:
-                copy_tree(datafile("test_resp"), str(tmpdir))
             r = psiresp.Resp.from_molecules(confs, charge=0, name="ethanol",
                                             optimize_geometry=self.opt,
                                             orientation_options=orientation_options,
@@ -161,8 +157,6 @@ class TestRespNoOpt(object):
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
         orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
         with tmpdir.as_cwd():
-            if self.load_files:
-                copy_tree(datafile("test_resp"), str(tmpdir))
             r = psiresp.Resp.from_molecules(confs, charge=0, name="nme2ala2",
                                             optimize_geometry=self.opt,
                                             orientation_options=orientation_options,
@@ -181,9 +175,12 @@ class TestRespNoOpt(object):
     def test_resp_single_conf(self, stage_2, a, redname,
                               dmso_charge_options, executor, tmpdir):
         resp_dmso = self.create_resp_dmso(tmpdir)
-        charges = resp_dmso.run(stage_2=stage_2, hyp_a1=a, restrained=True,
-                                charge_constraint_options=dmso_charge_options,
-                                executor=executor)
+        with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            charges = resp_dmso.run(stage_2=stage_2, hyp_a1=a, restrained=True,
+                                    charge_constraint_options=dmso_charge_options,
+                                    executor=executor)
         ref = self.load_charges('dmso', 1, 2, redname,)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
@@ -201,8 +198,11 @@ class TestRespNoOpt(object):
             chrequiv = []
 
         charge_options = psiresp.options.ChargeOptions(charge_equivalences=chrequiv)
-        charges = resp_ethanol.run(stage_2=stage_2, hyp_a1=a, executor=executor,
-                                   charge_constraint_options=charge_options)
+        with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            charges = resp_ethanol.run(stage_2=stage_2, hyp_a1=a, executor=executor,
+                                    charge_constraint_options=charge_options)
         ref = self.load_charges('ethanol', 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
@@ -223,9 +223,12 @@ class TestRespNoOpt(object):
         charge_options = psiresp.options.ChargeOptions(charge_constraints=chrconstr,
                                                        charge_equivalences=chrequiv,
                                                        equivalent_methyls=False,
-                                                       equivalent_sp3_hydrogens=False)        
-        charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
-                                    executor=executor)
+                                                       equivalent_sp3_hydrogens=False)
+        with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
+                                        executor=executor)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
@@ -246,9 +249,12 @@ class TestRespNoOpt(object):
         charge_options = psiresp.options.ChargeOptions(charge_constraints=chrconstr,
                                                        charge_equivalences=chrequiv,
                                                        equivalent_methyls=False,
-                                                       equivalent_sp3_hydrogens=False)        
-        charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
-                                    executor=executor)
+                                                       equivalent_sp3_hydrogens=False)
+        with tmpdir.as_cwd():
+            if self.load_files:
+                copy_tree(datafile("test_resp"), str(tmpdir))
+            charges = resp_nme2ala2.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=charge_options,
+                                        executor=executor)
         ref = self.load_charges('nme2ala2'+chargename, 2, 4, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 

@@ -110,6 +110,7 @@ class Resp2(object):
         self.solvated.run(executor=executor, stage_2=True, charge_constraint_options=charge_constraint_options,
                      restrained=True, hyp_a1=0.0005, hyp_a2=0.001, hyp_b=0.1, ihfree=True, tol=tol,
                      maxiter=maxiter)
+        return self.charges
 
 
 

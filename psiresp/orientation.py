@@ -163,7 +163,7 @@ class Orientation(base.IOBase, base.Psi4MolContainerMixin):
             points.append(surface)
         return np.concatenate(points)
 
-    @base.datafile(filename="esp.dat")
+    @base.datafile(filename="grid_esp.dat")
     def compute_esp(self):
         import psi4
 

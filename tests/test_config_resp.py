@@ -6,6 +6,8 @@ Unit and regression test for the psiresp package.
 import psiresp
 import pytest
 import sys
+from distutils.dir_util import copy_tree
+
 import numpy as np
 
 from numpy.testing import assert_almost_equal, assert_allclose
@@ -39,7 +41,6 @@ class BaseTestRespConfigNoOpt:
             r = self.cls.from_molecules(dmso_orients, charge=0)
             charges = r.run(charge_constraint_options=charge_options)
 
-        print(charges)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
     def test_resp_noopt_orient(self, dmso_opt, tmpdir, ref):
@@ -189,6 +190,8 @@ class BaseTestResp2Ethanol:
     See repo for more: https://github.com/MSchauperl/RESP2
     """
 
+    load_files = False
+
     solv = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
                      0.0649, -0.0111, -0.0111,  0.4045])
 
@@ -203,16 +206,20 @@ class BaseTestResp2Ethanol:
                 mol_from_file('ethanol_resp2_opt_c2.xyz')]
         
         with tmpdir.as_cwd():
-            r = psiresp.Resp2.from_molecules(mols, charge=0, name='resp2_ethanol', delta=0.5)
+            if self.load_files:
+                copy_tree(datafile("test_resp2"), str(tmpdir))
+            io_options = psiresp.IOOptions(load_from_files=self.load_files)
+            r = psiresp.Resp2.from_molecules(mols, charge=0, name='resp2_ethanol', delta=0.5,
+                                             io_options=io_options)
             charges = r.run()
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
-        assert_almost_equal(r.solv_charges, self.solv, decimal=3)
+        assert_almost_equal(r.solvated_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
 
 
 @pytest.mark.fast
 class TestLoadResp2Ethanol(BaseTestResp2Ethanol):
-    pass
+    load_files = True
 
 @pytest.mark.resp2
 class TestResp2Ethanol(BaseTestResp2Ethanol):

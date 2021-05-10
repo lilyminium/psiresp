@@ -272,11 +272,10 @@ class Resp(base.IOBase):
         """
         if name is None:
             name = self.name + "_copy"
-        mols = [c.psi4mol.clone() for c in self.conformers]
-
-        new = type(self).from_molecules(mols, name=name, charge=self.charge,
-                                        multiplicity=self.multiplicity, io_options=self.io_options,
-                                        charge_constraint_options=self.charge_constraint_options)
+        conformers = [c.clone(name=f"{name}_c{i:03d}") for i, c in enumerate(self.conformers, 1)]
+        new = type(self)(conformers, name=name, charge=self.charge,
+                        multiplicity=self.multiplicity, io_options=self.io_options,
+                        charge_constraint_options=self.charge_constraint_options)
         return new
 
     # # def optimize_geometry(self, psi4_options={}):

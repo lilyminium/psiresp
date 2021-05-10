@@ -36,7 +36,7 @@ def datafile(func=None, filename=None):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        fn = os.path.join(self.directory, self.name + "_" + filename)
+        fn = self.name + "_" + filename
         data, path = self.io_options.try_load_data(fn)
         if data is not None:
             return data
