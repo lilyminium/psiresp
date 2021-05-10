@@ -275,7 +275,8 @@ class Resp(base.IOBase):
         mols = [c.psi4mol.clone() for c in self.conformers]
 
         new = type(self).from_molecules(mols, name=name, charge=self.charge,
-                                        multiplicity=self.multiplicity, io_options=self.io_options)
+                                        multiplicity=self.multiplicity, io_options=self.io_options,
+                                        charge_constraint_options=self.charge_constraint_options)
         return new
 
     # # def optimize_geometry(self, psi4_options={}):
