@@ -1,11 +1,6 @@
 import logging
 import os
-import tempfile
-import warnings
-import pickle
 import subprocess
-import textwrap
-from typing import Optional
 from concurrent.futures import as_completed
 
 import numpy as np
@@ -201,7 +196,7 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         return self._orientations
     
 
-    def clone(self, name: Optional[str] = None):
+    def clone(self, name=None):
         """Clone into another instance of Conformer
 
         Parameters

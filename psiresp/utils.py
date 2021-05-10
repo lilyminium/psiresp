@@ -1,6 +1,5 @@
 import itertools
 import os
-from collections import defaultdict
 import functools
 import glob
 import concurrent.futures
@@ -11,7 +10,7 @@ import pandas as pd
 import psi4
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdFMCS
+from rdkit.Chem import rdFMCS
 import MDAnalysis as mda
 
 from . import vdwradii
@@ -49,21 +48,21 @@ def psi4mol_from_state(state):
     return psi4mol
 
 
-def compute(executor, futures, objects):
-    to_print = []
-    try:
-        concurrent.futures.wait(futures)
-    except KeyboardInterrupt:
-        executor.shutdown(wait=False)
-        raise KeyboardInterrupt()
-    else:
-        for i, f in enumerate(futures):
-            try:
-                res = f.result()
-            except ValueError:
-                to_print.append(objects[i].exec)
-        if len(to_print):
-            return ";\n".join(to_print)
+# def compute(executor, futures, objects):
+#     to_print = []
+#     try:
+#         concurrent.futures.wait(futures)
+#     except KeyboardInterrupt:
+#         executor.shutdown(wait=False)
+#         raise KeyboardInterrupt()
+#     else:
+#         for i, f in enumerate(futures):
+#             try:
+#                 res = f.result()
+#             except ValueError:
+#                 to_print.append(objects[i].exec)
+#         if len(to_print):
+#             return ";\n".join(to_print)
 
 
 def read_rdmol(filename: str):
@@ -348,54 +347,54 @@ def cached(func):
     return property(wrapper)
 
 
-def try_load_data(path, force=False, verbose=False):
-    suffix = path.split(".")[-1]
+# def try_load_data(path, force=False, verbose=False):
+#     suffix = path.split(".")[-1]
 
-    if not force:
-        if suffix == "csv":
-            loader = read_csv
-        elif suffix in ("dat", "txt"):
-            loader = np.loadtxt
-        elif suffix in ("npy", "npz"):
-            loader = np.load
-        elif suffix in ("xyz", "pdb", "mol2"):
-            loader = load_text
-        else:
-            raise ValueError(f"Can't find loader for {suffix} file")
+#     if not force:
+#         if suffix == "csv":
+#             loader = read_csv
+#         elif suffix in ("dat", "txt"):
+#             loader = np.loadtxt
+#         elif suffix in ("npy", "npz"):
+#             loader = np.load
+#         elif suffix in ("xyz", "pdb", "mol2"):
+#             loader = load_text
+#         else:
+#             raise ValueError(f"Can't find loader for {suffix} file")
 
-        try:
-            data = loader(path)
-        except:
-            if verbose:
-                print(f"Could not load data from {path}: (re)running.")
-        else:
-            if verbose:
-                print(f"Loaded from {path}.")
-                return data, path
-    return None, path
+#         try:
+#             data = loader(path)
+#         except:
+#             if verbose:
+#                 print(f"Could not load data from {path}: (re)running.")
+#         else:
+#             if verbose:
+#                 print(f"Loaded from {path}.")
+#                 return data, path
+#     return None, path
 
 
-def save_data(data, path, comments=None, verbose=False):
-    suffix = path.split(".")[-1]
+# def save_data(data, path, comments=None, verbose=False):
+#     suffix = path.split(".")[-1]
 
-    if suffix == "csv":
-        data.to_csv(path)
-    elif suffix in ("dat", "txt"):
-        np.savetxt(path, data, comments=comments)
-    elif suffix == "npy":
-        np.save(path, data)
-    elif suffix == "npz":
-        np.savez(path, **data)
-    elif suffix == "xyz":
-        if isinstance(data, str):
-            with open(path, "w") as f:
-                f.write(data)
-        else:
-            data.save_xyz_file(path, True)
-    else:
-        raise ValueError(f"Can't find saver for {suffix} file")
-    if verbose:
-        print("Saved to", path)
+#     if suffix == "csv":
+#         data.to_csv(path)
+#     elif suffix in ("dat", "txt"):
+#         np.savetxt(path, data, comments=comments)
+#     elif suffix == "npy":
+#         np.save(path, data)
+#     elif suffix == "npz":
+#         np.savez(path, **data)
+#     elif suffix == "xyz":
+#         if isinstance(data, str):
+#             with open(path, "w") as f:
+#                 f.write(data)
+#         else:
+#             data.save_xyz_file(path, True)
+#     else:
+#         raise ValueError(f"Can't find saver for {suffix} file")
+#     if verbose:
+#         print("Saved to", path)
 
 
 def rotate_x(n, coords):

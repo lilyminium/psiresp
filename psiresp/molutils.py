@@ -2,14 +2,13 @@
 Molecule utilities for use with MDAnalysis, RDKit, and Psi4 objects.
 """
 
-import io
 import glob
 import tempfile
 import itertools
 
 import rdkit
 import MDAnalysis as mda
-from rdkit.Chem import AllChem, rdFMCS
+from rdkit.Chem import rdFMCS
 from rdkit import Chem
 import psi4
 

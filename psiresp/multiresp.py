@@ -1,11 +1,7 @@
-from __future__ import division, absolute_import
-import warnings
-import itertools
 import logging
 
 import numpy as np
 
-from . import utils
 from .options import ChargeOptions, RespCharges, RespOptions
 
 log = logging.getLogger(__name__)

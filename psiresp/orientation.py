@@ -1,17 +1,12 @@
 from __future__ import division, absolute_import
 import os
 import logging
-import tempfile
-import textwrap
-import warnings
 import subprocess
-from typing import Optional, List, Dict
 
 import numpy as np
-import psi4
 
 from . import base, utils
-from .options import ESPOptions, IOOptions
+from .options import IOOptions
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +58,7 @@ class Orientation(base.IOBase, base.Psi4MolContainerMixin):
         is called.
     """
 
-    def __init__(self, psi4mol, conformer, name: Optional[str]=None,
+    def __init__(self, psi4mol, conformer, name=None,
                  io_options=IOOptions()):
         if name is not None:
             psi4mol.set_name(name)
@@ -129,7 +124,7 @@ class Orientation(base.IOBase, base.Psi4MolContainerMixin):
         inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
         return inverse * BOHR_TO_ANGSTROM
 
-    def clone(self, name: Optional[str]=None):
+    def clone(self, name=None):
         """Clone into another instance of Orientation
 
         Parameters

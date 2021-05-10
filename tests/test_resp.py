@@ -207,7 +207,7 @@ class TestRespNoOpt(object):
         assert_allclose(charges, ref, rtol=0.01, atol=5e-4)
 
     @pytest.mark.parametrize('stage_2,a,redname', [
-        (False, 0.01, 'respA2'),
+        # (False, 0.01, 'respA2'),
         (True, 0.0005, 'respA1'),
         (False, 0.0, 'espA1')
     ])

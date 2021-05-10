@@ -1,5 +1,5 @@
-from collections import UserDict, UserList, defaultdict
-from typing import Dict, List, Optional, Union
+from collections import UserDict, UserList
+from typing import Dict, List, Optional
 import itertools
 import textwrap
 import os

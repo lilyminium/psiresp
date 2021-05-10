@@ -1,10 +1,5 @@
-from __future__ import division, absolute_import
-import warnings
-import itertools
 import logging
 import io
-import pickle
-import concurrent.futures
 
 import numpy as np
 from rdkit import Chem
@@ -147,24 +142,24 @@ class Resp(base.IOBase):
         return cls(conformers, name=name, charge=charge, multiplicity=multiplicity,
                    io_options=io_options, charge_constraint_options=charge_constraint_options)
 
-    @classmethod
-    def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
-                   n_confs=0, minimize_maxIters=2000, **kwargs):
-        rdmol = Chem.AddHs(rdmol)
-        confs = []
+    # @classmethod
+    # def from_rdmol(cls, rdmol, name="Mol", rmsd_threshold=1.5, minimize=False,
+    #                n_confs=0, minimize_maxIters=2000, **kwargs):
+    #     rdmol = Chem.AddHs(rdmol)
+    #     confs = []
 
-        cids = AllChem.EmbedMultipleConfs(rdmol,
-                                          numConfs=n_confs,
-                                          pruneRmsThresh=rmsd_threshold,
-                                          ignoreSmoothingFailures=True)
+    #     cids = AllChem.EmbedMultipleConfs(rdmol,
+    #                                       numConfs=n_confs,
+    #                                       pruneRmsThresh=rmsd_threshold,
+    #                                       ignoreSmoothingFailures=True)
 
-        if minimize:
-            # TODO: is UFF good?
-            AllChem.UFFOptimizeMoleculeConfs(rdmol,
-                                             maxIters=minimize_maxIters)
-        molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
+    #     if minimize:
+    #         # TODO: is UFF good?
+    #         AllChem.UFFOptimizeMoleculeConfs(rdmol,
+    #                                          maxIters=minimize_maxIters)
+    #     molecules = utils.rdmol_to_psi4mols(rdmol, name=name)
 
-        return cls.from_molecules(molecules, name=name, **kwargs)
+    #     return cls.from_molecules(molecules, name=name, **kwargs)
 
     def __init__(self, conformers=[], name="Resp", charge=0,
                  multiplicity=1, charge_constraint_options=ChargeOptions(),
@@ -373,6 +368,8 @@ class Resp(base.IOBase):
                                                          sp3_ch_ids=self.sp3_ch_ids)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
+            print(final_charge_options.charge_constraints)
+            print(final_charge_options.charge_equivalences)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
                                             n_structures=self.n_structure_array)
             self.stage_2_charges.fit(a2, b2)
