@@ -19,8 +19,9 @@ class BaseTestOrientation:
         return mol_from_file('{}.xyz'.format(self.orientname))
 
     @pytest.fixture(scope='function')
-    def opt_orientation(self, opt_mol):
-        conformer = psiresp.Conformer(opt_mol)
+    def opt_orientation(self, opt_mol, tmpdir):
+        with tmpdir.as_cwd():
+            conformer = psiresp.Conformer(opt_mol)
         return conformer.orientations[0]
 
     @pytest.fixture(scope='function')

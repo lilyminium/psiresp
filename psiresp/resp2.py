@@ -21,7 +21,8 @@ class Resp2(object):
                        esp_options = ESPOptions(),
                        orientation_options = OrientationOptions(),
                        charge_constraint_options = ChargeOptions(),
-                       weights=None, optimize_geometry=False):
+                       weights=None, optimize_geometry=False,
+                       delta=0.6):
         """
         Create Resp class from Psi4 molecules.
 
@@ -63,7 +64,8 @@ class Resp2(object):
                              esp_options=esp_options, orientation_options=orientation_options)
             conformers.append(conf)
         return cls(conformers, name=name, charge=charge, multiplicity=multiplicity,
-                   io_options=io_options, charge_constraint_options=charge_constraint_options)
+                   io_options=io_options, charge_constraint_options=charge_constraint_options,
+                   delta=delta)
 
     def __init__(self, conformers=[], name="Resp", charge=0,
                  multiplicity=1, charge_constraint_options=ChargeOptions(),

@@ -240,7 +240,7 @@ class TestRespNoOpt(object):
         chargename = "_multifit_constr"
         chrconstr = {0: [20, 21, 22, 23, 24, 25],
                      0.6163: [18],
-                     -0.5722: [19]})
+                     -0.5722: [19]}
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]
         charge_options = psiresp.options.ChargeOptions(charge_constraints=chrconstr,
                                                        charge_equivalences=chrequiv,

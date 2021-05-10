@@ -51,7 +51,7 @@ class TestConformer:
         assert conformer.psi4mol.multiplicity() == 2
         assert conformer.n_atoms == 25
         assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
-        assert len(conformer.orientations) == 1
+        assert len(conformer.orientations) == 3
         assert conformer.orientations[0].name == 'nme2ala2_o001'
 
     # @pytest.mark.optimize
