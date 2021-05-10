@@ -272,7 +272,7 @@ class Resp(base.IOBase):
         """
         if name is None:
             name = self.name + "_copy"
-        mols = [c.molecule.clone() for c in self.conformers]
+        mols = [c.psi4mol.clone() for c in self.conformers]
 
         new = type(self).from_molecules(mols, name=name, charge=self.charge,
                                         multiplicity=self.multiplicity, io_options=self.io_options)

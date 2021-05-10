@@ -239,7 +239,7 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         name = "{}_o{:03d}".format(self.name, len(self._orientations) + 1)
         cmol.set_name(name)
 
-        omol = Orientation(cmol, conformer=self, name=name)
+        omol = Orientation(cmol, conformer=self, name=name, io_options=self.io_options)
         self._orientations.append(omol)
 
     def add_orientations(self):

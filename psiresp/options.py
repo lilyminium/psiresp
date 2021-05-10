@@ -23,8 +23,7 @@ class AttrDict(UserDict):
 
 
 class IOOptions(AttrDict):
-    def __init__(self,
-                 force: bool = False,
+    def __init__(self, force=False,
                  verbose: bool = False,
                  write_to_files: bool=False,
                  load_from_files: bool=False):

@@ -1,4 +1,5 @@
 import functools
+import os
 
 import numpy as np
 
@@ -28,14 +29,14 @@ def datafile(func=None, filename=None):
         return functools.partial(datafile, filename=filename)
 
     fname = func.__name__
-    if fname.startswith("get_"):
-        fname = fname[4:]
+    if fname.startswith("compute_"):
+        fname = fname.split("compute_", maxsplit=1)[1]
 
     filename = filename if filename else fname + ".dat"
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        fn = self.name + "_" + filename
+        fn = os.path.join(self.directory, self.name + "_" + filename)
         data, path = self.io_options.try_load_data(fn)
         if data is not None:
             return data

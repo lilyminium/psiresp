@@ -142,7 +142,7 @@ class TestRespNoOpt(object):
         assert options.reorientations[1] == (6, 5, 1)
         return r
 
-    @pytest.fixture()
+    @pytest.fixture(scope="function")
     def resp_ethanol(self, tmpdir):
         confs = self.load_mols('ethanol', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
@@ -157,7 +157,7 @@ class TestRespNoOpt(object):
                                             io_options=io_options)
         return r
 
-    @pytest.fixture()
+    @pytest.fixture(scope="function")
     def resp_nme2ala2(self, tmpdir):
         confs = self.load_mols('nme2ala2', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
