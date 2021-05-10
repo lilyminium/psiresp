@@ -70,18 +70,17 @@ class TestMultiRespNoOptNoOrient(object):
                                             charge_constraint_options=ch_options,
                                             optimize_geometry=self.opt,
                                             name='methylammonium')
-            print(resp.conformers[0].orientations[0].coordinates)
         return resp
 
-    @pytest.fixture()
-    def nme2ala2_charges(self, redname):
-        fn = 'nme2ala2_multifit_constr_c2_o4_{}.dat'.format(redname)
-        return charges_from_red_file(fn)
+    # @pytest.fixture()
+    # def nme2ala2_charges(self, redname):
+    #     fn = 'nme2ala2_multifit_constr_c2_o4_{}.dat'.format(redname)
+    #     return charges_from_red_file(fn)
 
-    @pytest.fixture()
-    def multifit_charges(self, redname):
-        fn = 'amm_dimethyl_{}.dat'.format(redname)
-        return charges_from_red_file(fn)
+    # @pytest.fixture()
+    # def multifit_charges(self, redname):
+    #     fn = 'amm_dimethyl_{}.dat'.format(redname)
+    #     return charges_from_red_file(fn)
 
     # @pytest.mark.parametrize('stage_2,a,redname', [
     #     (False, 0.01, 'respA2'),  # really off
@@ -102,11 +101,27 @@ class TestMultiRespNoOptNoOrient(object):
         (False, 0.0, 'espA1')
     ])
     def test_multi_mol(self, stage_2, a, nme2ala2, methylammonium,
-                       multifit_charges):
+                       redname):
+        multifit_charges = charges_from_red_file(f"amm_dimethyl_{redname}.dat")
+        xyz = methylammonium.conformers[0].orientations[0].coordinates
+        ref_xyz = np.array([[ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,],
+                            [-3.35678171e-01,  5.12209814e-01,  8.87177025e-01,],
+                            [-3.35678541e-01,  5.12212883e-01, -8.87175090e-01,],
+                            [-3.35678404e-01, -1.02442265e+00, -1.62827916e-06,],
+                            [ 1.50737182e+00,  3.36974637e-18, -2.39073353e-16,],
+                            [ 1.87952508e+00, -4.70269354e-01, -8.14529724e-01,],
+                            [ 1.87952460e+00,  9.40538016e-01, -2.93752362e-17,],
+                            [ 1.87952437e+00, -4.70268969e-01,  8.14530435e-01,]])
+        assert_almost_equal(xyz, ref_xyz)
         r = psiresp.MultiResp([methylammonium, nme2ala2])
-        chrequivs = [[(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8)]]
-        ch_options = psiresp.ChargeOptions(charge_equivalences=chrequivs, equivalent_sp3_hydrogens=False)
+        chrconstrs = {0: [(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8)]}
+        ch_options = psiresp.ChargeOptions(charge_constraints=[chrconstrs], equivalent_sp3_hydrogens=False)
         charges = r.run(stage_2=stage_2, hyp_a1=a, charge_constraint_options=ch_options)
+        ref_con = multifit_charges[0][[0, 1, 2, 3]].sum() + multifit_charges[1][[0, 1, 2, 3, 4, 5, 6, 7]].sum()
+        assert_almost_equal(ref_con, 0)
+        constraint = charges[0][[0, 1, 2, 3]].sum() + charges[1][[0, 1, 2, 3, 4, 5, 6, 7]].sum()
+        assert_almost_equal(constraint, 0)
+        
         for charge, ref in zip(charges, multifit_charges):
             assert_allclose(charge, ref, rtol=self.rtol, atol=self.atol)
 

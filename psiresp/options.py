@@ -114,6 +114,7 @@ class QMOptions(AttrDict):
 
     def write_esp_file(self, psi4mol, destination_dir=".", filename="esp.in"):
         esp_file = utils.create_psi4_molstr(psi4mol)
+
         esp_file += f"set basis {self.basis}\n"
 
         if self.solvent:
@@ -225,17 +226,23 @@ class OrientationOptions(AttrDict):
 
 @functools.total_ordering
 class AtomId:
-    def __init__(self, molecule_id=1, atom_id=None):
+    def __init__(self, molecule_id=1, atom_id=None, atom_increment=0):
         if isinstance(molecule_id, AtomId):
             atom_id = molecule_id.atom_id
+            atom_increment = molecule_id.atom_increment
             molecule_id = molecule_id.molecule_id
         else:
             if atom_id is None:
-                atom_id = molecule_id
-                molecule_id = 1
+                if isinstance(molecule_id, (list, tuple)) and len(molecule_id) == 2:
+                    atom_id = molecule_id[1]
+                    molecule_id = molecule_id[0]
+                else:
+                    atom_id = molecule_id
+                    molecule_id = 1
         self.atom_id = atom_id
         self.molecule_id = molecule_id
-        self.atom_increment = 0
+        self.atom_increment = atom_increment
+        
 
     def __lt__(self, other):
         if isinstance(other, AtomId):
@@ -268,7 +275,7 @@ class AtomId:
 class BaseChargeConstraint(UserList):
     def __init__(self, atom_ids: list = []):
         atom_ids = [AtomId(x) for x in atom_ids]
-        atom_ids = list(set(atom_ids))
+        atom_ids = sorted(set(atom_ids))
         super().__init__(atom_ids)
 
     @property
@@ -473,7 +480,6 @@ class ChargeOptions(AttrDict):
         charges = np.asarray(charges)
         atom_ids = [i for eq in self.charge_equivalences for i in eq.atom_ids]
         if self.equivalent_sp3_hydrogens:
-            print("is equivalent")
             hs = [y for x in sp3_ch_ids.values() for y in x]
             cs = list(sp3_ch_ids.keys())
             atom_ids = atom_ids + hs + cs
@@ -565,6 +571,7 @@ class RespCharges:
 
     
     def fit(self, a_matrix, b_matrix):
+        print(a_matrix)
         q1 = np.linalg.solve(a_matrix, b_matrix)
         self.unrestrained_charges = q1[: self.n_atoms]
         if self.resp_options.restrained:

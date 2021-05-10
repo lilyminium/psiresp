@@ -4,6 +4,7 @@ from collections import defaultdict
 import functools
 import glob
 import concurrent.futures
+import re
 from typing import Any
 
 import pandas as pd
@@ -129,6 +130,8 @@ def read_psi4mol(filename: str):
 
 def create_psi4_molstr(molecule):
     mol = molecule.create_psi4_string_from_molecule()
+    pattern = r"--\n\s*\d \d\n"  # remove any clashing fragment charge/multiplicity
+    mol = re.sub(pattern, "", mol)
     return f"molecule {molecule.name()} {{\n{mol}\n}}\n\n"
 
 

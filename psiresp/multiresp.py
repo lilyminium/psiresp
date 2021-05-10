@@ -90,18 +90,25 @@ class MultiResp:
     def get_conformer_a_matrix(self):
         ndim = self.n_atoms + self.n_molecules
         A = np.zeros((ndim, ndim))
-        i = 0
-        for mol in self.molecules:
-            j = i + mol.n_atoms + 1
-            A[i:j, i:j] = mol.get_conformer_a_matrix()
+        start = 0
+        for i, mol in enumerate(self.molecules, 1):
+            end = start + mol.n_atoms
+            a = mol.get_conformer_a_matrix()
+            A[start:end, start:end] = a[:mol.n_atoms, :mol.n_atoms]
+            A[-i, start:end+1] = a[-1]
+            A[start:end+1, -i] = a[:, -1]
+            start = end
         return A
 
     def get_conformer_b_matrix(self, executor=None):
         B = np.zeros(self.n_atoms + self.n_molecules)
-        i = 0
-        for mol in self.molecules:
-            j = i + mol.n_atoms + 1
-            B[i:j] = mol.get_conformer_b_matrix(executor=None)
+        start = 0
+        for i, mol in enumerate(self.molecules, 1):
+            end = start + mol.n_atoms
+            b = mol.get_conformer_b_matrix(executor=None)
+            B[start:end] = b[:-1]
+            B[-i] = b[-1]
+            start = end
         return B
 
     def get_absolute_charge_constraint_options(self, charge_constraint_options):
@@ -139,17 +146,28 @@ class MultiResp:
 
         if stage_2:
             final_charge_options = ChargeOptions(**initial_charge_options)
+            final_charge_options.charge_constraints = []
             initial_charge_options.charge_equivalences = []
         else:
             final_charge_options = initial_charge_options
 
         if initial_charge_options.equivalent_methyls:
             final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
+        print("initial")
+        print(initial_charge_options.charge_constraints)
+        print("")
+        print(initial_charge_options.charge_equivalences)
         
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
+        print(a_matrix.shape)
+        print(a_matrix)
+        np.savetxt("a_matrix.dat", a_matrix, fmt="%8.4f")
+        np.savetxt("b_matrix.dat", b_matrix, fmt="%8.4f")
+        raise ValueError
 
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
+
         stage_1_options = RespOptions(**stage_1_options)
         self.stage_1_charges = RespCharges(stage_1_options, symbols=self.symbols,
                                            n_structures=self.n_structures)
@@ -160,10 +178,14 @@ class MultiResp:
             b = a + mol.n_atoms
             mol.stage_1_charges = self.stage_1_charges.copy(start_index=a, end_index=b,
                                                             n_structures=mol.n_structures)
+        print("charges")
+        print(self.stage_1_charges.charges)
 
         if stage_2:
             final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
+            print(final_charge_options.charge_constraints)
+            print(final_charge_options.charge_equivalences)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
@@ -175,6 +197,8 @@ class MultiResp:
                 b = a + mol.n_atoms
                 mol.stage_2_charges = self.stage_2_charges.copy(start_index=a, end_index=b,
                                                                 n_structures=mol.n_structures)
+
+            print(self.stage_2_charges.charges)
 
         return self.charges
 
