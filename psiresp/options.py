@@ -48,7 +48,7 @@ class IOOptions(AttrDict):
 
             try:
                 data = loader(path)
-            except:
+            except Exception:
                 if self.verbose:
                     print(f"Could not load data from {path}: (re)running.")
             else:

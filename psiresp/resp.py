@@ -2,8 +2,6 @@ import logging
 import io
 
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import AllChem
 import MDAnalysis as mda
 
 from .conformer import Conformer
