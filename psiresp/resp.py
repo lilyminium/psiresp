@@ -347,6 +347,7 @@ class Resp(base.IOBase):
 
         if stage_2:
             final_charge_options = ChargeOptions(**initial_charge_options)
+            final_charge_options.charge_constraints = []
             initial_charge_options.charge_equivalences = []
         else:
             final_charge_options = initial_charge_options
