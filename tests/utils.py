@@ -33,6 +33,7 @@ def mol_from_file(file):
     mol = psi4.core.Molecule.from_string(geom, fix_com=True,
                                          fix_orientation=True)
     mol.update_geometry()
+    mol.activate_all_fragments()
     return mol
 
 

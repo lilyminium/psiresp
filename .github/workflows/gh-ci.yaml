@@ -82,4 +82,4 @@ jobs:
         if [ ${{ matrix.codecov }} = "true" ]; then
           PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
         fi
-        pytest -n 2 tests $PYTEST_FLAGS
+        pytest -n 4 tests $PYTEST_FLAGS

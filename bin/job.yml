@@ -1,0 +1,22 @@
+
+equiv_mcs: false
+n_confs: 8
+n_orient: 8
+minimize: true
+mcs_natoms: 4
+inter_chrconstr: []
+basis: 6-31g*
+method: scf
+opt: true
+save_opt_geometry: false
+force: false
+verbose: true
+coords: null
+run_qm: true
+out: "{name}_charged.mol2"
+
+molecules:
+  m1_u4:
+    rdmol: 'CCC(C)(CC)C(=O)OCCOCCOCCOCCOC'
+    charge: 0
+

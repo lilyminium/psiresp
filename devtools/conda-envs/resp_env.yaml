@@ -1,14 +1,19 @@
 name: psiresp
 channels:
   - conda-forge
-  - psi4
+  - psi4/label/dev
 
 dependencies:
+  - cython
+  - dask
+  - distributed
   - numpy
   - pip
   - psi4=1.3.2
   - python
   - qcelemental
+  - rdkit
   # Pip-only installs
   - pip:
-      - duecredit
+    - duecredit
+    - git+https://github.com/MDAnalysis/mdanalysis@develop#egg=mdanalysis&subdirectory=package

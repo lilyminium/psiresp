@@ -1,44 +1,47 @@
 import logging
 import os
-import tempfile
-import warnings
+import subprocess
+from concurrent.futures import as_completed
 
 import numpy as np
+import psi4
 
-from . import utils
+from . import utils, base
 from .orientation import Orientation
+# from .type_aliases import Psi4Basis, Psi4Method, AtomReorient, TranslateReorient
+from .options import QMOptions, ESPOptions, OrientationOptions, IOOptions
 
 log = logging.getLogger(__name__)
 
 
-class Conformer(object):
+class Conformer(base.IOBase, base.Psi4MolContainerMixin):
     """
-    Wrapper class to manage one conformer molecule, containing 
+    Wrapper class to manage one conformer psi4mol, containing
     multiple orientations.
 
     Parameters
     ----------
-    molecule: Psi4 molecule
+    psi4mol: Psi4 psi4mol
     charge: int (optional)
-        overall charge of the molecule.
+        overall charge of the psi4mol.
     multiplicity: int (optional)
-        multiplicity of the molecule
+        multiplicity of the psi4mol
     name: str (optional)
-        name of the molecule. This is used to name output files. If not 
+        name of the psi4mol. This is used to name output files. If not
         given, the default Psi4 name is 'default'.
     orient: list of tuples of ints (optional)
         List of reorientations. Corresponds to REMARK REORIENT in R.E.D.
         e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-        around the first, fifth and ninth atom; and the second in reverse 
+        around the first, fifth and ninth atom; and the second in reverse
         order.
     rotate: list of tuples of ints (optional)
         List of rotations. Corresponds to REMARK ROTATE in R.E.D.
         e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-        around the first, fifth and ninth atom; and the second in reverse 
+        around the first, fifth and ninth atom; and the second in reverse
         order.
     translate: list of tuples of floats (optional)
         List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
-        e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the 
+        e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
         x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
     grid_name: str (optional)
             template for grid filename for each Orientation.
@@ -49,43 +52,140 @@ class Conformer(object):
 
     Attributes
     ----------
-    molecule: Psi4 molecule
+    psi4mol: Psi4 molecule
     name: str
-        name of the molecule. This is used to name output files.
+        name of the psi4mol. This is used to name output files.
     n_atoms: int
         number of atoms in each conformer
     symbols: ndarray
         element symbols
     orientations: list of Orientations
-        list of the molecule with reoriented coordinates
+        list of the psi4mol with reoriented coordinates
     """
 
-    def __init__(self, molecule, charge=0, multiplicity=1, name=None,
-                 orient=[], rotate=[], translate=[], load_files=False,
-                 grid_name='grid.dat', esp_name='grid_esp.dat',
-                 mat_name='abmat.dat'):
-        if name and name != molecule.name():
-            molecule.set_name(name)
-        self.name = molecule.name()
-        if charge != molecule.molecular_charge():
-            molecule.set_molecular_charge(charge)
-        if multiplicity != molecule.multiplicity():
-            molecule.set_multiplicity(multiplicity)
+    kwargnames = ("optimize_geometry", "charge", "multiplicity", "weight",
+                  "qm_options", "esp_options", "orientation_options",
+                  "io_options")
+
+    def __init__(self,
+                 psi4mol: psi4.core.Molecule,
+                 name: str = "conf",
+                 charge: float = 0,
+                 multiplicity: int = 1,
+                 optimize_geometry: bool = False,
+                 weight: float = 1,
+                 io_options = IOOptions(),
+                 qm_options = QMOptions(),
+                 esp_options = ESPOptions(),
+                 orientation_options = OrientationOptions()):
+        if name and name != psi4mol.name():
+            psi4mol.set_name(name)
+        super().__init__(name=psi4mol.name(), io_options=io_options)
+
+        self.psi4mol = psi4mol
+
+        # options
+        self.optimize_geometry = optimize_geometry
+        self.qm_options = qm_options
+        self.esp_options = esp_options
+        self.orientation_options = orientation_options
+
+        # molecule stuff
         self.charge = charge
         self.multiplicity = multiplicity
-        self.molecule = molecule
-        self.n_atoms = molecule.natom()
-        self.symbols = np.array([molecule.symbol(i) for i in range(self.n_atoms)])
-        self._orient = orient[:]
-        self._rotate = rotate[:]
-        self._translate = translate[:]
-        self._load_files = load_files
-        self._grid_name = grid_name
-        self._esp_name = esp_name
-        self._mat_name = mat_name
-        self.mat_filename = utils.prepend_name_to_file(self.name, mat_name)
+        self.weight = weight
+
+        # resp stuff
+        self.optimized = False
+        self._vdw_points = None
+        self._unweighted_ab = None
+        self._unweighted_a_matrix = None
+        self._unweighted_b_matrix = None
+        self._directory = None
+
+        self.post_init()
+
+    @property
+    def charge(self):
+        return self.psi4mol.molecular_charge()
+    
+    @charge.setter
+    def charge(self, value):
+        if value != self.psi4mol.molecular_charge():
+            self.psi4mol.set_molecular_charge(value)
+            self.psi4mol.update_geometry()
+
+    @property
+    def multiplicity(self):
+        return self.psi4mol.multiplicity()
+
+    @multiplicity.setter
+    def multiplicity(self, value):
+        if value != self.psi4mol.multiplicity():
+            self.psi4mol.set_multiplicity(value)
+            self.psi4mol.update_geometry()
+
+
+    def post_init(self):
         self._orientations = []
-        self._orientation = Orientation(self.molecule, symbols=self.symbols)
+        self.add_orientations()
+        self.directory
+
+    @property
+    def directory(self):
+        if self._directory is None:
+            path = os.path.join(os.getcwd(), self.name)
+            try:
+                os.mkdir(path)
+            except FileExistsError:
+                pass
+            self._directory = path
+        return self._directory
+
+
+    def __getstate__(self):
+        dct = dict(psi4mol=utils.psi42xyz(self.psi4mol), name=self.name,
+                   optimized=self.optimized, _vdw_points=self._vdw_points,
+                   _unweighted_ab=self._unweighted_ab)
+        for kwarg in self.kwargnames:
+            dct[kwarg] = getattr(self, kwarg)
+        return dct
+
+    def __setstate__(self, state):
+        self.psi4mol = utils.psi4mol_from_state(state)
+        self.name = self.psi4mol.name()
+        for kwarg in self.kwargnames:
+            setattr(self, kwarg, state[kwarg])
+        self.post_init()
+
+    @property
+    def coordinates(self):
+        return self.psi4mol.geometry().np.astype("float")
+
+    @property
+    def qm_options(self):
+        return self._qm_options
+
+    @qm_options.setter
+    def qm_options(self, options):
+        self._qm_options = QMOptions(**options)
+
+    @property
+    def esp_options(self):
+        return self._esp_options
+
+    @esp_options.setter
+    def esp_options(self, options):
+        self._esp_options = ESPOptions(**options)
+
+    @property
+    def orientation_options(self):
+        return self._orientation_options
+
+    @orientation_options.setter
+    def orientation_options(self, options):
+        self._orientation_options = OrientationOptions(**options)
+
 
     @property
     def n_orientations(self):
@@ -93,22 +193,8 @@ class Conformer(object):
 
     @property
     def orientations(self):
-        if not self._orientations:
-            self._gen_orientations(orient=self._orient,
-                                   translate=self._translate,
-                                   rotate=self._rotate,
-                                   load_files=self._load_files)
-        if not self._orientations:
-            return [self._orientation]
         return self._orientations
-
-    @property
-    def _grid_needs_computing(self):
-        return any(mol.grid is None for mol in self.orientations)
-
-    @property
-    def coordinates(self):
-        return self.molecule.geometry().np.astype('float')
+    
 
     def clone(self, name=None):
         """Clone into another instance of Conformer
@@ -124,235 +210,128 @@ class Conformer(object):
         Conformer
         """
         if name is None:
-            name = self.name+'_copy'
+            name = self.name + "_copy"
 
-        new = type(self)(self.molecule.clone(), name=name,
-                         charge=self.charge,
-                         multiplicity=self.multiplicity,
-                         orient=self._orient, rotate=self._rotate,
-                         translate=self._translate,
-                         load_files=self._load_files,
-                         grid_name=self._grid_name,
-                         esp_name=self._esp_name,
-                         mat_name=self._mat_name)
+        dct = {}
+        for kwarg in self.kwargnames:
+            dct[kwarg] = getattr(self, kwarg)
+
+        new = type(self)(self.psi4mol.clone(), name=name, **dct)
         return new
 
-    def _gen_orientations(self, orient=[], translate=[], rotate=[],
-                          load_files=False):
-        """
-        Generate new orientations.
-
-        Parameters
-        ----------
-        orient: list of tuples of ints (optional)
-            List of reorientations. Corresponds to REMARK REORIENT in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-            around the first, fifth and ninth atom; and the second in reverse 
-            order.
-        rotate: list of tuples of ints (optional)
-            List of rotations. Corresponds to REMARK ROTATE in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-            around the first, fifth and ninth atom; and the second in reverse 
-            order.
-        translate: list of tuples of floats (optional)
-            List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
-            e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the 
-            x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-        load_files: bool (optional)
-            If ``True``, each orientation tries to load ESP and grid data from file.
-        """
-
-        for atom_ids in orient:
-            a, b, c = [a-1 if a > 0 else a for a in atom_ids]
-            xyz = utils.orient_rigid(a, b, c, self.coordinates)
-            self._add_orientation(xyz, load_files=load_files)
-
-        for atom_ids in rotate:
-            a, b, c = [a-1 if a > 0 else a for a in atom_ids]
-            xyz = utils.rotate_rigid(a, b, c, self.coordinates)
-            self._add_orientation(xyz, load_files=load_files)
-
-        for translation in translate:
-            xyz = self.coordinates+translation
-            self._add_orientation(xyz, load_files=load_files)
-
-    def _add_orientation(self, coordinates, load_files=False):
+    def _add_orientation(self, coordinates=None):
         import psi4
-        mat = psi4.core.Matrix.from_array(coordinates)
-        cmol = self.molecule.clone()
-        cmol.set_geometry(mat)
-        cmol.fix_com(True)
-        cmol.fix_orientation(True)
-        cmol.update_geometry()
-        cmol.set_name('{}_o{}'.format(self.name, len(self._orientations)+1))
-        self._orientations.append(Orientation(cmol, symbols=self.symbols,
-                                              load_files=load_files,
-                                              grid_name=self._grid_name,
-                                              esp_name=self._esp_name))
 
-    def add_orientations(self, orient=[], translate=[], rotate=[],
-                         load_files=False):
-        """
-        Add new orientations to generate.
+        cmol = self.psi4mol.clone()
+        if coordinates is not None:
+            mat = psi4.core.Matrix.from_array(coordinates)
+            cmol.set_geometry(mat)
+            cmol.set_molecular_charge(self.charge)
+            cmol.set_multiplicity(self.multiplicity)
+            cmol.fix_com(True)
+            cmol.fix_orientation(True)
+            cmol.update_geometry()
+        name = "{}_o{:03d}".format(self.name, len(self._orientations) + 1)
+        cmol.set_name(name)
 
-        Parameters
-        ----------
-        orient: list of tuples of ints (optional)
-            List of reorientations. Corresponds to REMARK REORIENT in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-            around the first, fifth and ninth atom; and the second in reverse 
-            order.
-        rotate: list of tuples of ints (optional)
-            List of rotations. Corresponds to REMARK ROTATE in R.E.D.
-            e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-            around the first, fifth and ninth atom; and the second in reverse 
-            order.
-        translate: list of tuples of floats (optional)
-            List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
-            e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the 
-            x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-        load_files: bool (optional)
-            If ``True``, each orientation tries to load ESP and grid data from file.
-        """
-        self._orient.extend(orient)
-        self._translate.extend(translate)
-        self._rotate.extend(rotate)
-        if self._orientations:
-            self._gen_orientations(orient=orient, rotate=rotate,
-                                   translate=translate, load_files=load_files)
+        omol = Orientation(cmol, conformer=self, name=name, io_options=self.io_options)
+        self._orientations.append(omol)
 
-    def optimize_geometry(self, method='scf', basis='6-31g*',
-                          psi4_options={}, save_opt_geometry=True,
-                          save_files=False):
-        """
-        Optimise the geometry of the molecule and update the coordinates.
-
-        Parameters
-        ----------
-        multiplicity: int (optional)
-        basis: str (optional)
-            Basis set to optimise geometry
-        method: str (optional)
-            Method to optimise geometry
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_opt_geometry: bool (optional)
-            if ``True``, writes the optimised geometry to an XYZ file.
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved. This does not affect 
-            writing optimised geometries to files. 
-        """
-        if not save_files:
-            cwd = os.getcwd()
-            with tempfile.TemporaryDirectory(prefix='tmp') as tmpdir:
-                os.chdir(tmpdir)
-                self._optimize_geometry(method=method, basis=basis,
-                                        psi4_options=psi4_options)
-                os.chdir(cwd)
-        else:
-            self._optimize_geometry(method=method, basis=basis,
-                                    psi4_options=psi4_options)
-
-        if save_opt_geometry:
-            self.molecule.save_xyz_file(self.name+'_opt.xyz', True)
-
-    def _optimize_geometry(self, method='scf', basis='6-31g*', psi4_options={}):
-        import psi4
-        psi4.set_options({'basis': basis,
-                          'geom_maxiter': 200,
-                          'full_hess_every': 10,
-                          'g_convergence': 'gau_tight',
-                          })
-        psi4.set_options(psi4_options)
-        logfile = self.name+'_opt.log'
-        psi4.set_output_file(logfile, False)  # doesn't work? where is the output?!
-        psi4.optimize(method, molecule=self.molecule)
-        psi4.core.clean()
+    def add_orientations(self):
         self._orientations = []
+        if self.orientation_options.keep_original or not self.orientation_options.n_orientations:
+            self._add_orientation()  # original
+        symbols = [self.psi4mol.symbol(i) for i in range(self.psi4mol.natom())]
+        self.orientation_options.generate_orientations(symbols)
+        dct = self.orientation_options.to_indices()
+        xyzs = []
+        for a, b, c in dct["reorientations"]:
+            xyzs.append(utils.orient_rigid(a, b, c, self.coordinates))
+        for a, b, c in dct["rotations"]:
+            xyzs.append(utils.rotate_rigid(a, b, c, self.coordinates))
+        for translation in dct["translations"]:
+            xyzs.append(self.coordinates + translation)
+        
+        for coordinates in xyzs:
+            self._add_orientation(coordinates)
 
-    def get_esp_matrices(self, weight=1.0, vdw_points=None, rmin=0, rmax=-1,
-                         basis='6-31g*', method='scf', solvent=None,
-                         psi4_options={}, save_files=False, vdw_radii={},
-                         use_radii='msk', vdw_point_density=1.0,
-                         vdw_scale_factors=(1.4, 1.6, 1.8, 2.0),
-                         load_files=False):
-        """
-        Get A and B matrices to solve for charges, from Bayly:93:Eq.11:: Aq=B
 
-        Parameters
-        ----------
-        weight: float (optional)
-            how much to weight the matrices
-        vdw_points: list of tuples (optional)
-            List of tuples of (unit_shell_coordinates, scaled_atom_radii).
-            If this is ``None`` or empty, new points are generated from 
-            utils.gen_connolly_shells and the variables ``vdw_radii``,
-            ``use_radii``, ``vdw_scale_factors``, ``vdw_point_density``.
-        rmin: float (optional)
-            inner boundary of shell to keep grid points from
-        rmax: float (optional)
-            outer boundary of shell to keep grid points from. If < 0,
-            all points are selected.
-        basis: str (optional)
-            Basis set to compute ESP
-        method: str (optional)
-            Method to compute ESP
-        solvent: str (optional)
-            Solvent for computing in implicit solvent
-        use_radii: str (optional)
-            which set of van der Waals' radii to use. 
-            Ignored if ``vdw_points`` is provided.
-        vdw_scale_factors: iterable of floats (optional)
-            scale factors. Ignored if ``vdw_points`` is provided.
-        vdw_point_density: float (optional)
-            point density. Ignored if ``vdw_points`` is provided.
-        vdw_radii: dict (optional)
-            van der Waals' radii. If elements in the molecule are not
-            defined in the chosen ``use_radii`` set, they must be given here.
-            Ignored if ``vdw_points`` is provided.
-        psi4_options: dict (optional)
-            additional Psi4 options
-        save_files: bool (optional)
-            if ``True``, Psi4 files are saved and the computed ESP
-            and grids are written to files.
+    @base.datafile(filename="optimized_geometry.xyz")
+    def compute_opt_mol(self):
+        tmpdir = self.directory
+        infile = f"{self.name}_opt.in"
+        outfile = self.qm_options.write_opt_file(self.psi4mol,
+                                                 destination_dir=tmpdir,
+                                                 filename=infile)
 
-        Returns
-        -------
-        A: ndarray (n_atoms, n_atoms)
-        B: ndarray (n_atoms,)
-        """
-        shape = (self.n_atoms+1, self.n_atoms)  # Ax=B
-        AB = None
 
-        if load_files or self._load_files:
+        cmd = f"cd {tmpdir}; psi4 -i {infile} -o {outfile}; cd -"
+        # maybe it's already run?
+        if not self.io_options.force and os.path.isfile(outfile):
+            return utils.log2xyz(outfile)
+        subprocess.run(cmd, shell=True)
+        return utils.log2xyz(outfile)
+
+    def compute_optimized_geometry(self, executor=None):
+        if not self.optimized and self.optimize_geometry:
             try:
-                AB = np.loadtxt(self.mat_filename)
-            except OSError:
-                warnings.warn(f'Could not read data from {self.mat_filename}')
-            else:
-                log.info(f'Read {self.name} AB matrices '
-                         f'from {self.mat_filename}')
-                if AB.shape != shape:
-                    log.info(f'{self.name} AB matrix has the wrong shape: '
-                             f'{AB.shape}, should be {shape}')
-                    AB = None
+                future = executor.submit(self.compute_opt_mol)
+                future.add_done_callback(lambda x: self.update_geometry_from_xyz(x.result()))
+            except AttributeError:
+                xyz = self.compute_opt_mol()
+                self.update_geometry_from_xyz(xyz)
 
-        if AB is None:
-            AB = np.zeros(shape)
+
+    def update_geometry_from_xyz(self, xyz):
+        mol = psi4.core.Molecule.from_string(xyz, dtype="xyz")
+        self.psi4mol.set_geometry(mol.geometry())
+        self.optimized = True
+        self.add_orientations()
+
+    def compute_unweighted_a_matrix(self):
+        A = np.zeros((self.n_atoms, self.n_atoms))
+        for mol in self.orientations:
+            A += mol.get_esp_mat_a()
+        return A
+
+    def compute_unweighted_b_matrix(self, executor=None):
+        B = np.zeros(self.n_atoms)
+        get_esp_mat_bs = [x.get_esp_mat_b for x in self.orientations]
+        try:
+            futures = list(map(executor.submit, get_esp_mat_bs))
+            for future in as_completed(futures):
+                B += future.result()
+        except AttributeError:
             for mol in self.orientations:
-                a, b = mol.get_esp_matrices(vdw_points=vdw_points,
-                                            basis=basis, method=method,
-                                            solvent=solvent,
-                                            psi4_options=psi4_options,
-                                            save_files=save_files)
-                AB[:self.n_atoms] += a
-                AB[-1] += b
-        
-        if save_files:
-            np.savetxt(self.mat_filename, AB)
-            log.debug(f'Saved unweighted AB matrices to {self.mat_filename}')
-        
-        AB *= (weight**2)
-        A, B = AB[:self.n_atoms], AB[-1]
+                B += mol.get_esp_mat_b()
+        return B
 
-        return A, B
+    def get_unweighted_b_matrix(self, executor=None):
+        if self._unweighted_b_matrix is None:
+            self._unweighted_b_matrix = self.compute_unweighted_b_matrix()
+        return self._unweighted_b_matrix
+
+    def get_unweighted_a_matrix(self):
+        if self._unweighted_a_matrix is None:
+            self._unweighted_a_matrix = self.compute_unweighted_a_matrix()
+        return self._unweighted_a_matrix
+
+    def get_weighted_a_matrix(self, executor=None):
+        return self.get_unweighted_a_matrix() * (self.weight ** 2)
+
+    def get_weighted_b_matrix(self, executor=None):
+        return self.get_unweighted_b_matrix(executor=executor) * (self.weight ** 2)
+
+    @property
+    def vdw_points(self):
+        if self._vdw_points is None:
+            self._vdw_points = self.compute_vdw_points()
+        return self._vdw_points
+
+    def compute_vdw_points(self):
+        el = [self.psi4mol.symbol(i) for i in range(self.psi4mol.natom())]
+        return utils.gen_connolly_shells(el,
+                                         vdw_radii=self.esp_options.vdw_radii,
+                                         use_radii=self.esp_options.use_radii,
+                                         scale_factors=self.esp_options.vdw_scale_factors,
+                                         density=self.esp_options.vdw_point_density)
