@@ -1,17 +1,14 @@
-
 import psiresp
 import pytest
 import os
 import numpy as np
 
-from numpy.testing import (assert_almost_equal, assert_equal,
-                           assert_allclose)
+from numpy.testing import (assert_almost_equal, assert_equal, assert_allclose)
 from .utils import mol_from_file
 from .datafiles import ABMAT
 
 
 class TestConformer:
-
     @pytest.fixture()
     def psi4mol(self):
         return mol_from_file('nme2ala2_c1.xyz')
@@ -40,10 +37,8 @@ class TestConformer:
     def test_init_conformer_options(self, psi4mol):
         orient = [(5, 18, 19), (19, 18, 5)]
         options = psiresp.options.OrientationOptions(reorientations=orient)
-        
-        conformer = psiresp.Conformer(psi4mol, name='nme2ala2', charge=2,
-                                      multiplicity=2,
-                                      orientation_options=options)
+
+        conformer = psiresp.Conformer(psi4mol, name='nme2ala2', charge=2, multiplicity=2, orientation_options=options)
         assert conformer.name == 'nme2ala2'
         assert conformer.charge == 2
         assert conformer.psi4mol.molecular_charge() == 2
@@ -86,8 +81,7 @@ class TestConformer:
     def test_clone(self, conformer):
         new = conformer.clone()
         assert new.psi4mol is not conformer.psi4mol
-        assert_almost_equal(new.psi4mol.geometry().np,
-                            conformer.psi4mol.geometry().np)
+        assert_almost_equal(new.psi4mol.geometry().np, conformer.psi4mol.geometry().np)
         assert new.name == 'conf_copy'
         assert new.charge == 0
         assert new.multiplicity == 1

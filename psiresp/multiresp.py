@@ -15,6 +15,12 @@ class MultiResp:
     ----------
     resps: list of Resp
         Molecules for multi-molecule fit, set up in Resp classes.
+    charge_constraint_options: psiresp.ChargeOptions (optional)
+        Charge constraints and charge equivalence constraints.
+        When running a fit, both these *and* the constraints supplied
+        in each individual RESP class are taken into account. This is
+        to help with differentiating between intra- and inter-molecular
+        constraints.
 
     Attributes
     ----------
@@ -25,11 +31,14 @@ class MultiResp:
     n_structures: int
         number of structures in entire MultiResp fit, where one structure
         is one orientation of one conformer
+    n_atoms: int
+        total number of atoms in the fit (sum of all atoms in each Resp class)
+    symbols: ndarray
+        all the element symbols in the fit
     charges: list of ndarray
         partial atomic charges for each molecule
-        (only exists after calling fit or run)
+        (only exists after calling run)
     """
-
     def __init__(self, resps, charge_constraint_options=ChargeOptions()):
         self.molecules = resps
         self._moldct = {r.name: i + 1 for i, r in enumerate(resps)}
@@ -46,8 +55,6 @@ class MultiResp:
                 self.sp3_ch_ids[c + n_atoms] = hs
 
             n_atoms += mol.n_atoms
-        
-
 
         self.charge_constraint_options = ChargeOptions(**charge_constraint_options)
 
@@ -69,7 +76,7 @@ class MultiResp:
         """
         names = [r.name + suffix for r in self.molecules]
         resps = [m.clone(name=n) for n, m in zip(names, self.molecules)]
-        return type(self)(resps)
+        return type(self)(resps, charge_constraint_options=self.charge_constraint_options)
 
     @property
     def n_structures(self):
@@ -97,8 +104,8 @@ class MultiResp:
             end = start + mol.n_atoms
             a = mol.get_conformer_a_matrix()
             A[start:end, start:end] = a[:mol.n_atoms, :mol.n_atoms]
-            A[-i, start:end+1] = a[-1]
-            A[start:end+1, -i] = a[:, -1]
+            A[-i, start:end + 1] = a[-1]
+            A[start:end + 1, -i] = a[:, -1]
             start = end
         return A
 
@@ -134,9 +141,12 @@ class MultiResp:
         multiopts.clean_charge_equivalences()
         return multiopts
 
-    def _run(self, executor=None, stage_1_options=RespOptions(hyp_a=0.0005),
-            stage_2_options=RespOptions(hyp_a=0.001), stage_2=False,
-            charge_constraint_options=None):
+    def _run(self,
+             executor=None,
+             stage_1_options=RespOptions(hyp_a=0.0005),
+             stage_2_options=RespOptions(hyp_a=0.001),
+             stage_2=False,
+             charge_constraint_options=None):
 
         for mol in self.molecules:
             mol.compute_optimized_geometry(executor=executor)
@@ -154,25 +164,23 @@ class MultiResp:
             final_charge_options = initial_charge_options
 
         if initial_charge_options.equivalent_methyls:
-            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)        
+            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
 
-
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
 
-        np.savetxt("ac_matrix.dat", a1, fmt="%8.4f")
-        np.savetxt("bc_matrix.dat", b1, fmt="%8.4f")
-
         stage_1_options = RespOptions(**stage_1_options)
-        self.stage_1_charges = RespCharges(stage_1_options, symbols=self.symbols,
+        self.stage_1_charges = RespCharges(stage_1_options,
+                                           symbols=self.symbols,
                                            n_structures=self.n_structure_array)
         self.stage_1_charges.fit(a1, b1)
 
         for i, mol in enumerate(self.molecules, 1):
             a = self.atom_increment_mapping[i]
             b = a + mol.n_atoms
-            mol.stage_1_charges = self.stage_1_charges.copy(start_index=a, end_index=b,
+            mol.stage_1_charges = self.stage_1_charges.copy(start_index=a,
+                                                            end_index=b,
                                                             n_structures=mol.n_structure_array)
 
         if stage_2:
@@ -180,33 +188,82 @@ class MultiResp:
                                                          sp3_ch_ids=self.sp3_ch_ids)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
-            self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
-                                            n_structures=self.n_structure_array)
+            self.stage_2_charges = RespCharges(stage_2_options,
+                                               symbols=self.symbols,
+                                               n_structures=self.n_structure_array)
             self.stage_2_charges.fit(a2, b2)
 
             for i, mol in enumerate(self.molecules, 1):
                 a = self.atom_increment_mapping[i]
                 b = a + mol.n_atoms
-                mol.stage_2_charges = self.stage_2_charges.copy(start_index=a, end_index=b,
+                mol.stage_2_charges = self.stage_2_charges.copy(start_index=a,
+                                                                end_index=b,
                                                                 n_structures=mol.n_structure_array)
-
-
         return self.charges
 
-    
-    def run(self, executor=None, stage_2=False,
+    def run(self,
+            executor=None,
+            stage_2: bool = False,
             charge_constraint_options=None,
-            restrained: bool=True, hyp_a1: float=0.0005,
-            hyp_a2=0.001, hyp_b: float=0.1, ihfree: bool=True, tol: float=1e-6,
-            maxiter: int=50):
+            restrained: bool = True,
+            hyp_a1: float = 0.0005,
+            hyp_a2: float = 0.001,
+            hyp_b: float = 0.1,
+            ihfree: bool = True,
+            tol: float = 1e-6,
+            maxiter: int = 50):
         
-        stage_1_options = RespOptions(restrained=restrained, hyp_a=hyp_a1,
-                                      hyp_b=hyp_b, ihfree=ihfree, tol=tol,
+        """
+        Runs charge calculation based on given parameters. This populates the
+        ``stage_1_charges`` and, optionally, ``stage_2_charges`` attributes.
+
+        Parameters
+        ----------
+        executor: concurrent.futures.Executor (optional)
+            Executor used to run parallel QM jobs. If not provided, the code
+            runs in serial.
+        stage_2: bool (optional)
+            Whether to run a two stage fit
+        charge_constraint_options: psiresp.ChargeOptions (optional)
+            Charge constraint options to use while fitting the charges. If not
+            provided, the options stored in the ``charge_constraint_options``
+            attribute are used. Providing this argument does not store the options
+            in the attribute.
+        restrained: bool (optional)
+            Whether to perform a restrained fit
+        hyp_a1: float (optional)
+            scale factor of asymptote limits of hyperbola, in the stage 1 fit
+        hyp_a2: float (optional)
+            scale factor of asymptote limits of hyperbola, in the stage 2 fit
+        hyp_b: float (optional)
+            tightness of hyperbola at its minimum
+        ihfree: bool (optional)
+            if True, exclude hydrogens from restraint
+        tol: float (optional)
+            threshold for convergence
+        maxiter: int (optional)
+            maximum number of iterations to solve constraint matrices
+
+        Returns
+        -------
+        numpy.ndarray: charges
+            The final charges
+        """
+
+        stage_1_options = RespOptions(restrained=restrained,
+                                      hyp_a=hyp_a1,
+                                      hyp_b=hyp_b,
+                                      ihfree=ihfree,
+                                      tol=tol,
                                       maxiter=maxiter)
-        stage_2_options = RespOptions(restrained=restrained, hyp_a=hyp_a2,
-                                      hyp_b=hyp_b, ihfree=ihfree, tol=tol,
+        stage_2_options = RespOptions(restrained=restrained,
+                                      hyp_a=hyp_a2,
+                                      hyp_b=hyp_b,
+                                      ihfree=ihfree,
+                                      tol=tol,
                                       maxiter=maxiter)
         return self._run(stage_1_options=stage_1_options,
                          stage_2_options=stage_2_options,
                          charge_constraint_options=charge_constraint_options,
-                         executor=executor, stage_2=stage_2)
+                         executor=executor,
+                         stage_2=stage_2)

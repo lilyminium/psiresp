@@ -1,4 +1,3 @@
-
 from pkg_resources import resource_filename
 
 from io import StringIO
@@ -29,8 +28,7 @@ def datafile(file):
 def mol_from_file(file):
     with open(molfile(file), 'r') as f:
         geom = f.read()
-    mol = psi4.core.Molecule.from_string(geom, fix_com=True,
-                                         fix_orientation=True)
+    mol = psi4.core.Molecule.from_string(geom, fix_com=True, fix_orientation=True)
     mol.update_geometry()
     mol.activate_all_fragments()
     return mol
@@ -44,8 +42,7 @@ def mol_from_mol2(file):
     arr[:, 0] = [re.sub(r'\d+', '', x) for x in arr[:, 0]]
     rows = [' '.join(row) for row in arr]
     xyz = '{}\n\n{}'.format(len(arr), '\n'.join(rows))
-    mol = psi4.core.Molecule.from_string(xyz, fix_com=True,
-                                         fix_orientation=True)
+    mol = psi4.core.Molecule.from_string(xyz, fix_com=True, fix_orientation=True)
     mol.update_geometry()
     return mol
 
@@ -59,8 +56,7 @@ def charges_from_mol2(file):
 
 
 def coordinates_from_xyz(file):
-    return np.loadtxt(molfile(file), skiprows=2, usecols=(1, 2, 3),
-                      comments='!')
+    return np.loadtxt(molfile(file), skiprows=2, usecols=(1, 2, 3), comments='!')
 
 
 def charges_from_red_file(file):
