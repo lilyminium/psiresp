@@ -47,7 +47,7 @@ class Psi4MolContainerMixin:
         else:
             name = psi4mol.name()
         self.psi4mol = psi4mol
-        super().__init__(name=name, **kwargs)
+        super(Psi4MolContainerMixin, self).__init__(name=name, **kwargs)
 
 
     @property
@@ -64,7 +64,7 @@ class Psi4MolContainerMixin:
     
     @property
     def coordinates(self):
-        return self.psi4mol.geometry().np.astype("float") * BOHR_TO_ANGSTROM
+        return self.psi4mol.geometry().np.astype("float") * self.BOHR_TO_ANGSTROM
 
     def to_mda(self):
         """Create a MDAnalysis.Universe from molecule

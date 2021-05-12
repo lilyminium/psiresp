@@ -1,5 +1,4 @@
 import logging
-import io
 
 import numpy as np
 
@@ -169,12 +168,10 @@ class Resp(base.IOBase):
         from rdkit import Chem
         from rdkit.Chem import AllChem
         rdmol = Chem.AddHs(rdmol)
-        confs = []
 
-        cids = AllChem.EmbedMultipleConfs(rdmol,
-                                          numConfs=n_confs,
-                                          pruneRmsThresh=rmsd_threshold,
-                                          ignoreSmoothingFailures=True)
+        AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
+                                   pruneRmsThresh=rmsd_threshold,
+                                   ignoreSmoothingFailures=True)
 
         if minimize:
             # TODO: is UFF good?
@@ -191,7 +188,7 @@ class Resp(base.IOBase):
                  multiplicity=1,
                  charge_constraint_options=ChargeOptions(),
                  io_options=IOOptions()):
-        super().__init__(name=name, io_options=io_options)
+        super(Resp, self).__init__(name=name, io_options=io_options)
         if not conformers:
             raise ValueError("Resp must be created with at least one conformer")
         self.conformers = utils.asiterable(conformers)

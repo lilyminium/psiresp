@@ -52,16 +52,16 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
         Usually supplies the coordinates for the first orientation.
     orientations: list of psiresp.Orientation
         List of orientations generated for this conformer
-    charge: int (optional)
+    charge: int
         overall charge of the molecule.
-    multiplicity: int (optional)
+    multiplicity: int
         multiplicity of the molecule
-    name: str (optional)
+    name: str
         name of the molecule. This is used to name output files. If not
         given, the default Psi4 name is 'default'.
-    optimize_geometry: bool (optional)
+    optimize_geometry: bool
         Whether to optimize the geometry
-    weight: float (optional)
+    weight: float
         The weight to assign to this conformer in an overall RESP job
     io_options: psiresp.IOOptions
         input/output options
@@ -94,11 +94,7 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
                  qm_options=QMOptions(),
                  esp_options=ESPOptions(),
                  orientation_options=OrientationOptions()):
-        if name and name != psi4mol.name():
-            psi4mol.set_name(name)
-        super().__init__(name=psi4mol.name(), io_options=io_options)
-
-        self.psi4mol = psi4mol
+        super().__init__(psi4mol, name=name, io_options=io_options)
 
         # options
         self.optimize_geometry = optimize_geometry

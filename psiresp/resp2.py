@@ -256,7 +256,7 @@ class MultiResp2(object):
             try:
                 r = r.gas
             except AttributeError:
-                r = r
+                pass
             else:
                 r.name = r.name.strip("_gas")
             base_resps.append(r)
