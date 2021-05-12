@@ -18,7 +18,6 @@ try:
 except:
     long_description = "\n".join(short_description[2:])
 
-
 setup(
     # Self-descriptive entries which should always be present
     name='psiresp',
@@ -46,15 +45,11 @@ setup(
 
     # Additional entries you may want simply uncomment the lines you want and fill in the data
     # url='http://www.my_package.com',  # Website
-    install_requires=[
-        'numpy', 'qcelemental', 'duecredit'
-    ],              # Required packages, pulls from pip if needed; do not use for Conda deployment
-    platforms=['Linux',
-               'Mac OS-X',
-               'Unix'],            # Valid platforms your code works on, adjust to your flavor
-    python_requires=">=3.6",          # Python version restrictions
+    install_requires=['numpy', 'qcelemental',
+                      'duecredit'],  # Required packages, pulls from pip if needed; do not use for Conda deployment
+    platforms=['Linux', 'Mac OS-X', 'Unix'],  # Valid platforms your code works on, adjust to your flavor
+    python_requires=">=3.6",  # Python version restrictions
 
     # Manual control if final package is compressible or not, set False to prevent the .egg from being made
     # zip_safe=False,
-
 )

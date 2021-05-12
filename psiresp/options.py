@@ -9,8 +9,8 @@ import functools
 import numpy as np
 from . import utils
 
-class AttrDict(UserDict):
 
+class AttrDict(UserDict):
     def __init__(self, **kwargs):
         self.__dict__["data"] = {}
         self.update(kwargs)
@@ -23,13 +23,12 @@ class AttrDict(UserDict):
 
 
 class IOOptions(AttrDict):
-    def __init__(self, force=False,
+    def __init__(self,
+                 force=False,
                  verbose: bool = False,
-                 write_to_files: bool=False,
-                 load_from_files: bool=False):
-        super().__init__(force=force, verbose=verbose,
-                         write_to_files=write_to_files,
-                         load_from_files=load_from_files)
+                 write_to_files: bool = False,
+                 load_from_files: bool = False):
+        super().__init__(force=force, verbose=verbose, write_to_files=write_to_files, load_from_files=load_from_files)
 
     def try_load_data(self, path):
         suffix = path.split(".")[-1]
@@ -81,16 +80,22 @@ class IOOptions(AttrDict):
                 print("Saved to", path)
 
 
-
 class QMOptions(AttrDict):
-    def __init__(self, method: str = "scf", basis: str = "6-31g*",
-                 solvent: Optional[str] = None, geom_maxiter: int = 200,
-                 full_hess_every: int=10, g_convergence: str="gau_tight",
+    def __init__(self,
+                 method: str = "scf",
+                 basis: str = "6-31g*",
+                 solvent: Optional[str] = None,
+                 geom_maxiter: int = 200,
+                 full_hess_every: int = 10,
+                 g_convergence: str = "gau_tight",
                  **kwargs):
-        super().__init__(method=method, basis=basis, solvent=solvent,
-                         geom_maxiter=geom_maxiter, full_hess_every=full_hess_every,
+        super().__init__(method=method,
+                         basis=basis,
+                         solvent=solvent,
+                         geom_maxiter=geom_maxiter,
+                         full_hess_every=full_hess_every,
                          g_convergence=g_convergence)
-  
+
     def write_opt_file(self, psi4mol, destination_dir=".", filename="opt.in"):
         opt_file = utils.create_psi4_molstr(psi4mol)
         opt_file += textwrap.dedent(f"""
@@ -106,10 +111,9 @@ class QMOptions(AttrDict):
 
         with open(os.path.join(destination_dir, filename), "w") as f:
             f.write(opt_file)
-        
+
         outfile = os.path.join(destination_dir, "opt.out")
         return outfile
-
 
     def write_esp_file(self, psi4mol, destination_dir=".", filename="esp.in"):
         esp_file = utils.create_psi4_molstr(psi4mol)
@@ -117,8 +121,7 @@ class QMOptions(AttrDict):
         esp_file += f"set basis {self.basis}\n"
 
         if self.solvent:
-            esp_file += textwrap.dedent(
-                f"""
+            esp_file += textwrap.dedent(f"""
             set {{
                 pcm true
                 pcm_scf_type total
@@ -140,8 +143,7 @@ class QMOptions(AttrDict):
                 }}
             }}
 
-            """
-            )
+            """)
 
         esp_file += textwrap.dedent(f"""\
         E, wfn = prop('{self.method}', properties=['GRID_ESP'], return_wfn=True)
@@ -150,27 +152,36 @@ class QMOptions(AttrDict):
 
         with open(os.path.join(destination_dir, filename), "w") as f:
             f.write(esp_file)
-        
+
         outfile = os.path.join(destination_dir, "grid_esp.dat")
         return outfile
 
 
-
 class ESPOptions(AttrDict):
-    def __init__(self, rmin: float = 0,
+    def __init__(self,
+                 rmin: float = 0,
                  rmax: float = -1,
-                 use_radii: str = "msk", vdw_radii: Dict[str, float] = {},
+                 use_radii: str = "msk",
+                 vdw_radii: Dict[str, float] = {},
                  vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0],
                  vdw_point_density: float = 1.0):
-        super().__init__(rmin=rmin, rmax=rmax, use_radii=use_radii,
+        super().__init__(rmin=rmin,
+                         rmax=rmax,
+                         use_radii=use_radii,
                          vdw_scale_factors=vdw_scale_factors,
-                         vdw_radii=vdw_radii, vdw_point_density=vdw_point_density)
+                         vdw_radii=vdw_radii,
+                         vdw_point_density=vdw_point_density)
 
 
 class OrientationOptions(AttrDict):
-    def __init__(self, n_reorientations: int = 0, reorientations=[],
-                 n_translations: int=0, translations=[],
-                 n_rotations: int=0, rotations=[], keep_original=True):
+    def __init__(self,
+                 n_reorientations: int = 0,
+                 reorientations=[],
+                 n_translations: int = 0,
+                 translations=[],
+                 n_rotations: int = 0,
+                 rotations=[],
+                 keep_original=True):
         reorientations = list(reorientations)
         translations = list(translations)
         rotations = list(rotations)
@@ -179,8 +190,9 @@ class OrientationOptions(AttrDict):
                          n_rotations=n_rotations,
                          reorientations=reorientations,
                          translations=translations,
-                         rotations=rotations, keep_original=keep_original)
-    
+                         rotations=rotations,
+                         keep_original=keep_original)
+
     @property
     def n_specified_orientations(self):
         return sum(map(len, [self.reorientations, self.rotations, self.translations]))
@@ -194,7 +206,7 @@ class OrientationOptions(AttrDict):
         is_H = symbols == "H"
         h_atoms = list(np.flatnonzero(is_H) + 1)
         heavy_atoms = list(np.flatnonzero(~is_H) + 1)
-        
+
         comb = list(itertools.combinations(heavy_atoms, 3))
         h_comb = itertools.combinations(heavy_atoms + h_atoms, 3)
         comb += [x for x in h_comb if x not in comb]
@@ -241,13 +253,11 @@ class AtomId:
         self.atom_id = atom_id
         self.molecule_id = molecule_id
         self.atom_increment = atom_increment
-        
 
     def __lt__(self, other):
         if isinstance(other, AtomId):
             other = other.absolute_atom_id
         return self.absolute_atom_id < other
-
 
     def __eq__(self, other):
         if isinstance(other, AtomId):
@@ -256,7 +266,7 @@ class AtomId:
 
     def __hash__(self):
         return hash((self.atom_id, self.molecule_id, self.atom_increment))
-        
+
     @property
     def absolute_atom_id(self):
         return self.atom_increment + self.atom_id
@@ -280,7 +290,7 @@ class BaseChargeConstraint(UserList):
     @property
     def atom_ids(self):
         return self.data
-        
+
     @property
     def absolute_atom_ids(self):
         return np.array([x.absolute_atom_id for x in self.data])
@@ -307,8 +317,7 @@ class ChargeConstraint(BaseChargeConstraint):
     def from_obj(cls, obj):
         if isinstance(obj, dict):
             if len(obj) != 1:
-                raise ValueError("dict must have only one key-value pair "
-                                 "in charge: [atom_ids] format.")
+                raise ValueError("dict must have only one key-value pair " "in charge: [atom_ids] format.")
             obj = list(obj.items())[0]
         elif isinstance(obj, ChargeConstraint):
             obj = [obj.charge, obj.atom_ids]
@@ -316,29 +325,28 @@ class ChargeConstraint(BaseChargeConstraint):
 
     def __eq__(self, other):
         return hash(self) == hash(other)
-    
+
     def __hash__(self):
         args = (self.charge, tuple(sorted(self.atom_ids)))
         return hash(args)
 
-    def __init__(self, charge: float=0, atom_ids: list = []):
+    def __init__(self, charge: float = 0, atom_ids: list = []):
         self.charge = charge
         super().__init__(atom_ids=atom_ids)
 
     def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
         atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
         return type(self)(charge=self.charge, atom_ids=atom_ids)
-        
+
 
 class ChargeEquivalence(BaseChargeConstraint):
     def __repr__(self):
         return f"<ChargeEquivalence indices={self.indices}>"
 
-    def __init__(self, atom_ids: list=[]):
+    def __init__(self, atom_ids: list = []):
         super().__init__(atom_ids=atom_ids)
         if not len(self.atom_ids) >= 2:
-            raise ValueError("Must have at least 2 different atoms in a "
-                             "charge equivalence constraint")
+            raise ValueError("Must have at least 2 different atoms in a " "charge equivalence constraint")
 
     def __add__(self, other):
         return type(self)(np.concatenate([self.atom_ids, other.atom_ids]))
@@ -352,22 +360,24 @@ class ChargeEquivalence(BaseChargeConstraint):
         atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
         return type(self)(atom_ids=atom_ids)
 
-    
 
-        
 class ChargeOptions(AttrDict):
 
     # @classmethod
     # def from_multiresp(cls, resps, charge_constraints=[], charge_equivalences=[]):
 
-
-    def __init__(self, charge_constraints=[], charge_equivalences=[], equivalent_methyls=False,
+    def __init__(self,
+                 charge_constraints=[],
+                 charge_equivalences=[],
+                 equivalent_methyls=False,
                  equivalent_sp3_hydrogens=True):
         if isinstance(charge_constraints, dict):
             charge_constraints = list(charge_constraints.items())
         chrconstr = [ChargeConstraint.from_obj(x) for x in charge_constraints]
         chrequiv = [ChargeEquivalence(x) for x in charge_equivalences]
-        super().__init__(charge_constraints=chrconstr, charge_equivalences=chrequiv, equivalent_methyls=equivalent_methyls,
+        super().__init__(charge_constraints=chrconstr,
+                         charge_equivalences=chrequiv,
+                         equivalent_methyls=equivalent_methyls,
                          equivalent_sp3_hydrogens=equivalent_sp3_hydrogens)
         self.clean_charge_constraints()
         self.clean_charge_equivalences()
@@ -402,7 +412,7 @@ class ChargeOptions(AttrDict):
         for constr in self.charge_constraints:
             if len(constr.atom_ids) == 1:
                 single_charges[constr.atom_ids[0]] = constr.charge
-        
+
         for equiv in chrequivs:
             single_atoms = [i for i, x in enumerate(equiv.atom_ids) if x in single_charges]
             charges = [single_charges[equiv[i]] for i in single_atoms]
@@ -445,15 +455,14 @@ class ChargeOptions(AttrDict):
         for i, chrconstr in enumerate(self.charge_constraints, n_conf_dim):
             B[i] = chrconstr.charge
             A[i, chrconstr.indices] = A[chrconstr.indices, i] = 1
-        
+
         row_inc = n_conf_dim + n_chrconstr
         for i, indices in enumerate(equiv):
             x = np.arange(edges[i], edges[i + 1]) + row_inc
             A[(x, indices[:-1])] = A[(indices[:-1], x)] = -1
             A[(x, indices[1:])] = A[(indices[1:], x)] = 1
-        
-        return A, B
 
+        return A, B
 
     def add_methyl_equivalences(self, sp3_ch_ids={}):
         c3s = []
@@ -467,13 +476,12 @@ class ChargeOptions(AttrDict):
             elif len(hs) == 2:
                 c2s.append(c)
                 h2s.extend(hs)
-        
+
         equivs = [c3s, c2s, h3s, h2s]
         for x in equivs:
             if len(x) > 1:
                 self.charge_equivalences.append(ChargeEquivalence(x))
         self.clean_charge_equivalences()
-
 
     def add_stage_2_constraints(self, charges=[], sp3_ch_ids={}):
         charges = np.asarray(charges)
@@ -504,19 +512,19 @@ class ChargeOptions(AttrDict):
 
 
 class RespOptions(AttrDict):
+    def __init__(self,
+                 restrained: bool = True,
+                 hyp_a: float = 0.0005,
+                 hyp_b: float = 0.1,
+                 ihfree: bool = True,
+                 tol: float = 1e-6,
+                 maxiter: int = 50):
+        super().__init__(restrained=restrained, hyp_a=hyp_a, hyp_b=hyp_b, ihfree=ihfree, tol=tol, maxiter=maxiter)
 
-    def __init__(self, restrained: bool=True, hyp_a: float=0.0005,
-                 hyp_b: float=0.1, ihfree: bool=True,
-                 tol: float=1e-6, maxiter: int=50):
-        super().__init__(restrained=restrained, hyp_a=hyp_a,
-                         hyp_b=hyp_b, ihfree=ihfree, tol=tol,
-                         maxiter=maxiter)
 
 class RespCharges:
+    def __init__(self, resp_options=RespOptions(), symbols=[], n_structures: int = 1):
 
-    def __init__(self, resp_options=RespOptions(), symbols=[],
-                 n_structures: int=1):
-        
         self.resp_options = resp_options
         self.symbols = symbols
         self.n_structures = n_structures
@@ -552,15 +560,15 @@ class RespCharges:
         diag = np.diag_indices(self.n_atoms)
         ix = (diag[0][mask], diag[1][mask])
         indices = np.where(mask)[0]
-        b2 = self.resp_options.hyp_b ** 2
+        b2 = self.resp_options.hyp_b**2
         n_structures = self.n_structures[mask]
 
         niter, delta = 0, 2 * self.resp_options.tol
         while delta > self.resp_options.tol and niter < self.resp_options.maxiter:
             q_last, a_i = charges.copy(), a_matrix.copy()
-            a_i[ix] = a_matrix[ix] + self.resp_options.hyp_a/np.sqrt(charges[indices] ** 2 + b2) * n_structures
+            a_i[ix] = a_matrix[ix] + self.resp_options.hyp_a / np.sqrt(charges[indices]**2 + b2) * n_structures
             charges = np.linalg.solve(a_i, b_matrix)
-            delta = np.max((charges - q_last)[: self.n_atoms] ** 2) ** 0.5
+            delta = np.max((charges - q_last)[:self.n_atoms]**2)**0.5
             niter += 1
 
         if delta > self.resp_options.tol:
@@ -569,10 +577,9 @@ class RespCharges:
 
         return charges
 
-    
     def fit(self, a_matrix, b_matrix):
         q1 = np.linalg.solve(a_matrix, b_matrix)
-        self.unrestrained_charges = q1[: self.n_atoms]
+        self.unrestrained_charges = q1[:self.n_atoms]
         if self.resp_options.restrained:
             q2 = self.iter_solve(q1, a_matrix, b_matrix)
             self.restrained_charges = q2[:self.n_atoms]

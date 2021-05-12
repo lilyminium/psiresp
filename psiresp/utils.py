@@ -15,13 +15,6 @@ import MDAnalysis as mda
 from . import vdwradii
 
 
-PKL_MOLKEY = "molecule_xyz"
-PKL_CACHEKEY = "_cache"
-PKL_ORKEY = "orientations"
-PKL_CFKEY = "conformers"
-
-
-
 def get_sp3_ch_ids(psi4mol):
     indices = np.arange(psi4mol.natom())
     symbols = np.array([psi4mol.symbol(i) for i in indices])
@@ -34,6 +27,7 @@ def get_sp3_ch_ids(psi4mol):
         partners = np.ravel(cbonds[cbonds != i])
         groups[i + 1] = partners[symbols[partners] == "H"] + 1
     return groups
+
 
 def psi4mol_from_state(state):
     molstr = state["psi4mol"]
@@ -194,7 +188,7 @@ def log2xyz(logfile):
 
     ATOM = "{sym} {x} {y} {z}"
     name = logfile.strip(".log")
-    lines = [len(symbols), name]
+    lines = [str(len(symbols)), name]
     for sym, x, y, z in zip(symbols, xs, ys, zs):
         lines.append(ATOM.format(sym=sym, x=x, y=y, z=z))
     txt = "\n".join(lines)
@@ -298,9 +292,7 @@ def load_text(file):
         return f.read()
 
 
-def clean_intra(
-    intra_chrconstr=[], intra_chrequiv=[], chrequiv=[], chrconstr=[], molecules={}
-):
+def clean_intra(intra_chrconstr=[], intra_chrequiv=[], chrequiv=[], chrconstr=[], molecules={}):
     if isinstance(intra_chrconstr, dict):
         intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
     intra_chrconstr = list(intra_chrconstr)
@@ -333,7 +325,6 @@ def cached(func):
     Adapted from MDAnalysis. Definitely want to replace this with
     functools.cached_property when we can guarantee python >= 3.8.
     """
-
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         key = func.__name__[4:]
@@ -371,7 +362,6 @@ def cached(func):
 #                 print(f"Loaded from {path}.")
 #                 return data, path
 #     return None, path
-
 
 # def save_data(data, path, comments=None, verbose=False):
 #     suffix = path.split(".")[-1]
@@ -411,7 +401,7 @@ def rotate_x(n, coords):
         coordinates
     """
     x, y, z = coords[n]
-    hypotenuse = np.sqrt(y ** 2 + z ** 2)
+    hypotenuse = np.sqrt(y**2 + z**2)
     adjacent = abs(y)
     angle = np.arccos(adjacent / hypotenuse)
 
@@ -447,7 +437,7 @@ def rotate_z(n, coords):
         coordinates
     """
     x, y, z = coords[n]
-    hypotenuse = np.sqrt(x ** 2 + y ** 2)
+    hypotenuse = np.sqrt(x**2 + y**2)
     adjacent = abs(x)
     angle = np.arccos(adjacent / hypotenuse)
 
@@ -564,10 +554,7 @@ def scale_radii(symbols, scale_factor, vdw_radii={}, use_radii="msk"):
         try:
             r = vdw_radii.get(x, vdw_set[x])
         except KeyError:
-            err = (
-                "{} is not a supported element. Pass in the "
-                "radius in the ``vdw_radii`` dictionary."
-            )
+            err = ("{} is not a supported element. Pass in the " "radius in the ``vdw_radii`` dictionary.")
             raise KeyError(err.format(x))
         else:
             radii[x] = r * scale_factor
@@ -576,7 +563,7 @@ def scale_radii(symbols, scale_factor, vdw_radii={}, use_radii="msk"):
 
 def gen_unit_sphere(n):
     """
-    Get coordinates of n points on a unit sphere.
+    Get coordinates of n points on a unit sphere around the origin.
 
     Adapted from GAMESS.
 
@@ -590,10 +577,9 @@ def gen_unit_sphere(n):
     coordinates: np.ndarray
         cartesian coordinates of points
     """
-    pi = np.pi
-    n_lat = int((pi * n) ** 0.5)
+    n_lat = int((np.pi * n)**0.5)
     n_long = int((n_lat / 2))
-    fi = np.arange(n_long + 1) * pi / n_long
+    fi = np.arange(n_long + 1) * np.pi / n_long
     z, xy = np.cos(fi), np.sin(fi)
     n_horiz = (xy * n_lat + 1e-10).astype(int)
     n_horiz = np.where(n_horiz < 1, 1, n_horiz)
@@ -601,7 +587,7 @@ def gen_unit_sphere(n):
     dots = np.empty((sum(n_horiz), 3))
     dots[:, -1] = np.repeat(z, n_horiz)
     XY = np.repeat(xy, n_horiz)
-    fjs = np.concatenate([2 * pi * np.arange(j) / j for j in n_horiz])
+    fjs = np.concatenate([2 * np.pi * np.arange(j) / j for j in n_horiz])
     dots[:, 0] = np.cos(fjs) * XY
     dots[:, 1] = np.sin(fjs) * XY
     return dots[:n]
@@ -627,20 +613,23 @@ def gen_connolly_spheres(symbols, radii, density=1.0):
     radii: ndarray
         array of radii of each atom
     """
-    rad_arr = np.array([radii[z] for z in symbols])
-    rads, inv = np.unique(rad_arr, return_inverse=True)
-    n_points = ((rads ** 2) * np.pi * 4 * density).astype(int)
-    points = [gen_unit_sphere(n) * r for n, r in zip(n_points, rads)]
-    all_points = [points[i] for i in inv]  # memory?
-    return all_points, rad_arr
+    symbol_radii = np.array([radii[z] for z in symbols])
+    unique_radii, inverse = np.unique(symbol_radii, return_inverse=True)
+    points = []
+    for radius in unique_radii:
+        n_points = int((radius**2) * np.pi * 4 * density)
+        unit_sphere = gen_unit_sphere(n_points)
+        points.append(unit_sphere * radius)
+    all_points = [points[i] for i in inverse]  # memory?
+    return all_points, symbol_radii
 
 
 def gen_connolly_shells(
-    symbols,
-    vdw_radii={},
-    use_radii="msk",
-    scale_factors=(1.4, 1.6, 1.8, 2.0),
-    density=1.0,
+        symbols,
+        vdw_radii={},
+        use_radii="msk",
+        scale_factors=(1.4, 1.6, 1.8, 2.0),
+        density=1.0,
 ):
     """
     Generate Connolly shells for each scale factor for each atom.
@@ -701,34 +690,31 @@ def gen_vdw_surface(points, radii, coordinates, rmin=0, rmax=-1):
         raise ValueError("rmax must be equal to or greater than rmin")
 
     if len(points) != len(coordinates):
-        err = (
-            "Length of ``points`` must match length of ``coordinates``"
-            "Generate unit shells for atoms with gen_connolly_shells()"
-        )
+        err = ("Length of ``points`` must match length of ``coordinates``"
+               "Generate unit shells for atoms with gen_connolly_shells()")
         raise ValueError(err)
     if len(radii) != len(coordinates):
-        err = (
-            "Length of ``radii`` must match length of ``coordinates``"
-            "Generate scaled radii for atoms with gen_connolly_shells()"
-        )
+        err = ("Length of ``radii`` must match length of ``coordinates``"
+               "Generate scaled radii for atoms with gen_connolly_shells()")
         raise ValueError(err)
 
     radii = np.asarray(radii)
     indices = np.arange(radii.shape[0])
-    inner = radii * rmin
-    inner = np.where(inner < radii, radii, inner)
-    outer = radii * rmax
+    inner_bound = radii * rmin
+    inner_bound = np.where(inner_bound < radii, radii, inner_bound)
+    outer_bound = radii * rmax
 
     surface_points = []
     for i, (dots, xyz) in enumerate(zip(points, coordinates)):
-        shell = dots + xyz
+        shell_coordinates = dots + xyz
         mask = indices != i
         a = np.tile(coordinates[mask], (len(dots), 1, 1))
-        b = np.tile(shell.reshape(-1, 1, 3), (1, len(radii) - 1, 1))
-        dist = np.linalg.norm(a - b, axis=2)
-        bounds = (dist >= inner[mask]) & (dist <= outer[mask])
-        outside = np.all(bounds, axis=1)
-        surface_points.extend(shell[outside])
+        b = np.tile(shell_coordinates.reshape(-1, 1, 3), (1, len(radii) - 1, 1))
+        shell_radius = np.linalg.norm(a - b, axis=2)
+
+        within_bounds = (shell_radius >= inner_bound[mask]) & (shell_radius <= outer_bound[mask])
+        inside = np.all(within_bounds, axis=1)
+        surface_points.extend(shell_coordinates[inside])
     return np.array(surface_points)
 
 
@@ -814,3 +800,11 @@ def datafile(func=None, filename=None):
         return data
 
     return wrapper
+
+
+def compute_grid(vdw_point_list, coordinates, rmin=0, rmax=-1):
+    points = []
+    for pts, rad in vdw_point_list:
+        surface = gen_vdw_surface(pts, rad, coordinates, rmin=rmin, rmax=rmax)
+        points.append(surface)
+    return np.concatenate(points)

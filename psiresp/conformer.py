@@ -14,75 +14,87 @@ from .options import QMOptions, ESPOptions, OrientationOptions, IOOptions
 log = logging.getLogger(__name__)
 
 
-class Conformer(base.IOBase, base.Psi4MolContainerMixin):
+class Conformer(base.Psi4MolContainerMixin, base.IOBase):
     """
-    Wrapper class to manage one conformer psi4mol, containing
-    multiple orientations.
+    Wrapper class to manage one Conformer, containing
+    some number of orientations.
 
     Parameters
     ----------
-    psi4mol: Psi4 psi4mol
+    psi4mol: psi4.core.Molecule
+        Psi4 molecule that forms the basis of this conformer.
+        Usually supplies the coordinates for the first orientation.
     charge: int (optional)
-        overall charge of the psi4mol.
+        overall charge of the molecule.
     multiplicity: int (optional)
-        multiplicity of the psi4mol
+        multiplicity of the molecule
     name: str (optional)
-        name of the psi4mol. This is used to name output files. If not
+        name of the molecule. This is used to name output files. If not
         given, the default Psi4 name is 'default'.
-    orient: list of tuples of ints (optional)
-        List of reorientations. Corresponds to REMARK REORIENT in R.E.D.
-        e.g. [(1, 5, 9), (9, 5, 1)] creates two reorientations: the first
-        around the first, fifth and ninth atom; and the second in reverse
-        order.
-    rotate: list of tuples of ints (optional)
-        List of rotations. Corresponds to REMARK ROTATE in R.E.D.
-        e.g. [(1, 5, 9), (9, 5, 1)] creates two rotations: the first
-        around the first, fifth and ninth atom; and the second in reverse
-        order.
-    translate: list of tuples of floats (optional)
-        List of translations. Corresponds to REMARK TRANSLATE in R.E.D.
-        e.g. [(1.0, 0, -0.5)] creates a translation that adds 1.0 to the
-        x coordinates, 0 to the y coordinates, and -0.5 to the z coordinates.
-    grid_name: str (optional)
-            template for grid filename for each Orientation.
-    esp_name: str (optional)
-        template for ESP filename for each Orientation.
-    load_files: bool (optional)
-        If ``True``, tries to load ESP and grid data from file.
+    optimize_geometry: bool (optional)
+        Whether to optimize the geometry
+    weight: float (optional)
+        The weight to assign to this conformer in an overall RESP job
+    io_options: psiresp.IOOptions (optional)
+        input/output options
+    qm_options: psiresp.QMOptions (optional)
+        Psi4 QM job options
+    esp_options: psiresp.ESPOptions (optional)
+        Options for generating the grid for computing ESP
+    orientation_options: psiresp.OrientationOptions (optional)
+        Options for generating orientations for each conformer
+
 
     Attributes
     ----------
-    psi4mol: Psi4 molecule
+    psi4mol: psi4.core.Molecule
+        Psi4 molecule that forms the basis of this conformer.
+        Usually supplies the coordinates for the first orientation.
+    orientations: list of psiresp.Orientation
+        List of orientations generated for this conformer
+    charge: int
+        overall charge of the molecule.
+    multiplicity: int
+        multiplicity of the molecule
     name: str
-        name of the psi4mol. This is used to name output files.
-    n_atoms: int
-        number of atoms in each conformer
-    symbols: ndarray
-        element symbols
-    orientations: list of Orientations
-        list of the psi4mol with reoriented coordinates
+        name of the molecule. This is used to name output files. If not
+        given, the default Psi4 name is 'default'.
+    optimize_geometry: bool
+        Whether to optimize the geometry
+    weight: float
+        The weight to assign to this conformer in an overall RESP job
+    io_options: psiresp.IOOptions
+        input/output options
+    qm_options: psiresp.QMOptions
+        Psi4 QM job options
+    esp_options: psiresp.ESPOptions
+        Options for generating the grid for computing ESP
+    orientation_options: psiresp.OrientationOptions
+        Options for generating orientations for each conformer
+    optimized: bool
+        Whether the conformer has been optimized
+    vdw_points: list
+        List of pairs where the first element is an array of VDW points
+        and the second is the array of scaled VDW radii for each atom
+    directory: str
+        Directory in which to run Psi4 jobs in
     """
 
-    kwargnames = ("optimize_geometry", "charge", "multiplicity", "weight",
-                  "qm_options", "esp_options", "orientation_options",
-                  "io_options")
+    kwargnames = ("optimize_geometry", "charge", "multiplicity", "weight", "qm_options", "esp_options",
+                  "orientation_options", "io_options")
 
     def __init__(self,
                  psi4mol: psi4.core.Molecule,
                  name: str = "conf",
-                 charge: float = 0,
+                 charge: int = 0,
                  multiplicity: int = 1,
                  optimize_geometry: bool = False,
                  weight: float = 1,
-                 io_options = IOOptions(),
-                 qm_options = QMOptions(),
-                 esp_options = ESPOptions(),
-                 orientation_options = OrientationOptions()):
-        if name and name != psi4mol.name():
-            psi4mol.set_name(name)
-        super().__init__(name=psi4mol.name(), io_options=io_options)
-
-        self.psi4mol = psi4mol
+                 io_options=IOOptions(),
+                 qm_options=QMOptions(),
+                 esp_options=ESPOptions(),
+                 orientation_options=OrientationOptions()):
+        super().__init__(psi4mol, name=name, io_options=io_options)
 
         # options
         self.optimize_geometry = optimize_geometry
@@ -98,7 +110,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         # resp stuff
         self.optimized = False
         self._vdw_points = None
-        self._unweighted_ab = None
         self._unweighted_a_matrix = None
         self._unweighted_b_matrix = None
         self._directory = None
@@ -108,7 +119,7 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
     @property
     def charge(self):
         return self.psi4mol.molecular_charge()
-    
+
     @charge.setter
     def charge(self, value):
         if value != self.psi4mol.molecular_charge():
@@ -125,7 +136,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
             self.psi4mol.set_multiplicity(value)
             self.psi4mol.update_geometry()
 
-
     def post_init(self):
         self._orientations = []
         self.add_orientations()
@@ -141,22 +151,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
                 pass
             self._directory = path
         return self._directory
-
-
-    def __getstate__(self):
-        dct = dict(psi4mol=utils.psi42xyz(self.psi4mol), name=self.name,
-                   optimized=self.optimized, _vdw_points=self._vdw_points,
-                   _unweighted_ab=self._unweighted_ab)
-        for kwarg in self.kwargnames:
-            dct[kwarg] = getattr(self, kwarg)
-        return dct
-
-    def __setstate__(self, state):
-        self.psi4mol = utils.psi4mol_from_state(state)
-        self.name = self.psi4mol.name()
-        for kwarg in self.kwargnames:
-            setattr(self, kwarg, state[kwarg])
-        self.post_init()
 
     @property
     def coordinates(self):
@@ -186,7 +180,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
     def orientation_options(self, options):
         self._orientation_options = OrientationOptions(**options)
 
-
     @property
     def n_orientations(self):
         return len(self.orientations)
@@ -194,7 +187,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
     @property
     def orientations(self):
         return self._orientations
-    
 
     def clone(self, name=None):
         """Clone into another instance of Conformer
@@ -251,19 +243,15 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
             xyzs.append(utils.rotate_rigid(a, b, c, self.coordinates))
         for translation in dct["translations"]:
             xyzs.append(self.coordinates + translation)
-        
+
         for coordinates in xyzs:
             self._add_orientation(coordinates)
-
 
     @base.datafile(filename="optimized_geometry.xyz")
     def compute_opt_mol(self):
         tmpdir = self.directory
         infile = f"{self.name}_opt.in"
-        outfile = self.qm_options.write_opt_file(self.psi4mol,
-                                                 destination_dir=tmpdir,
-                                                 filename=infile)
-
+        outfile = self.qm_options.write_opt_file(self.psi4mol, destination_dir=tmpdir, filename=infile)
 
         cmd = f"cd {tmpdir}; psi4 -i {infile} -o {outfile}; cd -"
         # maybe it's already run?
@@ -280,7 +268,6 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
             except AttributeError:
                 xyz = self.compute_opt_mol()
                 self.update_geometry_from_xyz(xyz)
-
 
     def update_geometry_from_xyz(self, xyz):
         mol = psi4.core.Molecule.from_string(xyz, dtype="xyz")
@@ -317,10 +304,10 @@ class Conformer(base.IOBase, base.Psi4MolContainerMixin):
         return self._unweighted_a_matrix
 
     def get_weighted_a_matrix(self, executor=None):
-        return self.get_unweighted_a_matrix() * (self.weight ** 2)
+        return self.get_unweighted_a_matrix() * (self.weight**2)
 
     def get_weighted_b_matrix(self, executor=None):
-        return self.get_unweighted_b_matrix(executor=executor) * (self.weight ** 2)
+        return self.get_unweighted_b_matrix(executor=executor) * (self.weight**2)
 
     @property
     def vdw_points(self):

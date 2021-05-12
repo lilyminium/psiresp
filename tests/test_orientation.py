@@ -3,10 +3,8 @@ import pytest
 import os
 import numpy as np
 
-from numpy.testing import (assert_almost_equal, assert_equal,
-                           assert_allclose)
-from .utils import (mol_from_file, esp_from_gamess_file,
-                    coordinates_from_xyz, datafile)
+from numpy.testing import (assert_almost_equal, assert_equal, assert_allclose)
+from .utils import (mol_from_file, esp_from_gamess_file, coordinates_from_xyz, datafile)
 
 
 class BaseTestOrientation:
@@ -27,7 +25,7 @@ class BaseTestOrientation:
     @pytest.fixture(scope='function')
     def esp(self):
         return esp_from_gamess_file('{}.esp'.format(self.orientname))
-    
+
     @pytest.fixture(scope="function")
     def r_inv(self):
         filename = datafile(f"{self.orientname}_r_inv.dat")
@@ -54,7 +52,7 @@ class BaseTestOrientation:
         with tmpdir.as_cwd():
             calc_r_inv = opt_orientation.r_inv
         assert_almost_equal(calc_r_inv, r_inv)
-        
+
 
 @pytest.mark.fast
 class TestOrientationDMSO0(BaseTestOrientation):
