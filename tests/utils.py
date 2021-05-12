@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from pkg_resources import resource_filename
 

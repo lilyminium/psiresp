@@ -7,13 +7,14 @@ import psiresp
 import pytest
 import sys
 from distutils.dir_util import copy_tree
+from distutils.file_util import copy_file
 
 import numpy as np
 
 from numpy.testing import assert_almost_equal, assert_allclose
 from .utils import (mol_from_file, mol_from_mol2, charges_from_mol2,
                     charges_from_red_file, charges_from_itp_file,
-                    datafile)
+                    datafile, molfile)
 
 
 @pytest.fixture()
@@ -162,7 +163,7 @@ class TestATBRespDMSO(BaseTestATBResp):
     molname = 'dmso'
 
 
-@pytest.mark.skip(reason='Fails? Are the mol2 geometries not minimised?')
+# @pytest.mark.skip(reason='Fails? Are the mol2 geometries not minimised?')
 @pytest.mark.resp2
 @pytest.mark.slow
 @pytest.mark.parametrize('name', ['C00', 'C64', 'MPE', 'PXY', 'TOL'])
@@ -178,8 +179,8 @@ class TestResp2Charges:
         mols = [mol_from_mol2(fn)]
         ref = charges_from_mol2(fn)
         with tmpdir.as_cwd():
-            r = psiresp.Resp2.from_molecules(mols, charge=0)
-            charges = r.run(opt=False, n_orient=4, delta=delta)
+            r = psiresp.Resp2.from_molecules(mols, delta=delta, charge=0)
+            charges = r.run()
         assert_almost_equal(charges, ref, decimal=3)
 
 
@@ -234,3 +235,17 @@ class TestResp2Ethanol(BaseTestResp2Ethanol):
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
+
+
+def test_methanol_1993_paper(tmpdir):
+    # grid and ESP are not generated from molecule
+    # Off by ~0.1 when I generate it myself 🤷‍♀️
+    mol = mol_from_file("methanol_1993.xyz")
+    ref = [ -0.6498, 0.4215, 0.1166, 0.0372, 0.0372, 0.0372]
+    io_options = psiresp.IOOptions(load_from_files=True)
+    with tmpdir.as_cwd():
+        copy_tree(datafile("test_resp"), str(tmpdir))
+        r = psiresp.RespA1.from_molecules([mol], charge=0, io_options=io_options,
+                                          name="methanol_1993")
+        charges = r.run()
+    assert_almost_equal(charges, ref, decimal=4)

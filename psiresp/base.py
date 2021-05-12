@@ -5,21 +5,6 @@ import numpy as np
 from .options import IOOptions
 
 
-class Psi4MolContainerMixin:
-
-    @property
-    def n_atoms(self):
-        return self.psi4mol.natom()
-
-    @property
-    def indices(self):
-        return np.arange(self.n_atoms)
-
-    @property
-    def symbols(self):
-        return np.array([self.psi4mol.symbol(i) for i in self.indices],
-                        dtype=object)
-
 def datafile(func=None, filename=None):
     """Try to load data from file. If not found, saves data to same path"""
 
@@ -49,7 +34,25 @@ def datafile(func=None, filename=None):
         return data
     return wrapper
 
+class Psi4MolContainerMixin:
+    """Mixin class for containing a Psi4 molecule with the .psi4mol attribute"""
+
+    @property
+    def n_atoms(self):
+        return self.psi4mol.natom()
+
+    @property
+    def indices(self):
+        return np.arange(self.n_atoms)
+
+    @property
+    def symbols(self):
+        return np.array([self.psi4mol.symbol(i) for i in self.indices],
+                        dtype=object)
+
+
 class IOBase:
+    """Base class for containing IOOptions"""
 
     def __init__(self, name=None, io_options=IOOptions()):
         self.name = name

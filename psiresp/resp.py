@@ -365,10 +365,10 @@ class Resp(base.IOBase):
         if stage_2:
             final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
-
-            a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             print(final_charge_options.charge_constraints)
             print(final_charge_options.charge_equivalences)
+
+            a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options, symbols=self.symbols,
                                             n_structures=self.n_structure_array)
             self.stage_2_charges.fit(a2, b2)

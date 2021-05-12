@@ -5,6 +5,7 @@ import numpy as np
 from psiresp import utils
 from numpy.testing import assert_almost_equal
 from .utils import coordinates_from_xyz, datafile
+from .datafiles import ETOH_RESP2_GAS_C1_GRID
 
 
 @pytest.mark.fast
@@ -107,3 +108,21 @@ def test_gen_connolly_shells(vdw_radii, scale_factors, density, radii,
             assert len(pt) <= n and len(pt) >= 0.85*n
 
 # TODO: test_gen_vdw_surface
+
+@pytest.mark.parametrize("elements, coordfile, gridfile", [
+    # (list("CCOHHHHHH"), "ethanol_resp2_opt_c1.xyz",  "resp2_ethanol_gas_c001_o001_grid.dat"),
+    (list("CCCCCCHHHHHH"), "benzene_c1_opt.xyz",  "benzene_c001_o001_grid.dat"),
+])
+def test_resp2_grid_generation(elements, coordfile, gridfile):
+    scale_factors = (1.4, 1.6, 1.8, 2.0)
+    xyz = coordinates_from_xyz(coordfile)
+    vdw_point_list = utils.gen_connolly_shells(elements, use_radii="bondi",
+                                               scale_factors=scale_factors,
+                                               density=2.5)
+    grid = utils.compute_grid(vdw_point_list, xyz, rmin=0, rmax=-1)
+    ref = np.loadtxt(datafile(os.path.join("test_resp2", gridfile)))
+
+    # they may be in a different order
+    grid = np.sort(grid, axis=0)
+    ref = np.sort(ref, axis=0)
+    assert_almost_equal(grid, ref, decimal=3)

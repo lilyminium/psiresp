@@ -474,7 +474,6 @@ class ChargeOptions(AttrDict):
                 self.charge_equivalences.append(ChargeEquivalence(x))
         self.clean_charge_equivalences()
 
-
     def add_stage_2_constraints(self, charges=[], sp3_ch_ids={}):
         charges = np.asarray(charges)
         atom_ids = [i for eq in self.charge_equivalences for i in eq.atom_ids]

@@ -151,8 +151,6 @@ class MultiResp2(object):
                 mol.qm_options.solvent = None
                 mol.qm_options.method = "PW6B95"
                 mol.qm_options.basis = "aug-cc-pV(D+d)Z"
-                mol.esp_options.rmin = 1.3
-                mol.esp_options.rmax = 2.1
                 mol.esp_options.vdw_point_density = 2.5
                 mol.esp_options.use_radii = "bondi"
         self.gas = MultiResp(cresps, charge_constraint_options=charge_constraint_options)

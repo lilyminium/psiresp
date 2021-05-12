@@ -150,13 +150,10 @@ class Orientation(base.IOBase, base.Psi4MolContainerMixin):
 
     @base.datafile(filename="grid.dat")
     def compute_grid(self):
-        points = []
-        for pts, rad in self.conformer.vdw_points:
-            surface = utils.gen_vdw_surface(pts, rad, self.coordinates,
-                                            rmin=self.conformer.esp_options.rmin,
-                                            rmax=self.conformer.esp_options.rmax)
-            points.append(surface)
-        return np.concatenate(points)
+        return utils.compute_grid(self.conformer.vdw_points, self.coordinates,
+                                  rmin=self.conformer.esp_options.rmin,
+                                  rmax=self.conformer.esp_options.rmax)
+
 
     @base.datafile(filename="grid_esp.dat")
     def compute_esp(self):
