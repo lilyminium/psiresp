@@ -329,7 +329,7 @@ class ChargeConstraint(BaseChargeConstraint):
         return hash(self) == hash(other)
 
     def __hash__(self):
-        args = (self.charge, tuple(sorted(self.atom_ids)))
+        args = (np.round(self.charge, decimals=3), tuple(sorted(self.atom_ids)))
         return hash(args)
 
     def __init__(self, charge: float = 0, atom_ids: list = []):
@@ -410,17 +410,23 @@ class ChargeOptions(AttrDict):
         # then check charge constraints
         # if an equivalence has >1 atom that is restrained
         # to a charge (not in a group) and they're different, remove those atoms
+        # if all are specified, ignore
         single_charges = {}
         for constr in self.charge_constraints:
             if len(constr.atom_ids) == 1:
                 single_charges[constr.atom_ids[0]] = constr.charge
 
-        for equiv in chrequivs:
+        redundant = []
+        for ieq, equiv in enumerate(chrequivs):
             single_atoms = [i for i, x in enumerate(equiv.atom_ids) if x in single_charges]
             charges = [single_charges[equiv[i]] for i in single_atoms]
             if len(set(charges)) > 1:
                 for i in single_atoms[::-1]:
                     del equiv[i]
+            elif len(charges) == len(equiv.atom_ids):
+                redundant.append(ieq)
+        for i in redundant[::-1]:
+            chrequivs.pop(i)
 
         self.charge_equivalences = chrequivs
 
