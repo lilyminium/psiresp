@@ -1,4 +1,8 @@
 import functools
+import os
+import pathlib
+import contextlib
+import tempfile
 
 import numpy as np
 
@@ -118,6 +122,23 @@ class IOBase:
     @property
     def io_options(self):
         return self._io_options
+
+    @contextlib.contextmanager
+    def get_subfolder(self):
+        cwd = pathlib.Path.cwd()
+        if self.io_options.write_to_files:
+            path = cwd / self.name
+            path.mkdir(exist_ok=True)
+        else:
+            path = tempfile.TemporaryDirectory()
+        
+        # os.chdir(path)
+        try:
+            yield path.name
+        finally:
+            # os.chdir(cwd)
+            if not self.io_options.write_to_files:
+                path.cleanup()
 
     @io_options.setter
     def io_options(self, options):

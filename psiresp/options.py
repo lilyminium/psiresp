@@ -109,10 +109,12 @@ class QMOptions(AttrDict):
         optimize('{self.method}')
         """)
 
-        with open(os.path.join(destination_dir, filename), "w") as f:
+        inpath = os.path.join(destination_dir, filename)
+
+        with open(inpath, "w") as f:
             f.write(opt_file)
 
-        outfile = os.path.join(destination_dir, "opt.out")
+        outfile = Path(inpath).stem + ".out"
         return outfile
 
     def write_esp_file(self, psi4mol, destination_dir=".", filename="esp.in"):

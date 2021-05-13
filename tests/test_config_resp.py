@@ -34,20 +34,17 @@ def dmso_orients():
 
 class BaseTestRespConfigNoOpt:
     """Charges from R.E.D. jobs"""
-    def test_resp_noopt_noorient(self, dmso_orients, tmpdir, ref):
+    def test_resp_noopt_noorient(self, dmso_orients, ref):
         charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
-        with tmpdir.as_cwd():
-            r = self.cls.from_molecules(dmso_orients, charge=0)
-            charges = r.run(charge_constraint_options=charge_options)
-
+        r = self.cls.from_molecules(dmso_orients, charge=0)
+        charges = r.run(charge_constraint_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
-    def test_resp_noopt_orient(self, dmso_opt, tmpdir, ref):
+    def test_resp_noopt_orient(self, dmso_opt, ref):
         charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
         orientation_options = psiresp.OrientationOptions(n_reorientations=2)
-        with tmpdir.as_cwd():
-            r = self.cls.from_molecules([dmso_opt], orientation_options=orientation_options)
-            charges = r.run(charge_constraint_options=charge_options)
+        r = self.cls.from_molecules([dmso_opt], orientation_options=orientation_options)
+        charges = r.run(charge_constraint_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 
@@ -67,12 +64,12 @@ class BaseTestRespConfigOpt:
         return charges_from_red_file(self.chargefile)
 
     @pytest.mark.slow
-    def test_resp_opt(self, dmso, tmpdir, ref):
+    def test_resp_opt(self, dmso, ref):
         orientation_options = psiresp.OrientationOptions(n_reorientations=2)
         charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
-        with tmpdir.as_cwd():
-            r = self.cls.from_molecules([dmso], optimize_geometry=True, orientation_options=orientation_options)
-            charges = r.run(charge_constraint_options=charge_options)
+        r = self.cls.from_molecules([dmso], optimize_geometry=True,
+                                    orientation_options=orientation_options)
+        charges = r.run(charge_constraint_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-4)
 
 
@@ -112,36 +109,35 @@ class BaseTestATBResp:
     def molfile(self):
         return '{}_c1_ATB.xyz'.format(self.molname)
 
-    @pytest.fixture(scope='function')
-    def resp(self):
-        orientation_options = psiresp.OrientationOptions(n_reorientations=2)
-        opt = [mol_from_file('{}_c1_ATB_opt.xyz'.format(self.molname))]
-        r = self.cls.from_molecules(opt, orientation_options=orientation_options)
-        return r
+    # @pytest.fixture(scope='function')
+    # def resp(self):
+    #     orientation_options = psiresp.OrientationOptions(n_reorientations=2)
+    #     opt = [mol_from_file('{}_c1_ATB_opt.xyz'.format(self.molname))]
+    #     r = self.cls.from_molecules(opt, orientation_options=orientation_options)
+    #     return r
 
     @pytest.fixture()
     def ref(self):
         return charges_from_itp_file(self.chargefile)
 
-    def test_resp_noopt(self, tmpdir, resp, ref):
+    def test_resp_noopt(self, ref):
         orientation_options = psiresp.OrientationOptions(n_reorientations=2)
         opt = [mol_from_file('{}_c1_ATB_opt.xyz'.format(self.molname))]
         charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
-        with tmpdir.as_cwd():
-            resp = self.cls.from_molecules(opt, orientation_options=orientation_options, optimize_geometry=False)
-            charges = resp.run(charge_options=charge_options)
+        r = self.cls.from_molecules(opt, optimize_geometry=False,
+                                    orientation_options=orientation_options)
+        charges = r.run(charge_options=charge_options)
         # no idea which point density ATB uses
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
     @pytest.mark.slow
-    def test_resp_opt(self, tmpdir, ref):
+    def test_resp_opt(self, ref):
         mol = [mol_from_file(self.molfile)]
         orientation_options = psiresp.OrientationOptions(n_reorientations=2)
         charge_options = psiresp.ChargeOptions(equivalent_methyls=True)
-
-        with tmpdir.as_cwd():
-            r = self.cls.from_molecules(mol, orientation_options=orientation_options, optimize_geometry=True)
-            charges = r.run(charge_options=charge_options)
+        r = self.cls.from_molecules(mol, optimize_geometry=True,
+                                    orientation_options=orientation_options)
+        charges = r.run(charge_options=charge_options)
         assert_allclose(charges, ref, rtol=0.05, atol=1e-3)
 
 
@@ -169,13 +165,12 @@ class TestResp2Charges:
 
     See dataset for more: https://doi.org/10.5281/zenodo.3593762
     """
-    def test_resp2_noopt(self, name, delta, tmpdir):
+    def test_resp2_noopt(self, name, delta):
         fn = '{}_R2_{:d}.mol2'.format(name, int(delta * 100))
         mols = [mol_from_mol2(fn)]
         ref = charges_from_mol2(fn)
-        with tmpdir.as_cwd():
-            r = psiresp.Resp2.from_molecules(mols, delta=delta, charge=0)
-            charges = r.run()
+        r = psiresp.Resp2.from_molecules(mols, delta=delta, charge=0)
+        charges = r.run()
         assert_almost_equal(charges, ref, decimal=3)
 
 
@@ -216,11 +211,10 @@ class TestLoadResp2Ethanol(BaseTestResp2Ethanol):
 @pytest.mark.resp2
 class TestResp2Ethanol(BaseTestResp2Ethanol):
     @pytest.mark.slow
-    def test_ethanol_opt(self, tmpdir):
+    def test_ethanol_opt(self):
         mols = [mol_from_file('ethanol_resp2_c1.xyz'), mol_from_file('ethanol_resp2_c2.xyz')]
-        with tmpdir.as_cwd():
-            r = psiresp.Resp2.from_molecules(mols, charge=0, delta=0.5, optimize_geometry=True)
-            charges = r.run()
+        r = psiresp.Resp2.from_molecules(mols, charge=0, delta=0.5, optimize_geometry=True)
+        charges = r.run()
         assert_almost_equal(r.gas_charges, self.gas, decimal=3)
         assert_almost_equal(r.solv_charges, self.solv, decimal=3)
         assert_almost_equal(charges, self.ref, decimal=3)
