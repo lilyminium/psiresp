@@ -88,7 +88,9 @@ class TestConformer:
         assert len(new.orientations) == len(conformer.orientations)
         assert new.orientation_options == conformer.orientation_options
 
-    def test_get_unweighted_ab(self, conformer, tmpdir):
+    def test_get_unweighted_ab(self, conformer):
         ref = np.loadtxt(ABMAT)
-        with tmpdir.as_cwd():
-            assert_almost_equal(conformer.get_unweighted_ab(), ref)
+        ref_a = ref[:-1]
+        ref_b = ref[-1]
+        assert_almost_equal(conformer.get_unweighted_a_matrix(), ref_a)
+        assert_almost_equal(conformer.get_unweighted_b_matrix(), ref_b)

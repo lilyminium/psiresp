@@ -15,10 +15,9 @@ from numpy.testing import assert_almost_equal, assert_allclose
 from .utils import mol_from_file, charges_from_red_file, datafile
 
 
-def test_rdkit_gen_confs(tmpdir):
+def test_rdkit_gen_confs():
     mol = Chem.MolFromSmiles('C1CCC1OC')
-    with tmpdir.as_cwd():
-        resp = psiresp.Resp.from_rdmol(mol, n_confs=10, rmsd_threshold=-1)
+    resp = psiresp.Resp.from_rdmol(mol, n_confs=10, rmsd_threshold=-1)
     assert len(resp.conformers) == 10
     first = resp.conformers[0].coordinates
     second = resp.conformers[1].coordinates
@@ -48,25 +47,22 @@ class TestNoOrient:
     ])
 
     @pytest.fixture()
-    def resp_c1(self, tmpdir):
-        with tmpdir.as_cwd():
-            confs = [mol_from_file('dmso_opt_c1.xyz')]
-            r = psiresp.Resp.from_molecules(confs, charge=0)
+    def resp_c1(self):
+        confs = [mol_from_file('dmso_opt_c1.xyz')]
+        r = psiresp.Resp.from_molecules(confs, charge=0)
         return r
 
     @pytest.fixture()
-    def resp_c1_o2(self, tmpdir):
+    def resp_c1_o2(self):
         fns = ['dmso_opt_c1_o1.xyz', 'dmso_opt_c1_o2.xyz']
         mols = [mol_from_file(f) for f in fns]
-        with tmpdir.as_cwd():
-            r = psiresp.Resp.from_molecules(mols, charge=0)
+        r = psiresp.Resp.from_molecules(mols, charge=0)
         return r
 
     @pytest.fixture()
-    def resp_opt_qmra(self, tmpdir):
+    def resp_opt_qmra(self):
         mols = [mol_from_file('dmso_opt_c1_qmra.xyz')]
-        with tmpdir.as_cwd():
-            r = psiresp.Resp.from_molecules(mols, charge=0)
+        r = psiresp.Resp.from_molecules(mols, charge=0)
         return r
 
     def test_esp_1(self, resp_c1):
@@ -129,49 +125,49 @@ class TestRespNoOpt(object):
         chargefile = self.chargefile.format(molname=molname, n_conf=n_conf, n_orient=n_orient, name=name)
         return charges_from_red_file(chargefile)
 
-    def create_resp_dmso(self, tmpdir):
+    @pytest.fixture()
+    def resp_dmso(self):
         confs = self.load_mols('dmso', 1)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
         orientation_options = psiresp.options.OrientationOptions(n_reorientations=2, keep_original=False)
-        with tmpdir.as_cwd():
-            r = psiresp.Resp.from_molecules(confs,
-                                            charge=0,
-                                            name="dmso",
-                                            optimize_geometry=self.opt,
-                                            orientation_options=orientation_options,
-                                            io_options=io_options)
+        r = psiresp.Resp.from_molecules(confs,
+                                        charge=0,
+                                        name="dmso",
+                                        optimize_geometry=self.opt,
+                                        orientation_options=orientation_options,
+                                        io_options=io_options)
         options = r.conformers[0].orientation_options
         assert len(r.conformers[0].orientations) == 2
         assert options.reorientations[0] == (1, 5, 6)
         assert options.reorientations[1] == (6, 5, 1)
         return r
 
-    def create_resp_ethanol(self, tmpdir):
+    @pytest.fixture()
+    def resp_ethanol(self):
         confs = self.load_mols('ethanol', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
         orient = [(1, 5, 8), (8, 5, 1), (9, 8, 5), (5, 8, 9)]
         orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
-        with tmpdir.as_cwd():
-            r = psiresp.Resp.from_molecules(confs,
-                                            charge=0,
-                                            name="ethanol",
-                                            optimize_geometry=self.opt,
-                                            orientation_options=orientation_options,
-                                            io_options=io_options)
+        r = psiresp.Resp.from_molecules(confs,
+                                        charge=0,
+                                        name="ethanol",
+                                        optimize_geometry=self.opt,
+                                        orientation_options=orientation_options,
+                                        io_options=io_options)
         return r
 
-    def create_resp_nme2ala2(self, tmpdir):
+    @pytest.fixture()
+    def resp_nme2ala2(self):
         confs = self.load_mols('nme2ala2', 2)
         io_options = psiresp.options.IOOptions(load_from_files=self.load_files)
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
         orientation_options = psiresp.options.OrientationOptions(reorientations=orient, keep_original=False)
-        with tmpdir.as_cwd():
-            r = psiresp.Resp.from_molecules(confs,
-                                            charge=0,
-                                            name="nme2ala2",
-                                            optimize_geometry=self.opt,
-                                            orientation_options=orientation_options,
-                                            io_options=io_options)
+        r = psiresp.Resp.from_molecules(confs,
+                                        charge=0,
+                                        name="nme2ala2",
+                                        optimize_geometry=self.opt,
+                                        orientation_options=orientation_options,
+                                        io_options=io_options)
         return r
 
     @pytest.fixture()
@@ -180,8 +176,8 @@ class TestRespNoOpt(object):
 
     @pytest.mark.parametrize('stage_2,a,redname', [(False, 0.01, 'respA2'), (True, 0.0005, 'respA1'),
                                                    (False, 0.0, 'espA1')])
-    def test_resp_single_conf(self, stage_2, a, redname, dmso_charge_options, executor, tmpdir):
-        resp_dmso = self.create_resp_dmso(tmpdir)
+    def test_resp_single_conf(self, stage_2, a, redname, dmso_charge_options, executor, resp_dmso,
+                              tmpdir):
         with tmpdir.as_cwd():
             if self.load_files:
                 copy_tree(datafile("test_resp"), str(tmpdir))
@@ -190,18 +186,12 @@ class TestRespNoOpt(object):
                                     restrained=True,
                                     charge_constraint_options=dmso_charge_options,
                                     executor=executor)
-        ref = self.load_charges(
-            'dmso',
-            1,
-            2,
-            redname,
-        )
+        ref = self.load_charges('dmso', 1, 2, redname)
         assert_allclose(charges, ref, rtol=0.01, atol=1e-4)
 
     @pytest.mark.parametrize('stage_2,a,redname', [(False, 0.01, 'respA2'), (True, 0.0005, 'respA1'),
                                                    (False, 0.0, 'espA1')])
-    def test_resp_multi_conf(self, stage_2, a, redname, executor, tmpdir):
-        resp_ethanol = self.create_resp_ethanol(tmpdir)
+    def test_resp_multi_conf(self, stage_2, a, redname, executor, tmpdir, resp_ethanol):
         confs = self.load_mols('ethanol', 2)
         if not stage_2:
             chrequiv = [[2, 3, 4], [6, 7]]
@@ -226,8 +216,7 @@ class TestRespNoOpt(object):
             (True, 0.0005, 'respA1'),
             (False, 0.0, 'espA1')
         ])
-    def test_intra_constraints(self, stage_2, a, redname, executor, tmpdir):
-        resp_nme2ala2 = self.create_resp_nme2ala2(tmpdir)
+    def test_intra_constraints(self, stage_2, a, redname, executor, tmpdir, resp_nme2ala2):
         chargename = ""
         chrconstr = [(0, [1, 2, 3, 4, 5, 6]), (0, [20, 21, 22, 23, 24, 25]), (-0.4157, [7]), (0.2719, [8]),
                      (0.5973, [18]), (-0.5679, [19])]
@@ -249,8 +238,7 @@ class TestRespNoOpt(object):
     @pytest.mark.slow
     @pytest.mark.parametrize('stage_2,a,redname', [(False, 0.01, 'respA2'), (True, 0.0005, 'respA1'),
                                                    (False, 0.0, 'espA1')])
-    def test_intra_multifit_constraints(self, stage_2, a, redname, executor, tmpdir):
-        resp_nme2ala2 = self.create_resp_nme2ala2(tmpdir)
+    def test_intra_multifit_constraints(self, stage_2, a, redname, executor, tmpdir, resp_nme2ala2):
         chargename = "_multifit_constr"
         chrconstr = {0: [20, 21, 22, 23, 24, 25], 0.6163: [18], -0.5722: [19]}
         chrequiv = [[10, 14], [11, 12, 13, 15, 16, 17]]

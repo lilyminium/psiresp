@@ -351,7 +351,7 @@ class Resp(base.IOBase):
 
         if stage_2:
             final_charge_options = ChargeOptions(**initial_charge_options)
-            final_charge_options.charge_constraints = []
+            # final_charge_options.charge_constraints = []
             initial_charge_options.charge_equivalences = []
         else:
             final_charge_options = initial_charge_options
@@ -361,6 +361,7 @@ class Resp(base.IOBase):
 
         a_matrix = self.get_conformer_a_matrix()
         b_matrix = self.get_conformer_b_matrix(executor=executor)
+        print(initial_charge_options)
 
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
         stage_1_options = RespOptions(**stage_1_options)
@@ -372,6 +373,7 @@ class Resp(base.IOBase):
         if stage_2:
             final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
+            print(final_charge_options)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self.stage_2_charges = RespCharges(stage_2_options,

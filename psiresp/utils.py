@@ -156,8 +156,6 @@ def rdmol_to_psi4mols(rdmol, name=None):
         xyz = [ATOM.format(sym=a, x=x) for a, x in zip(symbols, pos)]
         txt = f"{n_atoms}\n0 1 {name}_c{i:03d}\n" + "\n".join(xyz)
         mol = psi4.core.Molecule.from_string(txt, dtype="xyz")
-        mol.set_molecular_charge(0)
-        mol.set_multiplicity(1)
         mols.append(mol)
 
     return mols

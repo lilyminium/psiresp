@@ -30,7 +30,7 @@ class TestMultiRespNoOptNoOrient(object):
     atol = 1e-4
 
     @pytest.fixture()
-    def nme2ala2(self, tmpdir):
+    def nme2ala2(self):
         mols = [mol_from_file(f) for f in self.nme2ala2_names]
         orient = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
         or_options = psiresp.OrientationOptions(reorientations=orient, keep_original=False)
@@ -39,17 +39,16 @@ class TestMultiRespNoOptNoOrient(object):
         ch_options = psiresp.ChargeOptions(charge_equivalences=chrequivs,
                                            charge_constraints=chrconstrs,
                                            equivalent_sp3_hydrogens=False)
-        with tmpdir.as_cwd():
-            resp = psiresp.Resp.from_molecules(mols,
-                                               charge=0,
-                                               orientation_options=or_options,
-                                               charge_constraint_options=ch_options,
-                                               optimize_geometry=self.opt,
-                                               name='nme2ala2')
+        resp = psiresp.Resp.from_molecules(mols,
+                                            charge=0,
+                                            orientation_options=or_options,
+                                            charge_constraint_options=ch_options,
+                                            optimize_geometry=self.opt,
+                                            name='nme2ala2')
         return resp
 
     @pytest.fixture()
-    def methylammonium(self, tmpdir):
+    def methylammonium(self):
         mols = [mol_from_file(f) for f in self.methylammonium_names]
         orient = [(1, 5, 7), (7, 5, 1)]
         or_options = psiresp.OrientationOptions(reorientations=orient, keep_original=False)
@@ -58,14 +57,13 @@ class TestMultiRespNoOptNoOrient(object):
         ch_options = psiresp.ChargeOptions(charge_equivalences=chrequivs,
                                            charge_constraints=chrconstrs,
                                            equivalent_sp3_hydrogens=False)
-        with tmpdir.as_cwd():
-            resp = psiresp.Resp.from_molecules(mols,
-                                               charge=1,
-                                               multiplicity=1,
-                                               orientation_options=or_options,
-                                               charge_constraint_options=ch_options,
-                                               optimize_geometry=self.opt,
-                                               name='methylammonium')
+        resp = psiresp.Resp.from_molecules(mols,
+                                            charge=1,
+                                            multiplicity=1,
+                                            orientation_options=or_options,
+                                            charge_constraint_options=ch_options,
+                                            optimize_geometry=self.opt,
+                                            name='methylammonium')
         return resp
 
     # @pytest.mark.parametrize('stage_2,a,redname', [

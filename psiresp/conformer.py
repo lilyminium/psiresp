@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import tempfile
 from concurrent.futures import as_completed
 
 import numpy as np
@@ -112,7 +113,6 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
         self._vdw_points = None
         self._unweighted_a_matrix = None
         self._unweighted_b_matrix = None
-        self._directory = None
 
         self.post_init()
 
@@ -139,18 +139,6 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
     def post_init(self):
         self._orientations = []
         self.add_orientations()
-        self.directory
-
-    @property
-    def directory(self):
-        if self._directory is None:
-            path = os.path.join(os.getcwd(), self.name)
-            try:
-                os.mkdir(path)
-            except FileExistsError:
-                pass
-            self._directory = path
-        return self._directory
 
     @property
     def coordinates(self):
@@ -249,16 +237,20 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
 
     @base.datafile(filename="optimized_geometry.xyz")
     def compute_opt_mol(self):
-        tmpdir = self.directory
-        infile = f"{self.name}_opt.in"
-        outfile = self.qm_options.write_opt_file(self.psi4mol, destination_dir=tmpdir, filename=infile)
+        import psi4
 
-        cmd = f"cd {tmpdir}; psi4 -i {infile} -o {outfile}; cd -"
-        # maybe it's already run?
-        if not self.io_options.force and os.path.isfile(outfile):
-            return utils.log2xyz(outfile)
-        subprocess.run(cmd, shell=True)
-        return utils.log2xyz(outfile)
+        with self.get_subfolder() as tmpdir:
+            infile = f"{self.name}_opt.in"
+            outfile = self.qm_options.write_opt_file(self.psi4mol, destination_dir=tmpdir,
+                                                     filename=infile)
+
+            cmd = f"{psi4.executable} -i {infile} -o {outfile}"
+            # maybe it's already run?
+            if not self.io_options.force and os.path.isfile(outfile):
+                return utils.log2xyz(outfile)
+            subprocess.run(cmd, cwd=tmpdir, shell=True)
+            optimized = utils.log2xyz(outfile)
+        return optimized
 
     def compute_optimized_geometry(self, executor=None):
         if not self.optimized and self.optimize_geometry:

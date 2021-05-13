@@ -2,6 +2,7 @@ from __future__ import division, absolute_import
 import os
 import logging
 import subprocess
+import tempfile
 
 import numpy as np
 
@@ -58,7 +59,6 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
         self._grid = None
         self._esp = None
         self._r_inv = None
-        self._directory = None
 
     @property
     def qm_options(self):
@@ -81,18 +81,6 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
         if self._r_inv is None:
             self._r_inv = self.compute_r_inv()
         return self._r_inv
-
-    @property
-    def directory(self):
-        if self._directory is None:
-            path = os.path.join(self.conformer.directory, self.name)
-            try:
-                os.mkdir(path)
-            except FileExistsError:
-                pass
-            self._directory = os.path.abspath(path)
-        return self._directory
-
 
     def compute_r_inv(self):
         points = self.grid.reshape((len(self.grid), 1, 3))
@@ -136,20 +124,20 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
     @base.datafile(filename="grid_esp.dat")
     def compute_esp(self):
         import psi4
-
+        
         # ... this dies unless you write out grid.dat
-        np.savetxt(os.path.join(self.directory, "grid.dat"), self.grid)
+        with self.get_subfolder() as tmpdir:
+            np.savetxt(os.path.join(tmpdir, "grid.dat"), self.grid)
+            infile = f"{self.name}_esp.in"
+            outfile = self.qm_options.write_esp_file(self.psi4mol, destination_dir=tmpdir,
+                                                     filename=infile)
 
-        infile = f"{self.name}_esp.in"
+            # don't use Psi4 API because we need different processes for parallel jobs
+            # maybe it's already run?
+            if not self.io_options.force and os.path.isfile(outfile):
+                return np.loadtxt(outfile)
+            cmd = f"{psi4.executable} -i {infile}"
+            subprocess.run(cmd, shell=True, cwd=tmpdir, stderr=subprocess.PIPE)
+            esp = np.loadtxt(outfile)
 
-        outfile = self.qm_options.write_esp_file(self.psi4mol,
-                                                 destination_dir=self.directory,
-                                                 filename=infile)
-
-        # don't use Psi4 API because we need different processes for parallel jobs
-        cmd = f"cd {self.directory}; psi4 -i {infile}; cd -"
-        # maybe it's already run?
-        if not self.io_options.force and os.path.isfile(outfile):
-            return np.loadtxt(outfile)
-        subprocess.run(cmd, shell=True)
-        return np.loadtxt(outfile)
+        return esp
