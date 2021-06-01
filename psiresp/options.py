@@ -208,19 +208,36 @@ class OrientationOptions(AttrDict):
         is_H = symbols == "H"
         h_atoms = list(np.flatnonzero(is_H) + 1)
         heavy_atoms = list(np.flatnonzero(~is_H) + 1)
+        seen = set()
 
-        comb = list(itertools.combinations(heavy_atoms, 3))
-        h_comb = itertools.combinations(heavy_atoms + h_atoms, 3)
-        comb += [x for x in h_comb if x not in comb]
-        backwards = [x[::-1] for x in comb]
-        new_comb = [x for items in zip(comb, backwards) for x in items]
-        return new_comb
+        for comb in itertools.combinations(heavy_atoms, 3):
+            seen.add(comb)
+            yield comb
+            yield comb[::-1]
+        
+        for comb in itertools.combinations(heavy_atoms + h_atoms, 3):
+            if comb in seen:
+                continue
+            seen.add(comb)
+            yield comb
+            yield comb[::-1]
+
+        # comb = list(itertools.combinations(heavy_atoms, 3))
+        # h_comb = itertools.combinations(heavy_atoms + h_atoms, 3)
+        # comb += [x for x in h_comb if x not in comb]
+        # backwards = [x[::-1] for x in comb]
+        # new_comb = [x for items in zip(comb, backwards) for x in items]
+        # return new_comb
+
 
     def generate_orientations(self, symbols: List[str]):
-        atom_combinations = self.generate_atom_combinations(symbols)
+        # atom_combinations = self.generate_atom_combinations(symbols)
         for kw in ("reorientations", "rotations"):
             n = max(self[f"n_{kw}"] - len(self[kw]), 0)
-            self[kw].extend(atom_combinations[:n])
+            for i, comb in enumerate(self.generate_atom_combinations(symbols)):
+                if i < n:
+                    self[kw].append(comb)
+            # self[kw].extend(atom_combinations[:n])
         n_trans = self.n_translations - len(self.translations)
         if n_trans > 0:
             new_translations = (np.random.rand(n_trans, 3) - 0.5) * 10
@@ -255,6 +272,9 @@ class AtomId:
         self.atom_id = atom_id
         self.molecule_id = molecule_id
         self.atom_increment = atom_increment
+
+    def __repr__(self):
+        return f"AtomId(atom_id={self.atom_id}, molecule_id={self.molecule_id}, atom_increment={self.atom_increment})"
 
     def __lt__(self, other):
         if isinstance(other, AtomId):
@@ -358,6 +378,14 @@ class ChargeEquivalence(BaseChargeConstraint):
             return self
         return other.__add__(self)
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            other = other.indices
+        return set(list(self.indices)) == set(list(other))
+
+    def __hash__(self):
+        return hash(sorted(set(list(self.indices))))
+
     def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
         atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
         return type(self)(atom_ids=atom_ids)
@@ -390,7 +418,7 @@ class ChargeOptions(AttrDict):
         for item in self.charge_equivalences:
             yield item
 
-    def clean_charge_equivalences(self):
+    def clean_charge_equivalences(self, reduce_identical_indices=False):
         atom_ids = []
         equivalences = []
 
@@ -427,6 +455,12 @@ class ChargeOptions(AttrDict):
                 redundant.append(ieq)
         for i in redundant[::-1]:
             chrequivs.pop(i)
+
+        if reduce_identical_indices:
+            unique_chrequivs = []
+            for eq in chrequivs:
+                unique_chrequivs.append(sorted(set(eq.atom_ids)))
+            chrequivs = [ChargeEquivalence(x) for x in unique_chrequivs]
 
         self.charge_equivalences = chrequivs
 

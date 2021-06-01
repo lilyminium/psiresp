@@ -135,7 +135,10 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
             # don't use Psi4 API because we need different processes for parallel jobs
             # maybe it's already run?
             if not self.io_options.force and os.path.isfile(outfile):
-                return np.loadtxt(outfile)
+                try:
+                    return np.loadtxt(outfile)
+                except:
+                    pass
             cmd = f"{psi4.executable} -i {infile}"
             subprocess.run(cmd, shell=True, cwd=tmpdir, stderr=subprocess.PIPE)
             esp = np.loadtxt(outfile)

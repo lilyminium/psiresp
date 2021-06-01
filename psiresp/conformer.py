@@ -287,7 +287,7 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
 
     def get_unweighted_b_matrix(self, executor=None):
         if self._unweighted_b_matrix is None:
-            self._unweighted_b_matrix = self.compute_unweighted_b_matrix()
+            self._unweighted_b_matrix = self.compute_unweighted_b_matrix(executor=executor)
         return self._unweighted_b_matrix
 
     def get_unweighted_a_matrix(self):
