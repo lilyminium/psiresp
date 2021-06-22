@@ -152,6 +152,8 @@ class QMOptions(AttrDict):
         esp = wfn.oeprop.Vvals()
             """)
 
+        esp_file = "memory 40 GB\n" + esp_file
+
         with open(os.path.join(destination_dir, filename), "w") as f:
             f.write(esp_file)
 
@@ -287,7 +289,7 @@ class AtomId:
         return self.absolute_atom_id == other
 
     def __hash__(self):
-        return hash((self.atom_id, self.molecule_id, self.atom_increment))
+        return hash((self.atom_id, self.molecule_id))
 
     @property
     def absolute_atom_id(self):
@@ -349,7 +351,7 @@ class ChargeConstraint(BaseChargeConstraint):
         return hash(self) == hash(other)
 
     def __hash__(self):
-        args = (np.round(self.charge, decimals=3), tuple(sorted(self.atom_ids)))
+        args = (np.round(self.charge, decimals=3), tuple(sorted(set(self.atom_ids))))
         return hash(args)
 
     def __init__(self, charge: float = 0, atom_ids: list = []):
@@ -384,7 +386,7 @@ class ChargeEquivalence(BaseChargeConstraint):
         return set(list(self.indices)) == set(list(other))
 
     def __hash__(self):
-        return hash(sorted(set(list(self.indices))))
+        return hash(tuple(sorted(set(self.atom_ids))))
 
     def copy_with_molecule_id(self, molecule_id=1, atom_increment=0):
         atom_ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id, atom_increment=atom_increment)
@@ -480,7 +482,9 @@ class ChargeOptions(AttrDict):
 
     def get_constraint_matrix(self, a_matrix, b_matrix):
         # preprocessing
-        equiv = [x.indices for x in self.charge_equivalences]
+        equivalences = set(self.charge_equivalences)
+        constraints = set(self.charge_constraints)
+        equiv = [x.indices for x in equivalences]
         edges = np.r_[0, np.cumsum([len(x) - 1 for x in equiv])].astype(int)
 
         # get dimensions
@@ -494,7 +498,7 @@ class ChargeOptions(AttrDict):
         A[:n_conf_dim, :n_conf_dim] = a_matrix
         B[:n_conf_dim] = b_matrix
 
-        for i, chrconstr in enumerate(self.charge_constraints, n_conf_dim):
+        for i, chrconstr in enumerate(constraints, n_conf_dim):
             B[i] = chrconstr.charge
             A[i, chrconstr.indices] = A[chrconstr.indices, i] = 1
 
@@ -560,14 +564,17 @@ class RespOptions(AttrDict):
                  hyp_b: float = 0.1,
                  ihfree: bool = True,
                  tol: float = 1e-6,
-                 maxiter: int = 50):
+                 maxiter: int = 300):
+        print("made resp options??")
         super().__init__(restrained=restrained, hyp_a=hyp_a, hyp_b=hyp_b, ihfree=ihfree, tol=tol, maxiter=maxiter)
+        print(self.maxiter)
 
 
 class RespCharges:
     def __init__(self, resp_options=RespOptions(), symbols=[], n_structures: int = 1):
 
         self.resp_options = resp_options
+        self.resp_options.maxiter = 500
         self.symbols = symbols
         self.n_structures = n_structures
         self.n_atoms = len(symbols)
@@ -604,12 +611,14 @@ class RespCharges:
         indices = np.where(mask)[0]
         b2 = self.resp_options.hyp_b**2
         n_structures = self.n_structures[mask]
+        print(f"Fitting with {self.resp_options.maxiter}")
 
         niter, delta = 0, 2 * self.resp_options.tol
         while delta > self.resp_options.tol and niter < self.resp_options.maxiter:
-            q_last, a_i = charges.copy(), a_matrix.copy()
+            q_last = charges.copy()
+            a_i = a_matrix.copy()
             a_i[ix] = a_matrix[ix] + self.resp_options.hyp_a / np.sqrt(charges[indices]**2 + b2) * n_structures
-            charges = np.linalg.solve(a_i, b_matrix)
+            charges = np.linalg.lstsq(a_i, b_matrix)[0]
             delta = np.max((charges - q_last)[:self.n_atoms]**2)**0.5
             niter += 1
 
@@ -620,7 +629,7 @@ class RespCharges:
         return charges
 
     def fit(self, a_matrix, b_matrix):
-        q1 = np.linalg.solve(a_matrix, b_matrix)
+        q1 = np.linalg.lstsq(a_matrix, b_matrix)[0]
         self.unrestrained_charges = q1[:self.n_atoms]
         if self.resp_options.restrained:
             q2 = self.iter_solve(q1, a_matrix, b_matrix)
