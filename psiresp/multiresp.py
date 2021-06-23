@@ -114,7 +114,7 @@ class MultiResp:
         start = 0
         for i, mol in enumerate(self.molecules, 1):
             end = start + mol.n_atoms
-            b = mol.get_conformer_b_matrix(executor=None)
+            b = mol.get_conformer_b_matrix(executor=executor)
             B[start:end] = b[:-1]
             B[-i] = b[-1]
             start = end

@@ -171,8 +171,8 @@ class Resp(base.IOBase):
 
         AllChem.EmbedMultipleConfs(rdmol, numConfs=n_confs,
                                    pruneRmsThresh=rmsd_threshold,
+                                   useRandomCoords=True,
                                    ignoreSmoothingFailures=True)
-
         if minimize:
             # TODO: is UFF good?
             AllChem.UFFOptimizeMoleculeConfs(rdmol,
