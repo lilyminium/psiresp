@@ -120,13 +120,6 @@ def read_psi4mol(filename: str):
     return mol
 
 
-def create_psi4_molstr(molecule):
-    mol = molecule.create_psi4_string_from_molecule()
-    pattern = r"--\n\s*\d \d\n"  # remove any clashing fragment charge/multiplicity
-    mol = re.sub(pattern, "", mol)
-    return f"molecule {molecule.name()} {{\n{mol}\n}}\n\n"
-
-
 def prefix_file(path, prefix=None):
     if prefix:
         head, tail = os.path.split(path)
@@ -281,13 +274,7 @@ def asiterable(obj):
     return obj
 
 
-def read_csv(path):
-    return pd.read_csv(path, index_col=0, header=0)
 
-
-def load_text(file):
-    with open(file, "r") as f:
-        return f.read()
 
 
 def clean_intra(intra_chrconstr=[], intra_chrequiv=[], chrequiv=[], chrconstr=[], molecules={}):
@@ -483,6 +470,8 @@ def orient_rigid(i, j, k, coords):
     coordinates: ndarray
         Re-oriented coordinates
     """
+    if not len({i, j, k}) == 3:
+        raise ValueError("i, j, and k must be different")
     xyz = coords.copy()
     vec = coords[i]
     xyz -= vec

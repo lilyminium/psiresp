@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import tempfile
 from concurrent.futures import as_completed
 
 import numpy as np
@@ -222,7 +221,7 @@ class Conformer(base.Psi4MolContainerMixin, base.IOBase):
         if self.orientation_options.keep_original or not self.orientation_options.n_orientations:
             self._add_orientation()  # original
         symbols = [self.psi4mol.symbol(i) for i in range(self.psi4mol.natom())]
-        self.orientation_options.generate_orientations(symbols)
+        self.orientation_options.generate_transformations(symbols)
         dct = self.orientation_options.to_indices()
         xyzs = []
         for a, b, c in dct["reorientations"]:

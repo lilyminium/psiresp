@@ -97,7 +97,7 @@ class QMOptions(AttrDict):
                          g_convergence=g_convergence)
 
     def write_opt_file(self, psi4mol, destination_dir=".", filename="opt.in"):
-        opt_file = utils.create_psi4_molstr(psi4mol)
+        opt_file = utils.get_mol_spec(psi4mol)
         opt_file += textwrap.dedent(f"""
         set {{
             basis {self.basis}
@@ -118,7 +118,7 @@ class QMOptions(AttrDict):
         return outfile
 
     def write_esp_file(self, psi4mol, destination_dir=".", filename="esp.in"):
-        esp_file = utils.create_psi4_molstr(psi4mol)
+        esp_file = utils.get_mol_spec(psi4mol)
 
         esp_file += f"set basis {self.basis}\n"
 
@@ -198,12 +198,12 @@ class OrientationOptions(AttrDict):
                          keep_original=keep_original)
 
     @property
-    def n_specified_orientations(self):
+    def n_specified_transformations(self):
         return sum(map(len, [self.reorientations, self.rotations, self.translations]))
 
     @property
     def n_orientations(self):
-        return sum([self.n_specified_orientations, self.n_reorientations, self.n_translations, self.n_rotations])
+        return sum([self.n_specified_transformations, self.n_reorientations, self.n_translations, self.n_rotations])
 
     def generate_atom_combinations(self, symbols: List[str]):
         symbols = np.asarray(symbols)
@@ -224,15 +224,8 @@ class OrientationOptions(AttrDict):
             yield comb
             yield comb[::-1]
 
-        # comb = list(itertools.combinations(heavy_atoms, 3))
-        # h_comb = itertools.combinations(heavy_atoms + h_atoms, 3)
-        # comb += [x for x in h_comb if x not in comb]
-        # backwards = [x[::-1] for x in comb]
-        # new_comb = [x for items in zip(comb, backwards) for x in items]
-        # return new_comb
 
-
-    def generate_orientations(self, symbols: List[str]):
+    def generate_transformations(self, symbols: List[str]):
         # atom_combinations = self.generate_atom_combinations(symbols)
         for kw in ("reorientations", "rotations"):
             n = max(self[f"n_{kw}"] - len(self[kw]), 0)
@@ -565,9 +558,7 @@ class RespOptions(AttrDict):
                  ihfree: bool = True,
                  tol: float = 1e-6,
                  maxiter: int = 300):
-        print("made resp options??")
         super().__init__(restrained=restrained, hyp_a=hyp_a, hyp_b=hyp_b, ihfree=ihfree, tol=tol, maxiter=maxiter)
-        print(self.maxiter)
 
 
 class RespCharges:

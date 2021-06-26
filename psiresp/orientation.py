@@ -2,7 +2,6 @@ from __future__ import division, absolute_import
 import os
 import logging
 import subprocess
-import tempfile
 
 import numpy as np
 
