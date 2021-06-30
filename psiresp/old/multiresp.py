@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from .options import ChargeOptions, RespCharges, RespOptions
+from .options import ChargeConstraintOptions, RespCharges, RespOptions
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class MultiResp:
     ----------
     resps: list of Resp
         Molecules for multi-molecule fit, set up in Resp classes.
-    charge_constraint_options: psiresp.ChargeOptions (optional)
+    charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         Charge constraints and charge equivalence constraints.
         When running a fit, both these *and* the constraints supplied
         in each individual RESP class are taken into account. This is
@@ -39,7 +39,8 @@ class MultiResp:
         partial atomic charges for each molecule
         (only exists after calling run)
     """
-    def __init__(self, resps, charge_constraint_options=ChargeOptions()):
+
+    def __init__(self, resps, charge_constraint_options=ChargeConstraintOptions()):
         self.molecules = resps
         self._moldct = {r.name: i + 1 for i, r in enumerate(resps)}
         self.symbols = np.concatenate([mol.symbols for mol in self.molecules])
@@ -56,7 +57,7 @@ class MultiResp:
 
             n_atoms += mol.n_atoms
 
-        self.charge_constraint_options = ChargeOptions(**charge_constraint_options)
+        self.charge_constraint_options = ChargeConstraintOptions(**charge_constraint_options)
 
         names = ", ".join([m.name for m in self.molecules])
         log.debug(f"Created MultiResp with {self.n_molecules} molecules: {names}")
@@ -121,7 +122,7 @@ class MultiResp:
         return B
 
     def get_absolute_charge_constraint_options(self, charge_constraint_options):
-        multiopts = ChargeOptions(**charge_constraint_options)
+        multiopts = ChargeConstraintOptions(**charge_constraint_options)
 
         # add atom increments to atoms
         for constr in multiopts.iterate_over_constraints():
@@ -130,7 +131,7 @@ class MultiResp:
         # incorporate intramolecular constraints
         # n_atoms = 0
         for i, mol in enumerate(self.molecules, 1):
-            opts = ChargeOptions(**mol.charge_constraint_options)
+            opts = ChargeConstraintOptions(**mol.charge_constraint_options)
             for constr in opts.iterate_over_constraints():
                 for aid in constr.data:
                     aid.atom_increment = self.atom_increment_mapping[i]
@@ -157,7 +158,7 @@ class MultiResp:
         initial_charge_options = self.get_absolute_charge_constraint_options(charge_constraint_options)
 
         if stage_2:
-            final_charge_options = ChargeOptions(**initial_charge_options)
+            final_charge_options = ChargeConstraintOptions(**initial_charge_options)
             final_charge_options.charge_constraints = []
             initial_charge_options.charge_equivalences = []
         else:
@@ -212,7 +213,6 @@ class MultiResp:
             ihfree: bool = True,
             tol: float = 1e-6,
             maxiter: int = 50):
-        
         """
         Runs charge calculation based on given parameters. This populates the
         ``stage_1_charges`` and, optionally, ``stage_2_charges`` attributes.
@@ -224,7 +224,7 @@ class MultiResp:
             runs in serial.
         stage_2: bool (optional)
             Whether to run a two stage fit
-        charge_constraint_options: psiresp.ChargeOptions (optional)
+        charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
             Charge constraint options to use while fitting the charges. If not
             provided, the options stored in the ``charge_constraint_options``
             attribute are used. Providing this argument does not store the options

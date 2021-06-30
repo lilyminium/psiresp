@@ -52,6 +52,7 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
     io_options: psiresp.IOOptions
         input/output options
     """
+
     def __init__(self, psi4mol, conformer, name=None, io_options=IOOptions()):
         super().__init__(psi4mol, name=name, io_options=io_options)
         self.conformer = conformer
@@ -117,13 +118,13 @@ class Orientation(base.Psi4MolContainerMixin, base.IOBase):
     def compute_grid(self):
         return utils.compute_grid(self.conformer.vdw_points,
                                   self.coordinates,
-                                  rmin=self.conformer.esp_options.rmin,
-                                  rmax=self.conformer.esp_options.rmax)
+                                  grid_rmin=self.conformer.esp_options.grid_rmin,
+                                  grid_rmax=self.conformer.esp_options.grid_rmax)
 
     @base.datafile(filename="grid_esp.dat")
     def compute_esp(self):
         import psi4
-        
+
         # ... this dies unless you write out grid.dat
         with self.get_subfolder() as tmpdir:
             np.savetxt(os.path.join(tmpdir, "grid.dat"), self.grid)

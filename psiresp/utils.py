@@ -1,11 +1,16 @@
 from typing import Any, Iterable, Tuple, List, Callable
 import concurrent.futures
+import re
 
 import numpy as np
 import numpy.typing as npt
 
-from . import exceptions
+BOHR_TO_ANGSTROM = 0.52917721092
+ANGSTROM_TO_BOHR = 1/BOHR_TO_ANGSTROM
 
+
+class NoQMExecutionError(RuntimeError):
+    pass
 
 
 def load_data(path: Path) -> Data:
@@ -14,7 +19,7 @@ def load_data(path: Path) -> Data:
     ----------
     path: pathlib.Path or str
         Data path
-    
+
     Returns
     -------
     data: numpy.ndarray or pd.DataFrame
@@ -33,7 +38,7 @@ def load_data(path: Path) -> Data:
         loader = utils.load_text
     else:
         raise ValueError(f"Can't find loader for {suffix} file")
-    
+
     return loader(path)
 
 
@@ -65,6 +70,7 @@ def save_data(data: Data, path: Path):
         raise ValueError(f"Can't find saver for {suffix} file")
     logger.info(f"Saved to {os.path.abspath(path)}")
 
+
 def run_with_executor(functions: List[Callable] = [],
                       executor: Optional[concurrent.futures.Executor] = None,
                       timeout: Optional[float] = None,
@@ -87,7 +93,7 @@ def wait_or_quit(futures: List[concurrent.futures.Future] = [],
     try:
         for future in futures:
             future.result()
-    except exceptions.NoQMExecutionError:
+    except NoQMExecutionError:
         from .options.qm import command_stream
         with open(command_log, "w") as f:
             f.write(command_stream.getvalue())
@@ -98,7 +104,7 @@ def wait_or_quit(futures: List[concurrent.futures.Future] = [],
 def is_iterable(obj: Any) -> bool:
     """Returns ``True`` if `obj` can be iterated over and is *not* a string
     nor a :class:`NamedStream`
-    
+
     Adapted from MDAnalysis.lib.util.iterable
     """
     if isinstance(obj, str):
@@ -127,152 +133,50 @@ def as_iterable(obj: Any) -> Iterable:
     return obj
 
 
-def get_sin_cos_angle_oab(a: float, b: float) -> Tuple[float, float]:
-    """
-    Computes the angle between origin -- a -- b and
-    returns the sine and cosine transforms
-
-    Parameters
-    ----------
-    a: float
-    b: float
-
-    Returns
-    -------
-    sine_angle: float
-    cosine_angle: float
-    """
-    hypotenuse = np.sqrt(a**2 + b**2)
-    adjacent = abs(a)
-    angle = np.arccos(adjacent/hypotenuse)
-
-    if b >= 0:
-        if a < 0:
-            angle = np.pi - angle
-    else:
-        if a >= 0:
-            angle = 2 * np.pi - angle
-        else:
-            angle = np.pi + angle
-
-    cos_angle = np.cos(angle)
-    sin_angle = np.sin(angle)
-    return sin_angle, cos_angle
+def split_docstring_into_parts(docstring: str) -> Dict[str, List[str]]:
+    """Split docstring around headings"""
+    parts = defaultdict(list)
+    heading_pattern = "[ ]{4}[A-Z][a-z]+\s*\n[ ]{4}[-]{4}[-]+\s*\n"
+    directive_pattern = "[ ]{4}\.\. [a-z]+:: .+\n"
+    pattern = re.compile("(" + heading_pattern + "|" + directive_pattern + ")")
+    sections = re.split(pattern, docstring)
+    parts["base"] = sections.pop(0)
+    while sections:
+        heading_match, section = sections[:2]
+        sub_pattern = "([A-Z][a-z]+|[ ]{4}\.\. [a-z]+:: .+\n)"
+        heading = re.search(sub_pattern, heading_match).groups()[0]
+        section = heading_match + section
+        parts[heading] = section.split("\n")
+        sections = sections[2:]
+    return parts
 
 
-def rotate_x(n: int, coordinates: npt.NDArray):
-    """
-    Rotate coordinates such that the ``n``th coordinate of
-    ``coordsinates`` becomes the x-axis. This is done *in-place*.
-
-    Adapted from R.E.D. in perl.
-
-    Parameters
-    ----------
-    n: int
-        index of coordinates
-    coordinates: numpy.ndarray
-        coordinates
-    """
-    _, y, z = coordinates[n]
-    sin_angle, cos_angle = get_sin_cos_angle_oab(y, z)
-    ys = coordinates[:, 1].copy()
-    zs = coordinates[:, 2].copy()
-    coordinates[:, 1] = zs*sin_angle + ys*cos_angle
-    coordinates[:, 2] = zs*cos_angle - ys*sin_angle
+def join_split_docstring(parts: Dict[str, List[str]]) -> str:
+    """Join split docstring back into one string"""
+    docstring = parts.pop("base", "")
+    headings = ("Parameters", "Attributes", "Examples")
+    for heading in headings:
+        section = parts.pop(heading, [])
+        docstring += "\n".join(section)
+    for section in parts.values():
+        docstring += "\n".join(section)
+    return docstring
 
 
-def rotate_z(n: int, coordinates: npt.NDArray):
-    """
-    Rotate coordinates such that the ``n``th coordinate of
-    ``coordsinates`` becomes the z-axis. This is done *in-place*.
+def extend_docstring_with_base(docstring: str, base_class: type) -> str:
+    """Extend docstring with the parameters in `base_class`"""
+    doc_parts = split_docstring_into_parts(docstring)
+    base_parts = split_docstring_into_parts(base_class.__doc__)
+    headings = ("Parameters", "Attributes", "Examples")
+    for k in headings:
+        if k in base_parts:
+            section = base_parts.pop(k)
+            if doc_parts.get(k):
+                section = section[2:]
+            doc_parts[k].extend(section)
 
-    Adapted from R.E.D. in perl.
+    for k, lines in base_parts.items():
+        if k != "base" and k in doc_parts:
+            doc_parts[k].extend(lines[2:])
 
-    Parameters
-    ----------
-    n: int
-        index of coordinates
-    coordinates: numpy.ndarray
-        coordinates
-    """
-    x, y, _ = coordinates[n]
-    sin_angle, cos_angle = get_sin_cos_angle_oab(x, y)
-    xs = coordinates[:, 0].copy()
-    ys = coordinates[:, 1].copy()
-    coordinates[:, 0] = xs*cos_angle + ys*sin_angle
-    coordinates[:, 1] = ys*cos_angle - xs*sin_angle
-
-
-def orient_rigid(i: int,
-                 j: int,
-                 k: int,
-                 coordinates: npt.NDArray,
-                 ) -> npt.NDArray:
-    """
-    Rigid-body reorientation such that the ``i`` th coordinate
-    is the new origin; the ``j` `th coordinate defines the new
-    x-axis; and the ``k`` th coordinate defines the XY plane.
-
-    ``i``, ``j``, and ``k`` should all be different. They are
-    indexed from 0.
-
-    Adapted from R.E.D. in perl.
-
-    Parameters
-    ----------
-    i: int
-        index. Must be different to ``j`` and ``k``
-    j: int
-        index. Must be different to ``i`` and ``k``
-    k: int
-        index. Must be different to ``i`` and ``j``
-    coordinates: numpy.ndarray of shape (N, 3)
-        coordinates
-
-    Returns
-    -------
-    coordinates: numpy.ndarray of shape (N, 3)
-        New re-oriented coordinates
-    """
-    xyz = coordinates.copy()
-    vec = coordinates[i]
-    xyz -= vec
-    rotate_x(j, xyz)
-    rotate_z(j, xyz)
-    rotate_x(k, xyz)
-    return xyz
-
-
-def rotate_rigid(i: int,
-                 j: int,
-                 k: int,
-                 coordinates: npt.NDArray,
-                 ) -> npt.NDArray:
-    """
-    Rigid-body rotation such that the ``i`` th and ``j`` th coordinate
-    define a vector parallel to the x-axis; and the ``k`` th coordinate
-    defines a plane parallel to the XY plane.
-
-    ``i`` , ``j`` , and ``k`` should all be different. They are
-    indexed from 0.
-
-    Adapted from R.E.D. in perl.
-
-    Parameters
-    ----------
-    i: int
-        index. Must be different to ``j`` and ``k``
-    j: int
-        index. Must be different to ``i`` and ``k``
-    k: int
-        index. Must be different to ``i`` and ``j``
-    coordinates: ndarray
-        coordinates
-
-    Returns
-    -------
-    coordinates: numpy.ndarray
-        New rotated coordinates
-    """
-    return coordinates[i] + orient_rigid(i, j, k, coordinates)
+    return join_split_docstring(doc_parts)

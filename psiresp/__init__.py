@@ -8,8 +8,8 @@ from .orientation import Orientation
 from .conformer import Conformer
 from .resp import Resp
 from .multiresp import MultiResp
-from .resp2 import Resp2, MultiResp2
-from .options import IOOptions, OrientationOptions, ChargeOptions, QMOptions, RespOptions
+# from .resp2 import Resp2, MultiResp2
+# from .options import IOOptions, OrientationOptions, ChargeConstraintOptions, QMOptions, RespOptions
 from .configs import (
     RespA1,
     RespA2,

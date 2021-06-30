@@ -4,7 +4,8 @@ import numpy as np
 
 from .conformer import Conformer
 from . import utils, base
-from .options import (ChargeOptions, RespOptions, RespCharges, IOOptions, QMOptions, ESPOptions, OrientationOptions)
+from .options import (ChargeConstraintOptions, RespOptions, RespCharges,
+                      IOOptions, QMOptions, ESPOptions, OrientationOptions)
 
 log = logging.getLogger(__name__)
 
@@ -25,12 +26,12 @@ class Resp(base.IOBase):
         overall charge of the molecule.
     multiplicity: int (optional)
         multiplicity of the molecule
-    charge_constraint_options: psiresp.ChargeOptions (optional)
+    charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         charge constraints and charge equivalence constraints
     io_options: psiresp.IOOptions (optional)
         input/output options
-    
-    
+
+
 
     Attributes
     ----------
@@ -47,7 +48,7 @@ class Resp(base.IOBase):
         number of atoms in each conformer
     symbols: ndarray
         element symbols
-    charge_constraint_options: psiresp.ChargeOptions
+    charge_constraint_options: psiresp.ChargeConstraintOptions
         charge constraints and charge equivalence constraints
     stage_1_charges: psiresp.RespCharges
         This is populated upon calling ``run()``; otherwise, it is ``None``.
@@ -70,7 +71,7 @@ class Resp(base.IOBase):
                        qm_options=QMOptions(),
                        esp_options=ESPOptions(),
                        orientation_options=OrientationOptions(),
-                       charge_constraint_options=ChargeOptions(),
+                       charge_constraint_options=ChargeConstraintOptions(),
                        weights=None,
                        optimize_geometry=False):
         """
@@ -90,7 +91,7 @@ class Resp(base.IOBase):
             Options for generating the grid for computing ESP
         orientation_options: psiresp.OrientationOptions (optional)
             Options for generating orientations for each conformer
-        charge_constraint_options: psiresp.ChargeOptions (optional)
+        charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
             charge constraints and charge equivalence constraints
         io_options: psiresp.IOOptions (optional)
             input/output options
@@ -160,7 +161,7 @@ class Resp(base.IOBase):
             ``minimize=True``
         **kwargs:
             passed to Resp.from_molecules
-        
+
         Returns
         -------
         resp: Resp
@@ -186,7 +187,7 @@ class Resp(base.IOBase):
                  name="Resp",
                  charge=0,
                  multiplicity=1,
-                 charge_constraint_options=ChargeOptions(),
+                 charge_constraint_options=ChargeConstraintOptions(),
                  io_options=IOOptions()):
         super(Resp, self).__init__(name=name, io_options=io_options)
         if not conformers:
@@ -234,7 +235,7 @@ class Resp(base.IOBase):
 
     @charge_constraint_options.setter
     def charge_constraint_options(self, options):
-        self._charge_constraint_options = cc = ChargeOptions(**options)
+        self._charge_constraint_options = cc = ChargeConstraintOptions(**options)
         if cc.equivalent_methyls:
             cc.add_methyl_equivalences(self.sp3_ch_ids)
 
@@ -266,7 +267,7 @@ class Resp(base.IOBase):
 
     def to_mda(self):
         """Create a MDAnalysis.Universe from first conformer
-        
+
         Returns
         -------
         MDAnalysis.Universe
@@ -299,7 +300,6 @@ class Resp(base.IOBase):
                          io_options=self.io_options,
                          charge_constraint_options=self.charge_constraint_options)
         return new
-
 
     def get_conformer_a_matrix(self):
         A = np.zeros((self.n_atoms + 1, self.n_atoms + 1))
@@ -347,10 +347,10 @@ class Resp(base.IOBase):
         if charge_constraint_options is None:
             charge_constraint_options = self.charge_constraint_options
 
-        initial_charge_options = ChargeOptions(**charge_constraint_options)
+        initial_charge_options = ChargeConstraintOptions(**charge_constraint_options)
 
         if stage_2:
-            final_charge_options = ChargeOptions(**initial_charge_options)
+            final_charge_options = ChargeConstraintOptions(**initial_charge_options)
             # final_charge_options.charge_constraints = []
             initial_charge_options.charge_equivalences = []
         else:
@@ -405,7 +405,7 @@ class Resp(base.IOBase):
             runs in serial.
         stage_2: bool (optional)
             Whether to run a two stage fit
-        charge_constraint_options: psiresp.ChargeOptions (optional)
+        charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
             Charge constraint options to use while fitting the charges. If not
             provided, the options stored in the ``charge_constraint_options``
             attribute are used. Providing this argument does not store the options

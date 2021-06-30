@@ -3,6 +3,9 @@ import warnings
 import numpy as np
 
 from .. import base
+from .charge import ChargeConstraintOptions
+from .conformer import ConformerOptions, ConformerGenerator
+
 
 class BaseRespOptions(base.Model):
     restrained: bool = True
@@ -44,15 +47,35 @@ class RespStageOptions(BaseRespOptions):
             charges = self._solve_a_b(a_iter, b_matrix)
             delta = np.max(np.abs(charges - q_last)[:n_atoms])
             n_iter += 1
-        
+
         if delta > self.resp_convergence_tol:
             warnings.warn("Charge fitting did not converge to "
                           f"resp_convergence_tol={self.resp_convergence_tol} "
                           f"with resp_max_iter={self.resp_max_iter}")
         return charges
 
-class RespOptions(BaseRespOptions):
+
+class RespOptions(BaseRespOptions, mixins.GridMixin, mixins.QMMixin):
+    """
+    Resp options
+
+    Parameters
+    ----------
+    charge: int (optional)
+        overall charge of the molecule.
+    multiplicity: int (optional)
+        multiplicity of the molecule
+    charge_constraint_options: psiresp.options.ChargeConstraintOptions (optional)
+        charge constraints and charge equivalence constraints
+    conformer_options: psiresp.options.ConformerOptions (optional)
+        Default arguments for creating a conformer for this object
+    conformer_generator: psiresp.options.ConformerGenerator (optional)
+        class to generate conformer geometries
+    """
     hyp_a1: float = 0.0005
     hyp_a2: float = 0.001
     stage_2: bool = False
+    charge: int = 0
+    multiplicity: int = 1
 
+    charge_constraint_options: ChargeConstraintOptions = ChargeConstraintOptions()

@@ -5,24 +5,54 @@ import psi4
 import numpy as np
 from numpy import typing as npt
 
-from .constants import ANGSTROM_TO_BOHR
+from . import utils
 
 CoordinateInputs = Union[psi4.core.Molecule, npt.NDArray]
 
-def as_coordinates(obj: CoordinateInputs) -> npt.NDArray:
+
+def as_coordinates(coordinates_or_psi4mol: CoordinateInputs) -> npt.NDArray:
+    """Get coordinates from either an array or Psi4 molecule
+
+    Parameters
+    ----------
+    coordinates_or_psi4mol: numpy.ndarray or psi4.core.Molecule
+        Coordinate array or molecule
+
+    Returns
+    -------
+    numpy.ndarray
+        Coordinates in angstrom
+    """
     try:
         xyz = obj.geometry().np.astype("float")
     except AttributeError:
         pass
     else:
-        obj = xyz * BOHR_TO_ANGSTROM
+        if "Bohr" in obj.units():
+            obj = xyz * BOHR_TO_ANGSTROM
     return obj
 
 
 def psi4mol_with_coordinates(psi4mol: psi4.core.Molecule,
                              coordinates_or_psi4mol: CoordinateInputs,
                              name: Optional[str] = None
-                            ) -> psi4.core.Molecule:
+                             ) -> psi4.core.Molecule:
+    """Return a Psi4 molecule with given coordinates and name
+
+    Parameters
+    ----------
+    psi4mol: psi4.core.Molecule
+        Psi4 molecule to copy
+    coordinates_or_psi4mol: numpy.ndarray or psi4.core.Molecule
+        Coordinate array or molecule to obtain coordinates from
+    name: str (optional)
+        Name for the molecule
+
+    Returns
+    -------
+    psi4.core.Molecule
+        Resulting molecule
+    """
     clone = psi4mol.clone()
     coordinates = coordinates_from_obj(coordinates_or_psi4mol)
     set_psi4mol_geometry(clone, coordinates)
@@ -51,8 +81,7 @@ def get_mol_spec(psi4mol: psi4.core.Molecule) -> str:
 
 
 def set_psi4mol_geometry(psi4mol: psi4.core.Molecule,
-                         coordinates: npt.NDArray,
-                         angstrom: bool = True):
+                         coordinates: npt.NDArray):
     """
     Set geometry of `psi4mol` molecule with numpy array of coordinates
 
@@ -61,15 +90,11 @@ def set_psi4mol_geometry(psi4mol: psi4.core.Molecule,
     psi4mol: psi4.core.Molecule
         Molecule to modify in-place
     coordinates: np.ndarray of floats, of shape N x 3
-        coordinates. Generally assumed to be angstrom
-    angstrom: bool
-        Whether the coordinates are in angstrom
+        coordinates in angstrom
     """
     charge = psi4mol.molecular_charge()
     multiplicity = psi4mol.molecular_charge()
-
-    if angstrom:
-        coordinates = coordinates * ANGSTROM_TO_BOHR
+    coordinates = coordinates * utils.ANGSTROM_TO_BOHR
 
     mat = psi4.core.Matrix.from_array(coordinates)
     psi4mol.set_geometry(mat)
@@ -80,7 +105,9 @@ def set_psi4mol_geometry(psi4mol: psi4.core.Molecule,
     psi4mol.update_geometry()
 
 
-def get_sp3_ch_ids(psi4mol: psi4.core.Molecule) -> Dict[int, List[int]]:
+def get_sp3_ch_ids(psi4mol: psi4.core.Molecule,
+                   increment: int = 0,
+                   ) -> Dict[int, List[int]]:
     """Get dictionary of sp3 carbon atom number to bonded hydrogen numbers.
 
     These atom numbers are indexed from 1. Each key is the number of an
@@ -90,7 +117,7 @@ def get_sp3_ch_ids(psi4mol: psi4.core.Molecule) -> Dict[int, List[int]]:
     ----------
     psi4mol: psi4.core.Molecule
         Molecule
-    
+
     Returns
     -------
     c_h_dict: dict of {int: list of ints}
@@ -106,22 +133,27 @@ def get_sp3_ch_ids(psi4mol: psi4.core.Molecule) -> Dict[int, List[int]]:
         partners = cbonds[cbonds != i]
         if len(partners) == 3:
             hs = partners[symbols[partners] == "H"]
-            groups[i + 1] = list(hs + 1)
+            groups[i + 1 + increment] = list(hs + 1 + increment)
     return groups
 
 
 def psi4mol_from_xyz_string(string: str) -> psi4.core.Molecule:
+    """Create Psi4 molecule from string of XYZ format"""
     return psi4.core.Molecule.from_string(string, dtype="xyz")
 
 
 def psi4mol_to_xyz_string(psi4mol: psi4.core.Molecule) -> str:
+    """Create XYZ representation of Psi4 molecule"""
     return psi4mol.to_string(dtype="xyz")
 
-def psi4mol_to_mol_string(psi4mol: psi4.core.Molecule) -> str:
+
+def psi4mol_to_mol2_string(psi4mol: psi4.core.Molecule) -> str:
+    """Create MOL2 representation of Psi4 molecule"""
     return psi4mol.format_molecule_for_mol()
 
-def psi4logfile_to_xyz_string(logfile: str) -> str:
-    """Get geometry in XYZ format from Psi4 log file"""
+
+def psi4optfile_to_xyz_string(logfile: str) -> str:
+    """Get geometry in XYZ format from Psi4 optimization log file"""
     with open(logfile, "r") as f:
         contents = f.read()
     last_lines = contents.split("OPTKING Finished Execution")[-1].split("\n")
@@ -142,7 +174,7 @@ def psi4logfile_to_xyz_string(logfile: str) -> str:
     return txt
 
 
-def psi4mol_from_psi4logfile(logfile) -> psi4.core.Molecule:
-    xyz = psi4logfile_to_xyz_string(logfile)
+def psi4mol_from_psi4optfile(logfile) -> psi4.core.Molecule:
+    """Create Psi4 molecule from optimized geometry of log file"""
+    xyz = psi4optfile_to_xyz_string(logfile)
     return psi4mol_from_xyz_string(xyz)
-

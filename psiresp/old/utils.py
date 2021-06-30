@@ -274,9 +274,6 @@ def as_iterable(obj):
     return obj
 
 
-
-
-
 def clean_intra(intra_chrconstr=[], intra_chrequiv=[], chrequiv=[], chrconstr=[], molecules={}):
     if isinstance(intra_chrconstr, dict):
         intra_chrconstr = [list(x) for x in intra_chrconstr.items()]
@@ -648,7 +645,7 @@ def generate_connolly_shells(
     return vdw_points
 
 
-def generate_vdw_surface(points, radii, coordinates, rmin=0, rmax=-1):
+def generate_vdw_surface(points, radii, coordinates, grid_rmin=0, grid_rmax=-1):
     """
     Compute van der Waals surface in angstrom.
 
@@ -660,9 +657,9 @@ def generate_vdw_surface(points, radii, coordinates, rmin=0, rmax=-1):
         Scaled van der Waals' radii of each atom
     coordinates: ndarray (n_atoms, 3)
         Cartesian coordinates of each atom
-    rmin: float (optional)
+    grid_rmin: float (optional)
         inner boundary of shell to keep grid points from
-    rmax: float (optional)
+    grid_rmax: float (optional)
         outer boundary of shell to keep grid points from. If < 0,
         all points are selected.
 
@@ -671,10 +668,10 @@ def generate_vdw_surface(points, radii, coordinates, rmin=0, rmax=-1):
     surface_points: ndarray  (n_points, 3)
         Cartesian coordinates in angstrom
     """
-    if rmax < 0:
-        rmax = np.inf
-    if rmax < rmin:
-        raise ValueError("rmax must be equal to or greater than rmin")
+    if grid_rmax < 0:
+        grid_rmax = np.inf
+    if grid_rmax < grid_rmin:
+        raise ValueError("grid_rmax must be equal to or greater than grid_rmin")
 
     if len(points) != len(coordinates):
         err = ("Length of ``points`` must match length of ``coordinates``"
@@ -687,9 +684,9 @@ def generate_vdw_surface(points, radii, coordinates, rmin=0, rmax=-1):
 
     radii = np.asarray(radii)
     indices = np.arange(radii.shape[0])
-    inner_bound = radii * rmin
+    inner_bound = radii * grid_rmin
     inner_bound = np.where(inner_bound < radii, radii, inner_bound)
-    outer_bound = radii * rmax
+    outer_bound = radii * grid_rmax
 
     surface_points = []
     for i, (dots, xyz) in enumerate(zip(points, coordinates)):
@@ -789,9 +786,9 @@ def datafile(func=None, filename=None):
     return wrapper
 
 
-def compute_grid(vdw_point_list, coordinates, rmin=0, rmax=-1):
+def compute_grid(vdw_point_list, coordinates, grid_rmin=0, grid_rmax=-1):
     points = []
     for pts, rad in vdw_point_list:
-        surface = generate_vdw_surface(pts, rad, coordinates, rmin=rmin, rmax=rmax)
+        surface = generate_vdw_surface(pts, rad, coordinates, grid_rmin=grid_rmin, grid_rmax=grid_rmax)
         points.append(surface)
     return np.concatenate(points)

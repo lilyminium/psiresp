@@ -1,13 +1,13 @@
-import logging
+from typing import List, Dist
 
 import numpy as np
+import scipy
 
-from .options import ChargeOptions, RespCharges, RespOptions
+from . import mixins
+from .resp import Resp
 
-log = logging.getLogger(__name__)
 
-
-class MultiResp:
+class MultiResp(mixins.RespMixin):
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
 
@@ -15,7 +15,7 @@ class MultiResp:
     ----------
     resps: list of Resp
         Molecules for multi-molecule fit, set up in Resp classes.
-    charge_constraint_options: psiresp.ChargeOptions (optional)
+    charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         Charge constraints and charge equivalence constraints.
         When running a fit, both these *and* the constraints supplied
         in each individual RESP class are taken into account. This is
@@ -39,30 +39,68 @@ class MultiResp:
         partial atomic charges for each molecule
         (only exists after calling run)
     """
-    def __init__(self, resps, charge_constraint_options=ChargeOptions()):
-        self.molecules = resps
-        self._moldct = {r.name: i + 1 for i, r in enumerate(resps)}
-        self.symbols = np.concatenate([mol.symbols for mol in self.molecules])
-        self.n_atoms = len(self.symbols)
-        n_atoms = 0
-        self.atom_increment_mapping = {}
-        self.sp3_ch_ids = {}
-        for i, mol in enumerate(self.molecules, 1):
-            self.atom_increment_mapping[i] = n_atoms
-            self.atom_increment_mapping[mol.name] = n_atoms
-            for c, hs in mol.sp3_ch_ids.items():
-                hs = [h + n_atoms for h in hs]
-                self.sp3_ch_ids[c + n_atoms] = hs
 
-            n_atoms += mol.n_atoms
+    resps: List[Resp] = []
 
-        self.charge_constraint_options = ChargeOptions(**charge_constraint_options)
+    def __post_init__(self):
+        super().__post_init__()
+        for resp in self.resps:
+            resp.resp = self
 
-        names = ", ".join([m.name for m in self.molecules])
-        log.debug(f"Created MultiResp with {self.n_molecules} molecules: {names}")
+    @property
+    def resps_by_name(self):
+        return {resp.name: resp for resp in self.resps}
 
-    def clone(self, suffix="_copy"):
-        """Clone into another instance of MultiResp
+    @property
+    def conformers(self):
+        for resp in self.resps:
+            for conformer in resp.conformers:
+                yield conformer
+
+    @property
+    def symbols(self):
+        values = []
+        for resp in self.resps:
+            values.extend(resp.symbols)
+        return values
+
+    def add_resp(self,
+                 psi4mol_or_resp: Union[psi4.core.Molecule, Resp],
+                 name: Optional[str] = None,
+                 **kwargs) -> Resp:
+        """Add Resp, possibly creating from Psi4 molecule
+
+        Parameters
+        ----------
+        psi4mol_or_resp: psi4.core.Molecule or Resp
+            Psi4 Molecule or Resp instance. If this is a molecule,
+            the molecule is copied before creating the Resp. If it is
+            a Resp instance, the Resp is just appended to
+            :attr:`psiresp.multiresp.MultiResp.resps`.
+        name: str (optional)
+            Name of Resp. If not provided, one will be generated automatically
+        **kwargs:
+            Arguments used to construct the Resp.
+            If not provided, the default specification given in
+            :attr:`psiresp.multiresp.MultiResp`
+            will be used.
+
+        Returns
+        -------
+        resp: Resp
+        """
+        if not isinstance(psi4mol_or_resp, Resp):
+            mol = psi4mol_or_resp.clone()
+            if name is None:
+                name = f"Mol_{len(self.resps) + 1:03d}"
+            psi4mol_or_resp = Resp.from_model(self, psi4mol=mol, name=name)
+
+        psi4mol_or_resp.resp = self
+        self.resps.append(psi4mol_or_resp)
+        return psi4mol_or_resp
+
+    def copy(self, suffix="_copy"):
+        """Copy into another instance of MultiResp
 
         Parameters
         ----------
@@ -74,196 +112,138 @@ class MultiResp:
         -------
         MultiResp
         """
-        names = [r.name + suffix for r in self.molecules]
-        resps = [m.clone(name=n) for n, m in zip(names, self.molecules)]
-        return type(self)(resps, charge_constraint_options=self.charge_constraint_options)
+        names = [r.name + suffix for r in self.resps]
+        resps = [m.copy(name=n) for n, m in zip(names, self.resps)]
+        kwargs = self.dict()
+        kwargs["resps"] = resps
+        return type(self)(**kwargs)
 
     @property
-    def n_structures(self):
-        return sum([mol.n_structures for mol in self.molecules])
-
-    @property
-    def n_structure_array(self):
-        n_atoms = [x.n_atoms for x in self.molecules]
-        n_structures = [x.n_structures for x in self.molecules]
-        return np.repeat(n_structures, n_atoms)
-
-    @property
-    def n_molecules(self):
-        return len(self.molecules)
-
-    @property
-    def charges(self):
-        return [mol.charges for mol in self.molecules]
+    def n_resps(self):
+        return len(self.resps)
 
     def get_conformer_a_matrix(self):
-        ndim = self.n_atoms + self.n_molecules
-        A = np.zeros((ndim, ndim))
-        start = 0
-        for i, mol in enumerate(self.molecules, 1):
-            end = start + mol.n_atoms
-            a = mol.get_conformer_a_matrix()
-            A[start:end, start:end] = a[:mol.n_atoms, :mol.n_atoms]
-            A[-i, start:end + 1] = a[-1]
-            A[start:end + 1, -i] = a[:, -1]
-            start = end
-        return A
+        """Assemble the conformer A matrices of each Resp molecule
 
-    def get_conformer_b_matrix(self, executor=None):
-        B = np.zeros(self.n_atoms + self.n_molecules)
-        start = 0
-        for i, mol in enumerate(self.molecules, 1):
-            end = start + mol.n_atoms
-            b = mol.get_conformer_b_matrix(executor=executor)
-            B[start:end] = b[:-1]
-            B[-i] = b[-1]
-            start = end
-        return B
+        Returns
+        -------
+        numpy.ndarray
+            The shape of this array is (n_total_atoms, n_total_atoms)
+        """
+        matrices = [scipy.sparse.coo_matrix(resp.get_conformer_a_matrix())
+                    for resp in self.resps]
+        return scipy.sparse.block_diag(matrices)
 
-    def get_absolute_charge_constraint_options(self, charge_constraint_options):
-        multiopts = ChargeOptions(**charge_constraint_options)
+    def get_conformer_b_matrix(self):
+        """Assemble the conformer B matrices of each Resp molecule
 
+        Returns
+        -------
+        numpy.ndarray
+            The shape of this array is (n_total_atoms,)
+        """
+        matrices = [resp.get_conformer_b_matrix() for resp in self.resps]
+        return np.concatenate(matrices)
+
+    def get_a_matrix(self):
+        """Assemble the A matrices of each Resp molecule
+
+        Returns
+        -------
+        numpy.ndarray
+            The shape of this array is
+            (n_total_atoms + n_resps, n_total_atoms + n_resps)
+        """
+        a = self.get_conformer_a_matrix()
+        matrices = []
+        for resp in self.resps:
+            arr = np.ones(resp.n_atoms)
+            matrices.append(scipy.sparse.coo_matrix(arr))
+        rows = scipy.sparse.block_diag(matrices)
+        inputs = [[a, rows.T], [rows, None]]
+        return scipy.sparse.bmat(inputs)
+
+    def get_b_matrix(self):
+        """Assemble the B matrices of each Resp molecule
+
+        Returns
+        -------
+        numpy.ndarray
+            The shape of this array is (n_total_atoms + n_resps,)
+        """
+        b = self.get_conformer_b_matrix()
+        charges = [resp.charge for resp in self.charges]
+        return np.concatenate([b, charges])
+
+    @property
+    def resp_atom_increments(self):
+        n_atoms = [resp.n_atoms for resp in self.resps]
+        edges = np.cumsum(np.r_[0, (*n_atoms,)])[:-1]
+        return {i: e for i, e in enumerate(edges, 1)}
+
+    def get_clean_charge_options(self) -> ChargeConstraintOptions:
+        """Get clean charge constraints from MultiResp.
+
+        This runs over each Resp and adds the correct atom increment
+        to each constraint.
+
+        Returns
+        -------
+        options: ChargeConstraintOptions
+        """
+        mapping = self.resp_atom_increments
+        options = self.charge_constraint_options.copy(deep=True)
         # add atom increments to atoms
-        for constr in multiopts.iterate_over_constraints():
-            for aid in constr.data:
-                aid.atom_increment = self.atom_increment_mapping[aid.molecule_id]
+        for constraint in options.iterate_over_constraints():
+            for atom_id in constraint.atom_ids:
+                if atom_id.molecule_id is None:
+                    raise ValueError("Molecule IDs should be specified for "
+                                     "all multimolecular fits")
+                atom_id.atom_increment = mapping[atom_id.molecule_id]
         # incorporate intramolecular constraints
         # n_atoms = 0
-        for i, mol in enumerate(self.molecules, 1):
-            opts = ChargeOptions(**mol.charge_constraint_options)
-            for constr in opts.iterate_over_constraints():
-                for aid in constr.data:
-                    aid.atom_increment = self.atom_increment_mapping[i]
-                    aid.molecule_id = i
-            multiopts.charge_equivalences.extend(opts.charge_equivalences)
-            multiopts.charge_constraints.extend(opts.charge_constraints)
+        for i, mol in enumerate(self.resps, 1):
+            opts = ChargeConstraintOptions(**mol.charge_constraint_options)
+            ignore = []
+            for constraint in opts.iterate_over_constraints():
+                if constraint.some_molecule_ids_defined():
+                    raise ValueError("All molecule IDs must be defined or None. "
+                                     "A mix of values is not accepted. Given: "
+                                     f"{constraint.molecule_ids}")
+                if not constraint.any_molecule_ids_defined():
+                    constraint.molecule_ids = i
+                    constraint.atom_increments = mapping[i]
+
+                elif len(set(constraint.molecule_ids)) == 1:
+                    if constraint.molecule_ids[0] == i:
+                        constraint.atom_increments = mapping[i]
+                else:
+                    ignore.append(constraint)
+
+            equivalences = [eq for eq in opts.charge_equivalences
+                            if eq not in ignore]
+            constraints = [con for con in opts.charge_constraints
+                           if con not in ignore]
+            multiopts.charge_equivalences.extend(equivalences)
+            multiopts.charge_constraints.extend(constraints)
         multiopts.clean_charge_constraints()
         multiopts.clean_charge_equivalences()
         return multiopts
 
-    def _run(self,
-             executor=None,
-             stage_1_options=RespOptions(hyp_a=0.0005),
-             stage_2_options=RespOptions(hyp_a=0.001),
-             stage_2=False,
-             charge_constraint_options=None):
+    def get_sp3_ch_ids(self) -> Dict[int, List[int]]:
+        """Get dictionary of sp3 carbon atom number to bonded hydrogen numbers.
 
-        for mol in self.molecules:
-            mol.compute_optimized_geometry(executor=executor)
-
-        if charge_constraint_options is None:
-            charge_constraint_options = self.charge_constraint_options
-
-        initial_charge_options = self.get_absolute_charge_constraint_options(charge_constraint_options)
-
-        if stage_2:
-            final_charge_options = ChargeOptions(**initial_charge_options)
-            final_charge_options.charge_constraints = []
-            initial_charge_options.charge_equivalences = []
-        else:
-            final_charge_options = initial_charge_options
-
-        if initial_charge_options.equivalent_methyls:
-            final_charge_options.add_methyl_equivalences(self.sp3_ch_ids)
-        a_matrix = self.get_conformer_a_matrix()
-        b_matrix = self.get_conformer_b_matrix(executor=executor)
-
-        a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
-
-        stage_1_options = RespOptions(**stage_1_options)
-        self.stage_1_charges = RespCharges(stage_1_options,
-                                           symbols=self.symbols,
-                                           n_structures=self.n_structure_array)
-        self.stage_1_charges.fit(a1, b1)
-
-        for i, mol in enumerate(self.molecules, 1):
-            a = self.atom_increment_mapping[i]
-            b = a + mol.n_atoms
-            mol.stage_1_charges = self.stage_1_charges.copy(start_index=a,
-                                                            end_index=b,
-                                                            n_structures=mol.n_structure_array)
-
-        if stage_2:
-            final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
-                                                         sp3_ch_ids=self.sp3_ch_ids)
-
-            a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
-            self.stage_2_charges = RespCharges(stage_2_options,
-                                               symbols=self.symbols,
-                                               n_structures=self.n_structure_array)
-            self.stage_2_charges.fit(a2, b2)
-
-            for i, mol in enumerate(self.molecules, 1):
-                a = self.atom_increment_mapping[i]
-                b = a + mol.n_atoms
-                mol.stage_2_charges = self.stage_2_charges.copy(start_index=a,
-                                                                end_index=b,
-                                                                n_structures=mol.n_structure_array)
-        return self.charges
-
-    def run(self,
-            executor=None,
-            stage_2: bool = False,
-            charge_constraint_options=None,
-            restrained: bool = True,
-            hyp_a1: float = 0.0005,
-            hyp_a2: float = 0.001,
-            hyp_b: float = 0.1,
-            ihfree: bool = True,
-            tol: float = 1e-6,
-            maxiter: int = 50):
-        
-        """
-        Runs charge calculation based on given parameters. This populates the
-        ``stage_1_charges`` and, optionally, ``stage_2_charges`` attributes.
-
-        Parameters
-        ----------
-        executor: concurrent.futures.Executor (optional)
-            Executor used to run parallel QM jobs. If not provided, the code
-            runs in serial.
-        stage_2: bool (optional)
-            Whether to run a two stage fit
-        charge_constraint_options: psiresp.ChargeOptions (optional)
-            Charge constraint options to use while fitting the charges. If not
-            provided, the options stored in the ``charge_constraint_options``
-            attribute are used. Providing this argument does not store the options
-            in the attribute.
-        restrained: bool (optional)
-            Whether to perform a restrained fit
-        hyp_a1: float (optional)
-            scale factor of asymptote limits of hyperbola, in the stage 1 fit
-        hyp_a2: float (optional)
-            scale factor of asymptote limits of hyperbola, in the stage 2 fit
-        hyp_b: float (optional)
-            tightness of hyperbola at its minimum
-        ihfree: bool (optional)
-            if True, exclude hydrogens from restraint
-        tol: float (optional)
-            threshold for convergence
-        maxiter: int (optional)
-            maximum number of iterations to solve constraint matrices
+        These atom numbers are indexed from 1. Each key is the number of an
+        sp3 carbon. The value is the list of bonded hydrogen numbers.
 
         Returns
         -------
-        numpy.ndarray: charges
-            The final charges
+        c_h_dict: dict of {int: list of ints}
         """
-
-        stage_1_options = RespOptions(restrained=restrained,
-                                      hyp_a=hyp_a1,
-                                      hyp_b=hyp_b,
-                                      ihfree=ihfree,
-                                      tol=tol,
-                                      maxiter=maxiter)
-        stage_2_options = RespOptions(restrained=restrained,
-                                      hyp_a=hyp_a2,
-                                      hyp_b=hyp_b,
-                                      ihfree=ihfree,
-                                      tol=tol,
-                                      maxiter=maxiter)
-        return self._run(stage_1_options=stage_1_options,
-                         stage_2_options=stage_2_options,
-                         charge_constraint_options=charge_constraint_options,
-                         executor=executor,
-                         stage_2=stage_2)
+        sp3_ch_ids = {}
+        i = 0
+        for resp in self.resps:
+            resp_ids = psi4utils.get_sp3_ch_ids(resp.psi4mol, increment=i)
+            sp3_ch_ids.update(resp_ids)
+            i += resp.n_atoms
+        return sp3_ch_ids

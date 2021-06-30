@@ -163,14 +163,14 @@ class QMOptions(AttrDict):
 
 class ESPOptions(AttrDict):
     def __init__(self,
-                 rmin: float = 0,
-                 rmax: float = -1,
+                 grid_rmin: float = 0,
+                 grid_rmax: float = -1,
                  use_radii: str = "msk",
                  vdw_radii: Dict[str, float] = {},
                  vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0],
                  vdw_point_density: float = 1.0):
-        super().__init__(rmin=rmin,
-                         rmax=rmax,
+        super().__init__(grid_rmin=grid_rmin,
+                         grid_rmax=grid_rmax,
                          use_radii=use_radii,
                          vdw_scale_factors=vdw_scale_factors,
                          vdw_radii=vdw_radii,
@@ -216,14 +216,13 @@ class OrientationOptions(AttrDict):
             seen.add(comb)
             yield comb
             yield comb[::-1]
-        
+
         for comb in itertools.combinations(heavy_atoms + h_atoms, 3):
             if comb in seen:
                 continue
             seen.add(comb)
             yield comb
             yield comb[::-1]
-
 
     def generate_transformations(self, symbols: List[str]):
         # atom_combinations = self.generate_atom_combinations(symbols)
@@ -386,7 +385,7 @@ class ChargeEquivalence(BaseChargeConstraint):
         return type(self)(atom_ids=atom_ids)
 
 
-class ChargeOptions(AttrDict):
+class ChargeConstraintOptions(AttrDict):
 
     # @classmethod
     # def from_multiresp(cls, resps, charge_constraints=[], charge_equivalences=[]):

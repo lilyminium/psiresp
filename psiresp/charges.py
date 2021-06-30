@@ -1,13 +1,47 @@
-from dataclasses import dataclass, field
 from typing import List
 
+import numpy.typing as npt
+
 from . import base
-from .options import RespStageOptions, ChargeOptions
+from .options import RespStageOptions, ChargeConstraintOptions
 
 
 class RespCharges(base.Model):
-    resp_stage_options: RespStageOptions = field(default_factory=RespStageOptions)
-    charge_options: ChargeOptions = field(default_factory=ChargeOptions)
+    """Self-contained class wrapping RespStageOptions and ChargeConstraintOptions
+    to solve RESP charges with charge constraints
+
+    Parameters
+    ----------
+    resp_stage_options: RespStageOptions
+        This contains the parameters for a particular stage of RESP fitting
+    charge_options: ChargeConstraintOptions
+        This contains the charge constraints pertinent to this stage of
+        RESP fitting
+    symbols: list of str
+        Element symbols of the atoms to be fitted. Required to determine
+        which atoms are Hs
+
+    Attributes
+    ----------
+    resp_stage_options: RespStageOptions
+        This contains the parameters for a particular stage of RESP fitting
+    charge_options: ChargeConstraintOptions
+        This contains the charge constraints pertinent to this stage of
+        RESP fitting
+    symbols: list of str
+        Element symbols of the atoms to be fitted. Required to determine
+        which atoms are Hs
+    charges: numpy.ndarray of floats or None
+        Overall target charges, if computed
+    restrained_charges: numpy.ndarray of floats or None
+        Restrained charges, if computed
+    unrestrained_charges: numpy.ndarray of floats or None
+        Unrestrained charges, if computed
+    n_atoms: int
+        Number of atoms
+    """
+    resp_stage_options: RespStageOptions = RespStageOptions()
+    charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
     symbols: List[str] = []
 
     def __post_init__(self):
@@ -15,10 +49,14 @@ class RespCharges(base.Model):
         self._restrained_charges = None
 
     @property
+    def n_atoms(self):
+        return len(self.symbols)
+
+    @property
     def restrained_charges(self):
         if self._restrained_charges is not None:
             return self._restrained_charges[:self.n_atoms]
-    
+
     @property
     def unrestrained_charges(self):
         if self._unrestrained_charges is not None:
@@ -31,8 +69,22 @@ class RespCharges(base.Model):
             return self.unrestrained_charges
         return restrained
 
-        
-    def fit(self, a_matrix, b_matrix):
+    def fit(self,
+            a_matrix: npt.NDArray,
+            b_matrix: npt.NDArray,
+            ) -> npt.NDArray:
+        """Solve RESP charges with charge_options constraints
+
+        Parameters
+        ----------
+        a_matrix: numpy.ndarray
+        b_matrix: numpy.ndarray
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+
         a, b = self.charge_options.get_constraint_matrix(a_matrix, b_matrix)
         q1 = self.resp_stage_options._solve_a_b(a, b)
         self._unrestrained_charges = q1

@@ -1,23 +1,31 @@
-
-import io
-import functools
-import pathlib
-import tempfile
-import contextlib
-import os
-from dataclasses import dataclass, field, Field
+from collections import defaultdict
+from typing import Dict, List
 
 from pydantic import BaseModel
 
-import psi4
-import numpy as np
+from . import utils
 
-from .mixins import IOMixin
 
-from . import constants, psi4utils
+class ModelMeta(type):
 
-class Model(BaseModel):
-    
+    def __new__(cls, name, bases, clsdict):
+        docstring = clsdict.get("__doc__", "")
+        for base in bases:
+            docstring = utils.extend_docstring_with_base(docstring, base)
+        clsdict["__doc__"] = docstring
+        return type.__new__(cls, name, bases, clsdict)
+
+
+class Model(BaseModel, metaclass=ModelMeta):
+    """Base class that all option-containing classes should subclass.
+
+    This mostly contains the convenience methods:
+        * :meth:`psiresp.base.Model.__post_init__`
+            This is called after `__init__`
+        * :meth:`psiresp.base.Model.from_model`
+            This constructs an instance from compatible attributes of another object
+    """
+
     def __init__(self, *args, **kwargs):
         super(Model, self).__init__(*args, **kwargs)
         self.__post_init__()
@@ -25,7 +33,7 @@ class Model(BaseModel):
     def __post_init__(self):
         pass
 
-    @classmethod
+    @ classmethod
     def from_model(cls, object, **kwargs) -> "Model":
         """Construct an instance from compatible attributes of
         ``object`` and ``kwargs``"""
@@ -38,3 +46,7 @@ class Model(BaseModel):
         default_kwargs.update(kwargs)
         return cls(**default_kwargs)
 
+    def to_kwargs(self, **kwargs):
+        new = self.copy().dict()
+        new.update(kwargs)
+        return new

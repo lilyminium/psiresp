@@ -5,7 +5,7 @@ from .resp import Resp
 from .multiresp import MultiResp
 from . import utils
 from .due import due, Doi
-from .options import IOOptions, QMOptions, OrientationOptions, ChargeOptions, ESPOptions
+from .options import IOOptions, QMOptions, OrientationOptions, ChargeConstraintOptions, ESPOptions
 
 
 @due.dcite(
@@ -29,15 +29,15 @@ class Resp2:
         overall charge of the molecule.
     multiplicity: int (optional)
         multiplicity of the molecule
-    charge_constraint_options: psiresp.ChargeOptions (optional)
+    charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         charge constraints and charge equivalence constraints
     io_options: psiresp.IOOptions (optional)
         input/output options
     delta: float (optional)
             Delta factor used to weight the gas and solvent contributions
             to the final charges.
-    
-    
+
+
 
     Attributes
     ----------
@@ -71,7 +71,7 @@ class Resp2:
                        qm_options=QMOptions(),
                        esp_options=ESPOptions(),
                        orientation_options=OrientationOptions(),
-                       charge_constraint_options=ChargeOptions(),
+                       charge_constraint_options=ChargeConstraintOptions(),
                        weights=None,
                        optimize_geometry=False,
                        delta=0.6):
@@ -92,7 +92,7 @@ class Resp2:
             Options for generating the grid for computing ESP
         orientation_options: psiresp.OrientationOptions (optional)
             Options for generating orientations for each conformer
-        charge_constraint_options: psiresp.ChargeOptions (optional)
+        charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
             charge constraints and charge equivalence constraints
         io_options: psiresp.IOOptions (optional)
             input/output options
@@ -150,7 +150,7 @@ class Resp2:
                  name="Resp",
                  charge=0,
                  multiplicity=1,
-                 charge_constraint_options=ChargeOptions(),
+                 charge_constraint_options=ChargeConstraintOptions(),
                  io_options=IOOptions(),
                  delta=0.6):
         if name is None:
@@ -222,7 +222,7 @@ class MultiResp2(object):
     resps: list of Resp
         Molecules for multi-molecule fit, set up in Resp classes.
         This should *not* be Resp2 instances.
-    charge_constraint_options: psiresp.ChargeOptions (optional)
+    charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         Charge constraints and charge equivalence constraints.
         When running a fit, both these *and* the constraints supplied
         in each individual RESP class are taken into account. This is
@@ -248,7 +248,8 @@ class MultiResp2(object):
         Final charges of the RESP2 system. This is calculated from the
         gas charges and solvated charges, weighted by the ``delta`` factor.
     """
-    def __init__(self, resps, charge_constraint_options=ChargeOptions(), delta=0.6):
+
+    def __init__(self, resps, charge_constraint_options=ChargeConstraintOptions(), delta=0.6):
         self.delta = delta
         # in case they've passed Resp2 instances
         base_resps = []

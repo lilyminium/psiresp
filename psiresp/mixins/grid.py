@@ -6,14 +6,15 @@ import numpy.typing as npt
 
 from .. import vdwradii, base
 
+
 class GridMixin(base.Model):
     """Options for setting up the grid for ESP computation
 
     Parameters
     ----------
-    rmin: float
+    grid_rmin: float
         minimum radius
-    rmax: float
+    grid_rmax: float
         maximum radius
     use_radii: str
         Name of the radius set to use
@@ -26,8 +27,8 @@ class GridMixin(base.Model):
         Point density
     """
 
-    rmin: float = 0
-    rmax: float = -1
+    grid_rmin: float = 0
+    grid_rmax: float = -1
     use_radii: str = "msk"
     vdw_radii: Dict[str, float] = {}
     vdw_scale_factors: Tuple[float] = (1.4, 1.6, 1.8, 2.0)
@@ -35,12 +36,12 @@ class GridMixin(base.Model):
 
     @property
     def effective_rmax(self):
-        return self.rmax if self.rmax >=0 else np.inf
-    
+        return self.grid_rmax if self.grid_rmax >= 0 else np.inf
+
     def __post_init__(self):
-        if self.effective_rmax < self.rmin:
-            raise ValueError(f"rmax (given: {self.rmax}) must be equal to "
-                             f"or greater than rmin (given: {self.rmin})")
+        if self.effective_rmax < self.grid_rmin:
+            raise ValueError(f"grid_rmax (given: {self.grid_rmax}) must be equal to "
+                             f"or greater than grid_rmin (given: {self.grid_rmin})")
 
     @property
     def all_vdw_radii(self):
@@ -86,7 +87,7 @@ class GridMixin(base.Model):
         z = np.cos(vertical_angles)
         xy = np.sin(vertical_angles)
         n_points_per_row = (xy * n_latitude_points + INCREMENT).astype(int)
-        n_points_per_row[n_points_per_row < 1] = 1        
+        n_points_per_row[n_points_per_row < 1] = 1
         circum_fraction = [np.arange(n_in_row) / n_in_row
                            for n_in_row in n_points_per_row]
         row_points = np.concatenate(circum_fraction) * 2 * np.pi
@@ -97,9 +98,8 @@ class GridMixin(base.Model):
         all_xy = np.repeat(xy, n_points_per_row)
         points[:, 0] = np.cos(row_points) * all_xy
         points[:, 1] = np.sin(row_points) * all_xy
-        
-        return points[:n_points]
 
+        return points[:n_points]
 
     def generate_connolly_spheres(self, radii):
         """
@@ -148,7 +148,7 @@ class GridMixin(base.Model):
         numpy.ndarray
             with shape (L, 3)
         """
-        inner_bound = radii * self.rmin
+        inner_bound = radii * self.grid_rmin
         inner_bound = np.where(inner_bound < radii, radii, inner_bound)
         outer_bound = radii * self.effective_rmax
 
@@ -159,20 +159,19 @@ class GridMixin(base.Model):
         inside = np.all(within_bounds, axis=1)
         return shell[inside].reshape((-1, 3))
 
-
     def generate_vdw_grid(self,
-                         symbols: List[str],
-                         coordinates: npt.NDArray,
-                         ) -> npt.NDArray:
+                          symbols: List[str],
+                          coordinates: npt.NDArray,
+                          ) -> npt.NDArray:
         """Generate VdW surface points
-        
+
         Parameters
         ----------
         symbols: list of str
             Atom elements
         coordinates: numpy.ndarray
             This has shape (N, 3)
-        
+
         Returns
         -------
         numpy.ndarray
@@ -182,12 +181,11 @@ class GridMixin(base.Model):
         base_spheres = self.generate_connolly_spheres(symbol_radii)
 
         points = []
-        
+
         for factor in self.scale_factors:
             radii = symbol_radii * factor
             spheres = base_spheres * factor
             shell = self.get_shell_within_bounds(radii, spheres, coordinates)
             points.append(shell)
-        
+
         return np.concatenate(points)
-            

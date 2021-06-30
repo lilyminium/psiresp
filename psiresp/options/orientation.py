@@ -1,21 +1,19 @@
 import itertools
-from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
 
-from .base import OptionsBase
-
-@dataclass
-class OrientationOptions(OptionsBase):
-
-    conformer: "Conformer"
+from .. import base, mixins
+from . import utils
 
 
-@dataclass
-class OrientationGenerator(OptionsBase):
+class OrientationOptions(mixins.IOMixin):
+    pass
+
+
+class OrientationGenerator(base.Model):
     """Options for generating orientations for a conformer
-    
+
     Parameters
     ----------
     n_reorientations: int
@@ -62,15 +60,15 @@ class OrientationGenerator(OptionsBase):
     @property
     def n_specified_transformations(self):
         return sum(map(len, self.transformations))
-    
+
     @property
     def n_transformations(self):
         return sum([self.n_rotations, self.n_translations, self.n_reorientations])
-    
+
     @staticmethod
     def generate_atom_combinations(symbols: List[str]):
         """Yield combinations of atom indices for transformations
-        
+
         The method first yields combinations of 3 heavy atom indices.
         Each combination is followed by its reverse. Once the heavy atoms
         are exhausted, the heavy atoms then get combined with the hydrogens.
@@ -79,10 +77,10 @@ class OrientationGenerator(OptionsBase):
         ----------
         symbols: list of str
             List of atom elements
-        
+
         Examples
         --------
-        
+
         ::
 
             >>> symbols = ["H", "C", "C", "O", "N"]
@@ -107,14 +105,14 @@ class OrientationGenerator(OptionsBase):
             seen.add(comb)
             yield comb
             yield comb[::-1]
-        
+
         for comb in itertools.combinations(heavy_atoms + h_atoms, 3):
             if comb in seen:
                 continue
             seen.add(comb)
             yield comb
             yield comb[::-1]
-    
+
     def generate_transformations(self, symbols: List[str]):
         """Generate atom combinations and coordinates for transformations.
 
@@ -137,11 +135,11 @@ class OrientationGenerator(OptionsBase):
         if n_trans > 0:
             new_translations = (np.random.rand(n_trans, 3) - 0.5) * 10
             self.translations.extend(new_translations)
-    
+
     @staticmethod
     def id_to_indices(atom_ids: List[int]) -> List[int]:
         """Convert atom numbers (indexed from 1) to indices (indexed from 0)
-        
+
         This also works with negative atom numbers, where -1 is the last item.
 
         Parameters
@@ -156,7 +154,6 @@ class OrientationGenerator(OptionsBase):
         dct["reorientations"] = [self.id_to_indices(x) for x in self.reorientations]
         dct["rotations"] = [self.id_to_indices(x) for x in self.rotations]
         return dct
-    
 
     def get_transformed_coordinates(self,
                                     symbols: List[str],
@@ -167,17 +164,16 @@ class OrientationGenerator(OptionsBase):
         transformed = []
         for reorient in self.reorientations:
             indices = id_to_indices(*reorient)
-            transformed.append(self.orient_rigid(*indices, coordinates))
-        
+            transformed.append(utils.orient_rigid(*indices, coordinates))
+
         for rotate in self.rotations:
             indices = id_to_indices(*rotate)
-            transformed.append(self.rotate_rigid(*indices, coordinates))
-        
+            transformed.append(utils.rotate_rigid(*indices, coordinates))
+
         for translate in self.translations:
             transformed.append(coordinates + translate)
-        
+
         return transformed
 
     def format_name(self, **kwargs):
         return self.name_template.format(**kwargs)
-

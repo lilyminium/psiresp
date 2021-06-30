@@ -1,20 +1,9 @@
-import os
-from dataclasses import dataclass, field, Field
-
-import logging
-import subprocess
-
 import numpy as np
 
-from . import base, constants, mixins, options
-
-log = logging.getLogger(__name__)
-
-class OrientationOptions(mixins.IOMixin):
-    pass
+from . import base, mixins, options, utils
 
 
-class Orientation(OrientationOptions, mixins.MoleculeMixin):
+class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
@@ -29,7 +18,7 @@ class Orientation(OrientationOptions, mixins.MoleculeMixin):
         Psi4 molecule that forms the basis of this orientation
     name: str (optional)
         The name of this orientation
-    
+
     Attributes
     ----------
     psi4mol: psi4.core.Molecule
@@ -49,13 +38,12 @@ class Orientation(OrientationOptions, mixins.MoleculeMixin):
 
     conformer: "Conformer"
 
-
     def __post_init__(self):
         super().__post_init__()
         self._grid = None
         self._esp = None
         self._r_inv = None
-    
+
     @property
     def path(self):
         return self.conformer.path / self.name
@@ -82,13 +70,12 @@ class Orientation(OrientationOptions, mixins.MoleculeMixin):
             self._r_inv = self.compute_r_inv()
         return self._r_inv
 
-
-    def compute_r_inv(self)  -> npt.NDArray:
+    def compute_r_inv(self) -> npt.NDArray:
         """Get inverse r"""
         points = self.grid.reshape((len(self.grid), 1, 3))
         disp = self.coordinates - points
         inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
-        return inverse * constants.BOHR_TO_ANGSTROM
+        return inverse * utils.BOHR_TO_ANGSTROM
 
     def get_esp_mat_a(self) -> npt.NDArray:
         """Get A matrix for solving"""
@@ -98,11 +85,11 @@ class Orientation(OrientationOptions, mixins.MoleculeMixin):
         """Get B matrix for solving"""
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 
-    @base.datafile(filename="grid.dat")
+    @mixins.io.datafile(filename="grid.dat")
     def compute_grid(self):
-        return self.resp.generate_vdw_grid(self.symbols, self.coordinates)
+        return self.resp.resp.generate_vdw_grid(self.symbols, self.coordinates)
 
-    @base.datafile(filename="grid_esp.dat")
+    @mixins.io.datafile(filename="grid_esp.dat")
     def compute_esp(self):
         grid = self.grid
         if self.psi4mol_geometry_in_bohr:
@@ -110,8 +97,8 @@ class Orientation(OrientationOptions, mixins.MoleculeMixin):
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.resp.write_esp_file(self.psi4mol)
-            self.resp.try_run_qm(infile, cwd=tmpdir)
+            infile = self.resp.resp.write_esp_file(self.psi4mol)
+            self.resp.resp.try_run_qm(infile, cwd=tmpdir)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         return esp
