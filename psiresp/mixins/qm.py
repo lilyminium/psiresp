@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 command_stream = io.StringIO()
 
-@options
-class QMOptions(OptionsBase):
+@dataclass
+class QMMixin:
     """Options for QM jobs in Psi4
     
     Parameters

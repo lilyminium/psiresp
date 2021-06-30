@@ -1,6 +1,17 @@
-from typing import Optional, Union
+from typing import Optional, Union, Tuple, Dict, List
+from dataclasses import field
+from collections import UserList, defaultdict
+
+import numpy as np
+import scipy
 
 from .base import options, OptionsBase
+
+AtomIdType = Union[int, "AtomId", Tuple[int, int]]
+ChargeConstraintType = Union[Dict[float, List[AtomIdType]],
+                             Tuple[float, List[AtomIdType],
+                             "ChargeConstraint"]]
+ChargeEquivalenceType = Union[List[AtomIdType], "ChargeEquivalence"]
 
 @functools.total_ordering
 class AtomId:
@@ -58,7 +69,7 @@ class AtomId:
     
     """
     def __init__(self,
-                 molecule_id: Union[int, "AtomId", Tuple[int, int]] = 1,
+                 molecule_id: AtomIdType = 1,
                  atom_id: Optional[int] = None,
                  atom_increment: int = 0):
         if isinstance(molecule_id, AtomId):
@@ -111,3 +122,337 @@ class AtomId:
         new = type(self)(molecule_id=molecule_id, atom_id=self.atom_id)
         new.atom_increment = atom_increment
         return new
+
+
+class BaseChargeConstraint(UserList):
+    """Base class for charge constraints"""
+    def __init__(self, atom_ids: List[AtomIdType] = []):
+        atom_ids = [AtomId(x) for x in atom_ids]
+        atom_ids = sorted(set(atom_ids))
+        super().__init__(atom_ids)
+
+    @property
+    def atom_ids(self):
+        return self.data
+
+    @property
+    def absolute_atom_ids(self):
+        return np.array([x.absolute_atom_id for x in self.data], dtype=int)
+
+    @property
+    def indices(self):
+        return self.absolute_atom_ids - 1
+
+    def __len__(self):
+        return len(self.atom_ids)
+
+    def copy_atom_ids_to_molecule(self,
+                                  molecule_id: int = 1,
+                                  atom_increment: int = 0,
+                                  ) -> List[AtomId]:
+        atom_ids = [aid.copy_with_molecule_id(molecule_id=molecule_id,
+                                              atom_increment=atom_increment)
+                    for aid in self.atom_ids]
+        return atom_ids
+
+
+class ChargeConstraint(BaseChargeConstraint):
+    """Constrain a group of atoms to a specified charge.
+    
+    If this constraint is applied, then the sum of the partial atomic
+    charges of the specified atoms must sum to the given charge.
+
+    Parameters
+    ----------
+    charge: float
+        Specified charge
+    atom_ids: list of AtomId, integers, or tuples of integers
+        Specified atoms
+    """
+
+    def __init__(self, charge: float = 0, atom_ids: List[AtomIdType] = []):
+        self.charge = charge
+        super().__init__(atom_ids=atom_ids)
+
+    def __repr__(self):
+        return (f"<ChargeConstraint charge={self.charge}, "
+                f"indices={self.indices}>")
+
+    @classmethod
+    def from_obj(cls, obj: ChargeConstraintType) -> "ChargeConstraint":
+        if isinstance(obj, dict):
+            if len(obj) != 1:
+                raise ValueError("dict must have only one key-value pair "
+                                 "in charge: [atom_ids] format.")
+            obj = list(obj.items())[0]
+        elif isinstance(obj, ChargeConstraint):
+            obj = [obj.charge, obj.atom_ids]
+        return cls(charge=obj[0], atom_ids=obj[1])
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        args = (np.round(self.charge, decimals=3),
+                tuple(sorted(set(self.atom_ids))))
+        return hash(args)
+
+    def copy_with_molecule_id(self,
+                              molecule_id: int = 1,
+                              atom_increment: int = 0,
+                              ) -> "ChargeConstraint":
+        ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id,
+                                             atom_increment=atom_increment)
+        return type(self)(charge=self.charge, atom_ids=ids)
+
+    def to_coo_rows(self, n_dim):
+        n_items = len(self)
+        data = np.ones(n_items)
+        row = np.zeros(n_items, dtype=int)
+        shape = (1, n_dim)
+        return scipy.sparse.coo_matrix(data, (row, self.indices), shape=shape)
+    
+    def to_coo_cols(self, n_dim):
+        return self.to_coo_rows(n_dim).transpose()
+
+
+class ChargeEquivalence(BaseChargeConstraint):
+    """Constrain a group of atoms to each have equivalent charge.
+
+    This must contain at least 2 atoms or it doesn't make sense.
+
+    Parameters
+    ----------
+    atom_ids: list of AtomId, integers, or tuples of integers
+        Specified atoms
+    
+    """
+    def __repr__(self):
+        return f"<ChargeEquivalence indices={self.indices}>"
+
+    def __init__(self, atom_ids: List[AtomIdType] = []):
+        super().__init__(atom_ids=atom_ids)
+        if not len(self.atom_ids) >= 2:
+            raise ValueError("Must have at least 2 different atoms in a "
+                             "charge equivalence constraint")
+
+    def __add__(self, other):
+        return type(self)(np.concatenate([self.atom_ids, other.atom_ids]))
+
+    def __radd__(self, other):
+        if other == 0:
+            return self
+        return other.__add__(self)
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            other = other.indices
+        return set(list(self.indices)) == set(list(other))
+
+    def __hash__(self):
+        return hash(tuple(sorted(set(self.atom_ids))))
+
+    def copy_with_molecule_id(self,
+                              molecule_id: int = 1,
+                              atom_increment: int = 0,
+                              ) -> "ChargeEquivalence":
+        ids = self.copy_atom_ids_to_molecule(molecule_id=molecule_id,
+                                             atom_increment=atom_increment)
+        return type(self)(atom_ids=ids)
+    
+    def to_coo_rows(self, n_dim):
+        n_items = len(self) - 1
+        data = np.concatenate([np.ones(n_items), -np.ones(n_items)])
+        row = np.tile(np.arange(n_items, dtype=int), 2)
+        col = np.concatenate([self.indices[:-1], self.indices[1:]])
+        shape = (n_items, n_dim)
+        return scipy.sparse.coo_matrix(data, (row, col), shape=shape)
+    
+    def to_coo_cols(self, n_dim):
+        return self.to_coo_rows(n_dim).transpose()
+
+
+@options
+class ChargeOptions(OptionsBase):
+    """Options for setting charge constraints and charge equivalence constraints.
+
+    Parameters
+    ----------
+    charge_constraints: list of dicts, tuples, or ChargeConstraints
+        This is a list of all inputs accepted by the
+        :class:`ChargeConstraint` class.
+        It will be used to create constraints for a group of atoms to
+        the given charge.
+    charge_equivalences: list of lists, tuples, or ChargeEquivalences
+        This is a list of all inputs accepted by the
+        :class:`ChargeEquivalence` class.
+        It will be used to create constraints so that each atom in the
+        given group is constrained to the same charge.
+    
+    """
+    charge_constraints: List[ChargeConstraintType] = field(default_factory=list)
+    charge_equivalences: List[ChargeEquivalenceType] = field(default_factory=list)
+    symmetric_methyls: bool = True
+    symmetric_methylenes: bool = True
+
+    def __post_init__(self):
+        if isinstance(self.charge_constraints, dict):
+            self.charge_constraints = list(self.charge_constraints.items())
+        self.charge_constraints = [ChargeConstraint.from_obj(x)
+                                   for x in self.charge_constraints]
+        self.charge_equivalences = [ChargeEquivalence(x)
+                                    for x in self.charge_equivalences]
+        self.clean_charge_constraints()
+        self.clean_charge_equivalences()
+
+    @property
+    def n_charge_constraints(self):
+        return len(self.charge_constraints)
+    
+    @property
+    def n_charge_equivalences(self):
+        return len(self.charge_equivalences)
+
+    def iterate_over_constraints(self):
+        "Iterate first over charge constraints and then charge equivalences"
+        for item in self.charge_constraints:
+            yield item
+        for item in self.charge_equivalences:
+            yield item
+
+    def _unite_overlapping_equivalences(self):
+        """Join ChargeEquivalence constraints with overlapping atoms"""
+        equivalences = defaultdict(set)
+        for chrequiv in self.charge_equivalences:
+            atom_set = set(chrequiv.atom_ids)
+            for atom in atom_set:
+                equivalences[atom] |= atom_set
+        
+        chrequivs = {tuple(sorted(x)) for x in equivalences.values()}
+        self.charge_equivalences = [ChargeEquivalence(x) for x in chrequivs]
+
+    def _get_single_atom_charge_constraints(self) -> Dict[AtomId, float]:
+        """Get ChargeConstraints with only one atom as a dict"""
+        single_charges = {}
+        for constr in self.charge_constraints:
+            if len(constr.atom_ids) == 1:
+                atom_id = constr.atom_ids[0]
+                if atom_id in single_charges:
+                    err = ("Found conflicting charge constraints for "
+                           f"atom {atom_id}, constrained to both "
+                           f"{single_charges[atom_id]} and {constr.charge}")
+                    raise ValueError(err)
+                single_charges[atom_id] = constr.charge
+        return single_charges
+
+
+    def _remove_incompatible_and_redundant_equivalent_atoms(self):
+        """Remove atoms from charge equivalences if they are constrained
+        to different charges, and remove charge equivalence constraints
+        if all atoms are constrained to the same charge (so it is redundant)
+        """
+        # if a charge equivalence has multiple atoms constrained to
+        # single, different, charges, remove those.
+        single_charges = self._get_single_atom_charge_constraints()
+        redundant = []
+        for i_eq, chrequiv in enumerate(self.charge_equivalences):
+
+            indices, charges = zip(*[(i, single_charges[x])
+                                     for i, x in enumerate(chrequiv.atom_ids)
+                                     if x in single_charges])
+
+            if len(charges) > 1:
+                for i in indices[::-1]:
+                    # TODO: silently delete or raise an error?
+                    del chrequiv[i]
+            # every atom in the equivalence is constrained to the same charge
+            # this is redundant and should get removed
+            # or can result in singular matrices
+            elif len(charges) == len(chrequiv.atom_ids):
+                redundant.append(i_eq)
+        for i in redundant[::-1]:
+            del self.equivalences[i]
+
+
+    def clean_charge_equivalences(self):
+        """Clean the ChargeEquivalence constraints.
+        
+        1. Join charge equivalence constraints with overlapping atoms
+        2. Remove atoms from charge equivalences if they are constrained
+        to different charges, and remove charge equivalence constraints
+        if all atoms are constrained to the same charge (so it is redundant)
+        """
+        self._unite_overlapping_equivalences()
+        self._remove_incompatible_and_redundant_equivalent_atoms()
+
+
+    def clean_charge_constraints(self):
+        """Clean the ChargeConstraints.
+        
+        1. Removes duplicates
+        2. Checks that there are no atoms constrained to two different charges
+        """
+        # remove duplicates
+        self.charge_constraints = list(set(self.charge_constraints))
+        # this will check for duplicate conflicting charges as a side effect
+        self._get_single_atom_charge_constraints()
+
+    def get_constraint_matrix(self, a_matrix, b_matrix):
+        """Create full constraint matrix from input matrices and charge constraints.
+
+        A and B are the matrices used to solve Ax = B.
+
+        Parameters
+        ----------
+        a_matrix: numpy.ndarray
+            Matrix of shape (N, N)
+        b_matrix: numpy.ndarray
+            Matrix of shape (N,)
+        
+        Returns
+        -------
+        A: numpy.ndarray
+            Overall matrix of constraints, shape (M, M).
+            M = N + number_of_charge_constraints + number_of_equivalent_atom_pairs
+        B: numpy.ndarray
+            Overall solution vector, shape (M,)
+
+        """
+        n_dim = a_matrix.shape[0]
+        col_constraints = [c.to_coo_cols(n_dim)
+                           for c in self.iterate_over_constraints()]
+        col_block = scipy.sparse.hstack(col_constraints, format="coo")
+        a_block = scipy.sparse.coo_matrix(a_matrix)
+        a_sparse = scipy.sparse.bmat([[a_block, col_block],
+                                      [col_block.transpose(), None]])
+        b_dense = np.r_[b_matrix, [c.charge for c in self.charge_constraints]]
+        b_sparse = np.zeros(a_sparse.shape[0])
+        b_sparse[:len(b_dense)] = b_dense
+        return a_sparse, b_sparse
+
+    def add_sp3_equivalences(self, sp3_ch_ids={}):
+        accepted = []
+        if self.symmetric_methyls:
+            accepted.append(3)
+        if self.symmetric_methylenes:
+            accepted.append(2)
+        if not accepted:
+            return
+        for hs in sp3_ch_ids.values():
+            if len(hs) in accepted:
+                self.charge_equivalences.append(ChargeEquivalence(hs))
+
+
+    def add_stage_2_constraints(self, charges=[]):
+        charges = np.asarray(charges)
+        equivalent_atom_ids = np.array([i for eq in self.charge_equivalences
+                                        for i in eq.atom_ids])
+        all_atom_ids = np.arange(len(charges), dtype=int) + 1
+        mask = ~np.in1d(all_atom_ids, equivalent_atom_ids)
+
+        for q, a in zip(charges[mask], all_atom_ids[mask]):
+            constr = ChargeConstraint(charge=q, atom_ids=[a])
+            self.charge_constraints.append(constr)
+
+        self.clean_charge_constraints()
+        self.clean_charge_equivalences()

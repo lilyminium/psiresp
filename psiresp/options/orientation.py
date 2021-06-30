@@ -149,3 +149,24 @@ class OrientationOptions(OptionsBase):
         dct["rotations"] = [self.id_to_indices(x) for x in self.rotations]
         return dct
     
+
+    def generate_transformed_coordinates(self,
+                                         symbols: List[str],
+                                         coordinates: npt.NDArray,
+                                         ) -> List[npt.NDArray]:
+        self.generate_transformations(symbols)
+
+        transformed = []
+        for reorient in self.reorientations:
+            indices = id_to_indices(*reorient)
+            transformed.append(self.orient_rigid(*indices, coordinates))
+        
+        for rotate in self.rotations:
+            indices = id_to_indices(*rotate)
+            transformed.append(self.rotate_rigid(*indices, coordinates))
+        
+        for translate in self.translations:
+            transformed.append(coordinates + translate)
+        
+        return transformed
+

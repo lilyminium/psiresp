@@ -1,58 +1,71 @@
+
+import io
 import functools
 import pathlib
-import contextlib
 import tempfile
+import contextlib
+import os
+from dataclasses import dataclass, field, Field
 
+import psi4
 import numpy as np
 
-from .options import IOOptions
+from .options import ContainsOptionsBase, IOOptions, QMOptions
 
+from . import constants, psi4utils
 
-# def datafile(func=None, filename=None):
-#     """Try to load data from file. If not found, saves data to same path"""
+def datafile(func=None, path=None):
+    """Try to load data from file. If not found, saves data to same path"""
 
-#     if func is None:
-#         return functools.partial(datafile, filename=filename)
+    if func is None:
+        return functools.partial(datafile, path=filename)
+    
+    if path is None:
+        fname = func.__name__
+        if fname.startswith("compute_"):
+            fname = fname.split("compute_", maxsplit=1)[1]
+        path = fname + ".dat"
 
-#     fname = func.__name__
-#     if fname.startswith("compute_"):
-#         fname = fname.split("compute_", maxsplit=1)[1]
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        path = path.format(name=self.name, path=self.path)
+        return self.io_options.try_datafile(path, wrapper, self, *args, **kwargs)
+    return wrapper
 
-#     filename = filename if filename else fname + ".dat"
+@dataclass
+class MoleculeBase(ContainsOptionsBase):
 
-#     @functools.wraps(func)
-#     def wrapper(self, *args, **kwargs):
-#         fn = self.name + "_" + filename
-#         data, path = self.io_options.try_load_data(fn)
-#         if data is not None:
-#             return data
-#         data = func(self, *args, **kwargs)
-#         comments = None
-#         if path.endswith("npy"):
-#             try:
-#                 data, comments = data
-#             except ValueError:
-#                 pass
-#         self.io_options.save_data(data, path, comments=comments)
-#         return data
+    psi4mol: psi4.core.Molecule
+    name: str = "mol"
+    io_options: IOOptions = field(default_factory=IOOptions)
 
-#     return wrapper
-
-
-class Psi4MolContainerMixin:
-    """Mixin class for containing a Psi4 molecule with the .psi4mol attribute"""
-
-    BOHR_TO_ANGSTROM = 0.52917721092
-
-    def __init__(self, psi4mol, *args, name=None, **kwargs):
-        if name is not None:
-            psi4mol.set_name(name)
+    def __post_init__(self):
+        if self.name:
+            self.psi4mol.set_name(self.name)
         else:
-            name = psi4mol.name()
-        self.psi4mol = psi4mol
-        super(Psi4MolContainerMixin, self).__init__(name=name, **kwargs)
+            self.name = self.psi4mol.name()
+    
+    @property
+    def path(self):
+        return pathlib.Path(self.name)
 
-
+    @contextlib.contextmanager
+    def directory(self):
+        cwd = pathlib.Path.cwd()
+        if self.io_options.save_output:
+            path = self.path
+            path.mkdir(parents=True, exist_ok=True)
+        else:
+            path = tempfile.TemporaryDirectory()
+        
+        try:
+            os.chdir(path)
+            yield path.name
+        finally:
+            os.chdir(cwd)
+            if not self.save_output:
+                path.cleanup()
+    
     @property
     def n_atoms(self):
         return self.psi4mol.natom()
@@ -63,12 +76,39 @@ class Psi4MolContainerMixin:
 
     @property
     def symbols(self):
-        return np.array([self.psi4mol.symbol(i) for i in self.indices], dtype=object)
+        return np.array([self.psi4mol.symbol(i) for i in self.indices],
+                        dtype=object)
+
+    @property
+    def charge(self):
+        return self.psi4mol.molecular_charge()
+
+    @charge.setter
+    def charge(self, value):
+        if value != self.psi4mol.molecular_charge():
+            self.psi4mol.set_molecular_charge(value)
+            self.psi4mol.update_geometry()
     
     @property
-    def coordinates(self):
-        return self.psi4mol.geometry().np.astype("float") * self.BOHR_TO_ANGSTROM
+    def multiplicity(self):
+        return self.psi4mol.multiplicity()
+    
+    @multiplicity.setter
+    def multiplicity(self, value):
+        # can cause issues if we set willy-nilly
+        if value != self.psi4mol.multiplicity():
+            self.psi4mol.set_multiplicity(value)
+            self.psi4mol.update_geometry()
 
+    
+    @property
+    def coordinates_in_bohr(self):
+        return self.psi4mol.geometry().np.astype("float")
+
+    @property
+    def coordinates(self):
+        return self.coordinates_in_bohr * constants.BOHR_TO_ANGSTROM
+    
     def to_mda(self):
         """Create a MDAnalysis.Universe from molecule
         
@@ -80,7 +120,7 @@ class Psi4MolContainerMixin:
         mol = utils.psi42xyz(self.psi4mol)
         u = mda.Universe(io.StringIO(mol), format="XYZ")
         return u
-
+    
     def write(self, filename):
         """Write molecule to file.
 
@@ -95,50 +135,17 @@ class Psi4MolContainerMixin:
         u = self.to_mda()
         u.atoms.write(filename)
 
-
-class IOBase:
-    """Base class for containing IOOptions
-    
-    Parameters
-    ----------
-    name: str (optional)
-        The name of this instance
-    io_options: psiresp.IOOptions
-        input/output options
-
-    Attributes
-    ----------
-    name: str (optional)
-        The name of this instance
-    io_options: psiresp.IOOptions
-        input/output options
-    """
-    def __init__(self, name=None, io_options=IOOptions()):
-        self.name = name
-        self.io_options = io_options
-
-
-    @property
-    def io_options(self):
-        return self._io_options
-
-    @contextlib.contextmanager
-    def get_subfolder(self):
-        cwd = pathlib.Path.cwd()
-        if self.io_options.write_to_files:
-            path = cwd / self.name
-            path.mkdir(exist_ok=True)
+    def clone(self, name: str = None):
+        mol = self.psi4mol.clone()
+        if name is not None:
+            mol.set_name(name)
         else:
-            path = tempfile.TemporaryDirectory()
+            name = f"{self.name}_copy"
         
-        try:
-            os.chdir(path)
-            yield path.name
-        finally:
-            os.chdir(cwd)
-            if not self.io_options.write_to_files:
-                path.cleanup()
+        state = self.to_dict()
+        state.pop("psi4mol")
+        state["name"] = name
 
-    @io_options.setter
-    def io_options(self, options):
-        self._io_options = IOOptions(**options)
+        return type(self)(mol, **state)
+
+    

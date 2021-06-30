@@ -1,0 +1,3 @@
+
+class NoQMExecutionError(RuntimeError):
+    pass

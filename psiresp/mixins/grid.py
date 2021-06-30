@@ -1,13 +1,13 @@
-from typing import List
+from dataclasses import dataclass, field
+from typing import Tuple, Dict
 
 import numpy as np
 import numpy.typing as npt
 
-from .base import options, OptionsBase
 from .. import vdwradii
 
-@options
-class GridOptions(OptionsBase):
+@dataclass
+class GridMixin:
     """Options for setting up the grid for ESP computation
 
     Parameters
@@ -30,8 +30,8 @@ class GridOptions(OptionsBase):
     rmin: float = 0
     rmax: float = -1
     use_radii: str = "msk"
-    vdw_radii: Dict[str, float] = {}
-    vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0]
+    vdw_radii: Dict[str, float] = field(default_factory=dict)
+    vdw_scale_factors: Tuple[float] = (1.4, 1.6, 1.8, 2.0)
     vdw_point_density: float = 1.0
 
     @property
