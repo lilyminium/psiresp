@@ -1,11 +1,35 @@
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import psi4
 import numpy as np
 from numpy import typing as npt
 
 from .constants import ANGSTROM_TO_BOHR
+
+CoordinateInputs = Union[psi4.core.Molecule, npt.NDArray]
+
+def as_coordinates(obj: CoordinateInputs) -> npt.NDArray:
+    try:
+        xyz = obj.geometry().np.astype("float")
+    except AttributeError:
+        pass
+    else:
+        obj = xyz * BOHR_TO_ANGSTROM
+    return obj
+
+
+def psi4mol_with_coordinates(psi4mol: psi4.core.Molecule,
+                             coordinates_or_psi4mol: CoordinateInputs,
+                             name: Optional[str] = None
+                            ) -> psi4.core.Molecule:
+    clone = psi4mol.clone()
+    coordinates = coordinates_from_obj(coordinates_or_psi4mol)
+    set_psi4mol_geometry(clone, coordinates)
+    if name is not None:
+        clone.set_name(name)
+    return clone
+
 
 def get_mol_spec(psi4mol: psi4.core.Molecule) -> str:
     """Create Psi4 molecule specification from Psi4 molecule

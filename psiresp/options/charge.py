@@ -1,11 +1,11 @@
 from typing import Optional, Union, Tuple, Dict, List
-from dataclasses import field
 from collections import UserList, defaultdict
 
 import numpy as np
 import scipy
+from pydantic import BaseModel
 
-from .base import options, OptionsBase
+from .. import base
 
 AtomIdType = Union[int, "AtomId", Tuple[int, int]]
 ChargeConstraintType = Union[Dict[float, List[AtomIdType]],
@@ -272,8 +272,7 @@ class ChargeEquivalence(BaseChargeConstraint):
         return self.to_coo_rows(n_dim).transpose()
 
 
-@options
-class ChargeOptions(OptionsBase):
+class ChargeOptions(base.Model):
     """Options for setting charge constraints and charge equivalence constraints.
 
     Parameters
@@ -290,18 +289,12 @@ class ChargeOptions(OptionsBase):
         given group is constrained to the same charge.
     
     """
-    charge_constraints: List[ChargeConstraintType] = field(default_factory=list)
-    charge_equivalences: List[ChargeEquivalenceType] = field(default_factory=list)
+    charge_constraints: List[ChargeConstraintType] = []
+    charge_equivalences: List[ChargeEquivalenceType] = []
     symmetric_methyls: bool = True
     symmetric_methylenes: bool = True
 
     def __post_init__(self):
-        if isinstance(self.charge_constraints, dict):
-            self.charge_constraints = list(self.charge_constraints.items())
-        self.charge_constraints = [ChargeConstraint.from_obj(x)
-                                   for x in self.charge_constraints]
-        self.charge_equivalences = [ChargeEquivalence(x)
-                                    for x in self.charge_equivalences]
         self.clean_charge_constraints()
         self.clean_charge_equivalences()
 
@@ -430,7 +423,21 @@ class ChargeOptions(OptionsBase):
         b_sparse[:len(b_dense)] = b_dense
         return a_sparse, b_sparse
 
-    def add_sp3_equivalences(self, sp3_ch_ids={}):
+    def add_sp3_equivalences(self, sp3_ch_ids: Dict[int, List[int]] = {}):
+        """
+        Add ChargeEquivalences for the hydrogens attached to sp3 carbons
+
+        This will add methyls if ``symmetric_methyls`` is True,
+        and methylenes if ``symmetric_methylenes`` is True.
+
+        Parameters
+        ----------
+        sp3_ch_ids: dictionary of {int: list[int]}
+            A dictionary of atom numbers.
+            Atom numbers are indices, indexed from 1.
+            Keys are the atom numbers of carbons with 4 bonds.
+            Values are the numbers of the hydrogens bonded to these carbons.
+        """
         accepted = []
         if self.symmetric_methyls:
             accepted.append(3)
@@ -444,6 +451,14 @@ class ChargeOptions(OptionsBase):
 
 
     def add_stage_2_constraints(self, charges=[]):
+        """Add ChargeConstraints restraining atoms to the given charges,
+        if they are not in charge equivalence constraints.
+
+        Parameters
+        ----------
+        charges: iterable of floats
+            Charges
+        """
         charges = np.asarray(charges)
         equivalent_atom_ids = np.array([i for eq in self.charge_equivalences
                                         for i in eq.atom_ids])

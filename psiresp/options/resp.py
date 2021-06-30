@@ -2,42 +2,19 @@ import warnings
 
 import numpy as np
 
-from .base import options, OptionsBase
+from .. import base
 
-@options
-class RespOptions(OptionsBase):
+class BaseRespOptions(base.Model):
     restrained: bool = True
-    hyp_a1: float = 0.0005
-    hyp_a2: float = 0.001
     hyp_b: float = 0.1
     ihfree: bool = True
     resp_convergence_tol: float = 1e-6
     resp_max_iter: int = 500
     stage_2: bool = False
 
-@options
-class RespStageOptions(OptionsBase):
-    """Options for computing the RESP fit
-    
-    Parameters
-    ----------
-    restrained: bool
-        Whether to perform a restrained fit.
 
-    """
-    restrained: bool = True
+class RespStageOptions(BaseRespOptions):
     hyp_a: float = 0.0005
-    hyp_b: float = 0.1
-    ihfree: bool = True
-    resp_convergence_tol: float = 1e-6
-    resp_max_iter: int = 500
-
-    @classmethod
-    def from_resp_options(cls, options, hyp_a_name="hyp_a1"):
-        base = cls()
-        kwargs = {k: options[k] for k in base.keys() if k in options}
-        kwargs["hyp_a"] = options[hyp_a_name]
-        return cls(**kwargs)
 
     def get_mask_indices(self, symbols):
         symbols = np.asarray(symbols)
@@ -73,4 +50,9 @@ class RespStageOptions(OptionsBase):
                           f"resp_convergence_tol={self.resp_convergence_tol} "
                           f"with resp_max_iter={self.resp_max_iter}")
         return charges
+
+class RespOptions(BaseRespOptions):
+    hyp_a1: float = 0.0005
+    hyp_a2: float = 0.001
+    stage_2: bool = False
 

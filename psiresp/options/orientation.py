@@ -1,12 +1,19 @@
 import itertools
+from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
 
-from .base import options, OptionsBase
+from .base import OptionsBase
 
-@options
+@dataclass
 class OrientationOptions(OptionsBase):
+
+    conformer: "Conformer"
+
+
+@dataclass
+class OrientationGenerator(OptionsBase):
     """Options for generating orientations for a conformer
     
     Parameters
@@ -46,6 +53,7 @@ class OrientationOptions(OptionsBase):
     n_rotations: int = 0
     rotations: List[Tuple[int, int, int]] = []
     keep_original: bool = True
+    name_template: str = "{conformer.name}_{counter:03d}"
 
     @property
     def transformations(self):
@@ -150,10 +158,10 @@ class OrientationOptions(OptionsBase):
         return dct
     
 
-    def generate_transformed_coordinates(self,
-                                         symbols: List[str],
-                                         coordinates: npt.NDArray,
-                                         ) -> List[npt.NDArray]:
+    def get_transformed_coordinates(self,
+                                    symbols: List[str],
+                                    coordinates: npt.NDArray,
+                                    ) -> List[npt.NDArray]:
         self.generate_transformations(symbols)
 
         transformed = []
@@ -169,4 +177,7 @@ class OrientationOptions(OptionsBase):
             transformed.append(coordinates + translate)
         
         return transformed
+
+    def format_name(self, **kwargs):
+        return self.name_template.format(**kwargs)
 

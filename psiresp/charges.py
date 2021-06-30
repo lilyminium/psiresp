@@ -4,8 +4,8 @@ from typing import List
 from . import base
 from .options import RespStageOptions, ChargeOptions
 
-@dataclass
-class RespStageCharges(base.ContainsOptionsBase):
+
+class RespCharges(base.Model):
     resp_stage_options: RespStageOptions = field(default_factory=RespStageOptions)
     charge_options: ChargeOptions = field(default_factory=ChargeOptions)
     symbols: List[str] = []
@@ -40,26 +40,3 @@ class RespStageCharges(base.ContainsOptionsBase):
             q2 = self.resp_stage_options.iter_solve(q1, self.symbols, a, b)
             self._restrained_charges = q2
         return self.charges
-
-
-@dataclass
-class RespCharges(base.MoleculeBase):
-    charge_options: ChargeOptions = field(default_factory=ChargeOptions)
-    resp_options: RespOptions = field(default_factory=RespOptions)
-
-    def __post_init__(self):
-
-        self.stage_1_charges = None
-        self.stage_2_charges = None
-    
-    @property
-    def charges(self):
-        if self.stage_2_charges is not None:
-            return self.stage_2_charges.charges
-        
-        values = self.stage_2_charges
-        if values is None:
-            return self.stage_1_charges
-        return values
-    
-

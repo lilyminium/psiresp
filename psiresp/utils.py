@@ -1,10 +1,84 @@
-from typing import Any, Iterable, Tuple, List
+from typing import Any, Iterable, Tuple, List, Callable
 import concurrent.futures
 
 import numpy as np
 import numpy.typing as npt
 
 from . import exceptions
+
+
+
+def load_data(path: Path) -> Data:
+    """
+    Parameters
+    ----------
+    path: pathlib.Path or str
+        Data path
+    
+    Returns
+    -------
+    data: numpy.ndarray or pd.DataFrame
+        numpy.ndarray or pd.DataFrame
+    """
+    path = str(path)
+    suffix = pathlib.Path(path).suffix
+
+    if suffix == "csv":
+        loader = utils.read_csv
+    elif suffix in ("dat", "txt"):
+        loader = np.loadtxt
+    elif suffix in ("npy", "npz"):
+        loader = np.load
+    elif suffix in ("xyz", "pdb", "mol2"):
+        loader = utils.load_text
+    else:
+        raise ValueError(f"Can't find loader for {suffix} file")
+    
+    return loader(path)
+
+
+def save_data(data: Data, path: Path):
+    """
+    Parameters
+    ----------
+    data: numpy.ndarray or pd.DataFrame
+    path: pathlib.Path or str
+        Filename
+    """
+    suffix = pathlib.Path(path).suffix
+
+    if suffix == "csv":
+        data.to_csv(path)
+    elif suffix in ("dat", "txt"):
+        np.savetxt(path, data)
+    elif suffix == "npy":
+        np.save(path, data)
+    elif suffix == "npz":
+        np.savez(path, **data)
+    elif suffix == "xyz":
+        if isinstance(data, str):
+            with open(path, "w") as f:
+                f.write(data)
+        else:
+            data.save_xyz_file(path, True)
+    else:
+        raise ValueError(f"Can't find saver for {suffix} file")
+    logger.info(f"Saved to {os.path.abspath(path)}")
+
+def run_with_executor(functions: List[Callable] = [],
+                      executor: Optional[concurrent.futures.Executor] = None,
+                      timeout: Optional[float] = None,
+                      command_log: str = "commands.log"):
+    futures = []
+    for func in functions:
+        try:
+            future = executor.submit(func)
+        except AttributeError:
+            func()
+        else:
+            futures.append(future)
+    wait_or_quit(futures, timeout=timeout, command_log=command_log)
+
 
 def wait_or_quit(futures: List[concurrent.futures.Future] = [],
                  timeout: Optional[float] = None,

@@ -4,10 +4,9 @@ from typing import Tuple, Dict
 import numpy as np
 import numpy.typing as npt
 
-from .. import vdwradii
+from .. import vdwradii, base
 
-@dataclass
-class GridMixin:
+class GridMixin(base.Model):
     """Options for setting up the grid for ESP computation
 
     Parameters
@@ -30,7 +29,7 @@ class GridMixin:
     rmin: float = 0
     rmax: float = -1
     use_radii: str = "msk"
-    vdw_radii: Dict[str, float] = field(default_factory=dict)
+    vdw_radii: Dict[str, float] = {}
     vdw_scale_factors: Tuple[float] = (1.4, 1.6, 1.8, 2.0)
     vdw_point_density: float = 1.0
 

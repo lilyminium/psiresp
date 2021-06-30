@@ -1,30 +1,21 @@
 import logging
-import os
-import subprocess
-from dataclasses import dataclass, field
-from concurrent.futures import as_completed
 
 import numpy as np
 
-from . import base, utils, psi4utils, mixins
+from . import base, psi4utils, mixins
+
 from .orientation import Orientation
-# from .type_aliases import Psi4Basis, Psi4Method, AtomReorient, TranslateReorient
-from .options import ESPOptions, OrientationOptions
-from .options.qm import state_logger
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class Conformer(mixins.ContainsChildMixin, base.MoleculeBase):
-    resp: "Resp"
+class ConformerOptions(mixins.IOMixin):
     optimize_geometry: bool = False
     weight: float = 1
-    grid_options: GridOptions = field(default_factory=GridOptions)
-    orientation_options: OrientationOptions = field(default_factory=OrientationOptions)
-    orientation_name_template: str = "{name}_o{counter:03d}"
+    orientation_options: OrientationOptions = OrientationOptions()
+    orientation_generator: OrientationGenerator = OrientationGenerator()
 
-    _child_class = Orientation
+class Conformer(ConformerOptions, mixins.MoleculeMixin):
+    resp: "Resp"
 
     def __post_init__(self):
         super().__post_init__()
@@ -35,10 +26,10 @@ class Conformer(mixins.ContainsChildMixin, base.MoleculeBase):
     def _empty_init(self):
         self._unweighted_a_matrix = None
         self._unweighted_b_matrix = None
-    
+
     @property
-    def _parent(self):
-        return self.resp
+    def path(self):
+        return self.resp.path / self.name
 
     @property
     def unweighted_a_matrix(self):
@@ -61,14 +52,6 @@ class Conformer(mixins.ContainsChildMixin, base.MoleculeBase):
         return self.unweighted_b_matrix * (self.weight ** 2)
 
     @property
-    def _child_container(self):
-        return self.orientations
-    
-    @property
-    def _child_name_template(self):
-        return self.orientation_name_template
-
-    @property
     def n_orientations(self):
         return len(self.orientations)
 
@@ -82,16 +65,27 @@ class Conformer(mixins.ContainsChildMixin, base.MoleculeBase):
             xyz = psi4utils.psi4logfile_to_xyz_string(outfile)
         return xyz
 
+    def add_orientation(self, coordinates_or_psi4mol, name=None, **kwargs):
+        if name is None:
+            counter = len(self.orientations) + 1
+            name = self.orientation_options.format_name(conformer=self,
+                                                        counter=counter)
+        mol = psi4utils.psi4mol_with_coordinates(self.psi4mol,
+                                                 coordinates_or_psi4mol,
+                                                 name=name)
+        orientation = Orientation(conformer=self, psi4mol=mol, name=name)
+        self.orientations.append(orientation)
+
     def generate_orientations(self):
         """Generate Orientations for this conformer"""
         self.orientations = []
-        coords = self.orientation_options.get_transformed_coordinates(self.symbols,
-                                                                      self.coordinates)
+        coords = self.orientation_generator.get_transformed_coordinates(self.symbols,
+                                                                        self.coordinates)
         for coordinates in coords:
-            self._add_child(coordinates)
+            self.add_orientation(coordinates)
 
-        if not self._orientations:
-            self._add_child()
+        if not self.orientations:
+            self.add_orientation(self.psi4mol)
 
     def finalize_geometry(self):
         xyz = self.compute_optimized_geometry()
