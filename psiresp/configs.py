@@ -1,11 +1,9 @@
-from .resp import Resp
+from .resp import Resp, RespBase
 from .multiresp import MultiResp
-from .due import due, Doi
-
-from . import mixins
+from .utils.due import due, Doi
 
 
-class BaseRespConfig(mixins.RespMixin):
+class BaseRespConfig(RespBase):
     qm_method = "scf"
     solvent = None
     use_radii = "msk"
@@ -57,7 +55,7 @@ class RespA2(BaseRespConfig, Resp):
     description="RESP-A2 multimolecule model",
     path="psiresp.configs",
 )
-class RespA2(BaseRespConfig, MultiResp):
+class MultiRespA2(BaseRespConfig, MultiResp):
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.01
@@ -83,7 +81,7 @@ class EspA1(BaseRespConfig, Resp):
     description="ESP-A1 multimolecule model",
     path="psiresp.configs",
 )
-class EspA1(BaseRespConfig, MultiResp):
+class MultiEspA1(BaseRespConfig, MultiResp):
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.0
@@ -111,7 +109,7 @@ class EspA2(BaseRespConfig, Resp):
     description="ESP-A2 multimolecule model",
     path="psiresp.configs",
 )
-class EspA2(BaseRespConfig, MultiResp):
+class MultiEspA2(BaseRespConfig, MultiResp):
     qm_basis = "sto-3g"
     stage_2 = False
     hyp_a1 = 0.0
@@ -142,7 +140,7 @@ class ATBResp(Resp):
     description="ATB multimolecule model",
     path="psiresp.configs",
 )
-class ATBResp(MultiResp):
+class MultiATBResp(MultiResp):
     qm_basis = "6-31g*"
     qm_method = "b3lyp"
     solvent = "solvent"

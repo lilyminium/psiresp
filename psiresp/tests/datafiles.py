@@ -3,14 +3,14 @@ from pkg_resources import resource_filename
 # from .utils import datafile
 
 
-DMSO_OPT_C1 = resource_filename(__name__, "molecules/dmso_opt_c1.xyz")
+DMSO = resource_filename(__name__, "molecules/dmso_opt_c1.xyz")
 
-DMSO_OPT_C1_QMRA = resource_filename(__name__, "molecules/dmso_opt_c1_qmra.xyz")
+DMSO_QMRA = resource_filename(__name__, "molecules/dmso_opt_c1_qmra.xyz")
 
-DMSO_OPT_C1_O1 = resource_filename(__name__, "molecules/dmso_opt_c1_o1.xyz")
-DMSO_OPT_C1_O2 = resource_filename(__name__, "molecules/dmso_opt_c1_o2.xyz")
-DMSO_OPT_C1_O3 = resource_filename(__name__, "molecules/dmso_opt_c1_o3.xyz")
-DMSO_OPT_C1_O4 = resource_filename(__name__, "molecules/dmso_opt_c1_o4.xyz")
+DMSO_O1 = resource_filename(__name__, "molecules/dmso_opt_c1_o1.xyz")
+DMSO_O2 = resource_filename(__name__, "molecules/dmso_opt_c1_o2.xyz")
+DMSO_O3 = resource_filename(__name__, "molecules/dmso_opt_c1_o3.xyz")
+DMSO_O4 = resource_filename(__name__, "molecules/dmso_opt_c1_o4.xyz")
 
 
 # ETOH_PDB = datafile("ethanol.pdb")

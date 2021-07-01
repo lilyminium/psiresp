@@ -10,15 +10,16 @@ from typing_extensions import Literal
 import numpy as np
 import psi4
 
-from .. import base, psi4utils, exceptions
+from .. import base, psi4utils, utils
 
 logger = logging.getLogger(__name__)
 
 command_stream = io.StringIO()
 
+
 class QMMixin(base.Model):
     """Mixin for QM jobs in Psi4
-    
+
     Parameters
     ----------
     qm_method: str
@@ -110,7 +111,7 @@ class QMMixin(base.Model):
         logger.info(f"Wrote optimization input to {infile}")
 
         return infile, outfile
-    
+
     def write_esp_file(self, psi4mol: psi4.core.Molecule) -> str:
         """Write psi4 esp input to file and return input filename
 
@@ -183,17 +184,17 @@ class QMMixin(base.Model):
 
         Raises
         ------
-        exceptions.NoQMExecutionError
+        NoQMExecutionError
             if QM is not run
         """
         command = f"{psi4.executable} -i {infile}"
         if outfile is not None:
             command += f"-o {outfile}"
-        
+
         if not self.execute_qm:
             command_stream.write(command + "\n")
             logger.info(command)
-            raise exceptions.NoQMExecutionError("Not running qm")
+            raise utils.NoQMExecutionError("Not running qm")
 
         proc = subprocess.run(command, shell=True,
                               cwd=cwd, stderr=subprocess.PIPE)

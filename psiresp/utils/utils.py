@@ -1,3 +1,5 @@
+from typing import Any, Iterable
+
 
 def is_iterable(obj: Any) -> bool:
     """Returns ``True`` if `obj` can be iterated over and is *not* a string

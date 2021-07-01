@@ -1,14 +1,11 @@
 import itertools
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
+import psi4
 import numpy as np
+import rdkit
 
-from .. import base, mixins
-from . import utils
-
-
-class OrientationOptions(mixins.IOMixin):
-    pass
+from . import base, utils
 
 
 class OrientationGenerator(base.Model):
@@ -157,23 +154,57 @@ class OrientationGenerator(base.Model):
 
     def get_transformed_coordinates(self,
                                     symbols: List[str],
-                                    coordinates: npt.NDArray,
-                                    ) -> List[npt.NDArray]:
+                                    coordinates: np.ndarray,
+                                    ) -> List[np.ndarray]:
         self.generate_transformations(symbols)
 
         transformed = []
         for reorient in self.reorientations:
             indices = id_to_indices(*reorient)
-            transformed.append(utils.orient_rigid(*indices, coordinates))
+            new = utils.orientation.orient_rigid(*indices, coordinates)
+            transformed.append(new)
 
         for rotate in self.rotations:
             indices = id_to_indices(*rotate)
-            transformed.append(utils.rotate_rigid(*indices, coordinates))
+            new = utils.orientation.rotate_rigid(*indices, coordinates)
+            transformed.append(new)
 
         for translate in self.translations:
             transformed.append(coordinates + translate)
 
         return transformed
+
+    def format_name(self, **kwargs):
+        return self.name_template.format(**kwargs)
+
+
+class ConformerGenerator(base.Model):
+    conformer_geometries: List[np.ndarray] = []
+    max_generated_conformers: int = 0
+    min_conformer_rmsd: float = 1.5
+    minimize_conformer_geometries: bool = False
+    minimize_max_iter: int = 2000
+    keep_original_resp_geometry: bool = True
+    name_template: str = "{resp.name}_{counter:03d}"
+
+    def generate_conformer_geometries(self, psi4mol: psi4.core.Molecule):
+        rdmol = rdutils.rdmol_from_psi4mol(psi4mol)
+        self._generate_conformers_from_rdmol(rdmol)
+
+    def _generate_conformers_from_rdmol(self, rdmol: rdkit.Chem.Mol):
+        if not self.keep_original_resp_geometry:
+            rdmol.RemoveAllConformers()
+
+        for coordinates in self.conformer_geometries:
+            rdutils.add_conformer_from_coordinates(rdmol, coordinates)
+
+        rdutils.generate_conformers(rdmol,
+                                    n_conformers=self.max_generated_conformers,
+                                    rmsd_threshold=self.min_conformer_rmsd)
+        if self.minimize_conformer_geometries:
+            rdutils.minimize_conformer_geometries(rdmol,
+                                                  self.minimize_max_iter)
+        self.conformer_geometries = rdutils.get_conformer_coordinates(rdmol)
 
     def format_name(self, **kwargs):
         return self.name_template.format(**kwargs)

@@ -4,6 +4,7 @@ A RESP plugin for Psi4
 """
 
 # Add imports here
+from .utils import rdutils, psi4utils
 from .orientation import Orientation
 from .conformer import Conformer
 from .resp import Resp

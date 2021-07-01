@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -49,7 +50,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
     def n_orientations(self):
         return len(self.orientations)
 
-    @base.datafile(filename="optimized_geometry.xyz")
+    @mixins.io.datafile(filename="optimized_geometry.xyz")
     def compute_optimized_geometry(self):
         if not self.optimize_geometry:
             return psi4utils.psi4mol_to_xyz_string(self.psi4mol)
@@ -124,7 +125,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
         self._empty_init()
         self.generate_orientations()
 
-    def compute_unweighted_a_matrix(self) -> npt.NDArray:
+    def compute_unweighted_a_matrix(self) -> np.ndarray:
         """Average the inverse squared distance matrices
         from each orientation to generate the A matrix
         for solving Ax = B.
@@ -139,7 +140,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
             A += mol.get_esp_mat_a()
         return A / self.n_orientations
 
-    def compute_unweighted_b_matrix(self) -> npt.NDArray:
+    def compute_unweighted_b_matrix(self) -> np.ndarray:
         """Average the ESP by distance from each orientation
         to generate the B vector for solving Ax = B
 

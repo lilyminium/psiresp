@@ -1,5 +1,6 @@
+from typing import Tuple
+
 import numpy as np
-import numpy.typing as npt
 
 
 def get_sin_cos_angle_oab(a: float, b: float) -> Tuple[float, float]:
@@ -35,7 +36,7 @@ def get_sin_cos_angle_oab(a: float, b: float) -> Tuple[float, float]:
     return sin_angle, cos_angle
 
 
-def rotate_x(n: int, coordinates: npt.NDArray):
+def rotate_x(n: int, coordinates: np.ndarray):
     """
     Rotate coordinates such that the ``n``th coordinate of
     ``coordsinates`` becomes the x-axis. This is done *in-place*.
@@ -57,7 +58,7 @@ def rotate_x(n: int, coordinates: npt.NDArray):
     coordinates[:, 2] = zs*cos_angle - ys*sin_angle
 
 
-def rotate_z(n: int, coordinates: npt.NDArray):
+def rotate_z(n: int, coordinates: np.ndarray):
     """
     Rotate coordinates such that the ``n``th coordinate of
     ``coordsinates`` becomes the z-axis. This is done *in-place*.
@@ -82,8 +83,8 @@ def rotate_z(n: int, coordinates: npt.NDArray):
 def orient_rigid(i: int,
                  j: int,
                  k: int,
-                 coordinates: npt.NDArray,
-                 ) -> npt.NDArray:
+                 coordinates: np.ndarray,
+                 ) -> np.ndarray:
     """
     Rigid-body reorientation such that the ``i`` th coordinate
     is the new origin; the ``j` `th coordinate defines the new
@@ -122,8 +123,8 @@ def orient_rigid(i: int,
 def rotate_rigid(i: int,
                  j: int,
                  k: int,
-                 coordinates: npt.NDArray,
-                 ) -> npt.NDArray:
+                 coordinates: np.ndarray,
+                 ) -> np.ndarray:
     """
     Rigid-body rotation such that the ``i`` th and ``j`` th coordinate
     define a vector parallel to the x-axis; and the ``k`` th coordinate

@@ -1,9 +1,10 @@
-from typing import Tuple, Dict, List
+from dataclasses import dataclass, field
+from typing import Tuple, Dict
 
 import numpy as np
 
 
-from .. import vdwradii, base
+from . import vdwradii, base
 
 
 class GridMixin(base.Model):

@@ -1,8 +1,10 @@
 from typing import Optional, Union, Tuple, Dict, List
 from collections import UserList
+import functools
 
 import numpy as np
 import scipy
+
 
 AtomIdType = Optional[Union[int, "AtomId", Tuple[int, int]]]
 ChargeConstraintType = Union[Dict[float, List[AtomIdType]],

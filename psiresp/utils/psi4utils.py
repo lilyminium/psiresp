@@ -1,16 +1,15 @@
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import psi4
 import numpy as np
-from numpy import typing as npt
 
-from . import utils
+from . import BOHR_TO_ANGSTROM, ANGSTROM_TO_BOHR
 
-CoordinateInputs = Union[psi4.core.Molecule, npt.NDArray]
+CoordinateInputs = Union[psi4.core.Molecule, np.ndarray]
 
 
-def as_coordinates(coordinates_or_psi4mol: CoordinateInputs) -> npt.NDArray:
+def as_coordinates(coordinates_or_psi4mol: CoordinateInputs) -> np.ndarray:
     """Get coordinates from either an array or Psi4 molecule
 
     Parameters
@@ -24,13 +23,12 @@ def as_coordinates(coordinates_or_psi4mol: CoordinateInputs) -> npt.NDArray:
         Coordinates in angstrom
     """
     try:
-        xyz = obj.geometry().np.astype("float")
+        xyz = coordinates_or_psi4mol.geometry().np.astype("float")
     except AttributeError:
         pass
     else:
-        if "Bohr" in obj.units():
-            obj = xyz * BOHR_TO_ANGSTROM
-    return obj
+        coordinates_or_psi4mol = xyz * BOHR_TO_ANGSTROM
+    return coordinates_or_psi4mol
 
 
 def psi4mol_with_coordinates(psi4mol: psi4.core.Molecule,
@@ -54,8 +52,8 @@ def psi4mol_with_coordinates(psi4mol: psi4.core.Molecule,
         Resulting molecule
     """
     clone = psi4mol.clone()
-    coordinates = coordinates_from_obj(coordinates_or_psi4mol)
-    set_psi4mol_geometry(clone, coordinates)
+    coordinates = as_coordinates(coordinates_or_psi4mol)
+    set_psi4mol_coordinates(clone, coordinates)
     if name is not None:
         clone.set_name(name)
     return clone
@@ -80,8 +78,8 @@ def get_mol_spec(psi4mol: psi4.core.Molecule) -> str:
     return f"molecule {psi4mol.name()} {{\n{mol}\n}}\n\n"
 
 
-def set_psi4mol_geometry(psi4mol: psi4.core.Molecule,
-                         coordinates: npt.NDArray):
+def set_psi4mol_coordinates(psi4mol: psi4.core.Molecule,
+                            coordinates: np.ndarray):
     """
     Set geometry of `psi4mol` molecule with numpy array of coordinates
 
@@ -93,8 +91,8 @@ def set_psi4mol_geometry(psi4mol: psi4.core.Molecule,
         coordinates in angstrom
     """
     charge = psi4mol.molecular_charge()
-    multiplicity = psi4mol.molecular_charge()
-    coordinates = coordinates * utils.ANGSTROM_TO_BOHR
+    multiplicity = psi4mol.multiplicity()
+    coordinates = coordinates * ANGSTROM_TO_BOHR
 
     mat = psi4.core.Matrix.from_array(coordinates)
     psi4mol.set_geometry(mat)
@@ -131,7 +129,7 @@ def get_sp3_ch_ids(psi4mol: psi4.core.Molecule,
     for i in indices[symbols == "C"]:
         cbonds = bonds[np.any(bonds == i, axis=1)]
         partners = cbonds[cbonds != i]
-        if len(partners) == 3:
+        if len(partners) == 4:
             hs = partners[symbols[partners] == "H"]
             groups[i + 1 + increment] = list(hs + 1 + increment)
     return groups

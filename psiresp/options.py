@@ -1,7 +1,21 @@
 from collections import defaultdict
+from typing import List, Dict
 
-from .charge_constraints import AtomId, ChargeConstraint, ChargeEquivalence
-from .. import base
+from .charge_constraints import ChargeConstraint, ChargeEquivalence
+from .charge_constraints import AtomId
+from . import mixins, base
+from .generators import OrientationGenerator
+
+
+class OrientationOptions(mixins.IOMixin):
+    pass
+
+
+class ConformerOptions(mixins.IOMixin):
+    optimize_geometry: bool = False
+    weight: float = 1
+    orientation_options: OrientationOptions = OrientationOptions()
+    orientation_generator: OrientationGenerator = OrientationGenerator()
 
 
 class ChargeConstraintOptions(base.Model):
@@ -26,9 +40,9 @@ class ChargeConstraintOptions(base.Model):
     symmetric_methyls: bool = True
     symmetric_methylenes: bool = True
 
-    def __post_init__(self):
-        self.clean_charge_constraints()
-        self.clean_charge_equivalences()
+    # def __post_init__(self):
+    #     self.clean_charge_constraints()
+    #     self.clean_charge_equivalences()
 
     @property
     def n_charge_constraints(self):

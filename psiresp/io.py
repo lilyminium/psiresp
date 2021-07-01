@@ -2,7 +2,6 @@ import logging
 import pathlib
 import os
 import tempfile
-import functools
 import abc
 import contextlib
 from typing import Union, Optional, Callable
@@ -11,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 
-from .. import base
+from . import base
 
 logger = logging.getLogger(__name__)
 
@@ -20,22 +19,22 @@ Path = Union[pathlib.Path, str]
 
 
 def datafile(func: Optional[Callable] = None,
-             filename: Optional[str] = None,
+             path: Optional[str] = None,
              ) -> Callable:
     """Try to load data from file. If not found, saves data to same path"""
 
     if func is None:
-        return functools.partial(datafile, filename=filename)
+        return functools.partial(datafile, path=path)
 
-    if filename is None:
+    if path is None:
         fname = func.__name__
         if fname.startswith("compute_"):
             fname = fname.split("compute_", maxsplit=1)[1]
-        filename = fname + ".dat"
+        path = fname + ".dat"
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        return self.try_datafile(filename, wrapper, self, *args, **kwargs)
+        return self.try_datafile(path, wrapper, self, *args, **kwargs)
     return wrapper
 
 

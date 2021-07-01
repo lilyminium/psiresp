@@ -1,13 +1,15 @@
-from typing import List, Dist
+from typing import List, Dict, Optional, Union
 
 import numpy as np
 import scipy
+import psi4
 
 from . import mixins
-from .resp import Resp
+from .resp import Resp, RespBase
+from .options import ChargeConstraintOptions
 
 
-class MultiResp(mixins.RespMixin):
+class MultiResp(RespBase):
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
 

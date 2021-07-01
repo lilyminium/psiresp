@@ -1,6 +1,7 @@
 from typing import List
 
 import psi4
+import numpy as np
 import rdkit
 from rdkit import Chem
 
@@ -92,7 +93,7 @@ def minimize_conformer_geometries(rdmol: rdkit.Chem.Mol,
 def generate_conformer_coordinates(psi4mol: psi4.core.Molecule,
                                    max_generated_conformers: int = 0,
                                    min_conformer_rmsd: float = 1.5,
-                                   **kwargs) -> npt.NDArray:
+                                   **kwargs) -> np.ndarray:
     """Use RDKit to generate conformer coordinates from Psi4 molecule
 
     Parameters
@@ -114,7 +115,7 @@ def generate_conformer_coordinates(psi4mol: psi4.core.Molecule,
     return get_conformer_coordinates(rdmol)
 
 
-def get_conformer_coordinates(self, rdmol: rdkit.Chem.Mol) -> npt.NDArray:
+def get_conformer_coordinates(self, rdmol: rdkit.Chem.Mol) -> np.ndarray:
     """Get conformer coordinates from RDKit molecule
 
     Parameters
@@ -136,7 +137,7 @@ def get_conformer_coordinates(self, rdmol: rdkit.Chem.Mol) -> npt.NDArray:
 
 def add_conformer_from_coordinates(self,
                                    rdmol: rdkit.Chem.Mol,
-                                   coordinates: npt.NDArray):
+                                   coordinates: np.ndarray):
     """Add conformer to RDKit from coordinate array
 
     Parameters

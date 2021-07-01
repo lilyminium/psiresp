@@ -70,18 +70,18 @@ class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
             self._r_inv = self.compute_r_inv()
         return self._r_inv
 
-    def compute_r_inv(self) -> npt.NDArray:
+    def compute_r_inv(self) -> np.ndarray:
         """Get inverse r"""
         points = self.grid.reshape((len(self.grid), 1, 3))
         disp = self.coordinates - points
         inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
         return inverse * utils.BOHR_TO_ANGSTROM
 
-    def get_esp_mat_a(self) -> npt.NDArray:
+    def get_esp_mat_a(self) -> np.ndarray:
         """Get A matrix for solving"""
         return np.einsum("ij, ik->jk", self.r_inv, self.r_inv)
 
-    def get_esp_mat_b(self) -> npt.NDArray:
+    def get_esp_mat_b(self) -> np.ndarray:
         """Get B matrix for solving"""
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 

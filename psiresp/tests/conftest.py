@@ -1,11 +1,24 @@
-from pkg_resources import resource_filename
+import pytest
 
-from io import StringIO
-import os
-import re
-import psi4
-import numpy as np
+from .base import coordinates_from_xyzfile, psi4mol_from_xyzfile
+from .datafiles import DMSO, DMSO_O1
 
 
-def coordinates_from_xyz(file):
-    return np.loadtxt(file skiprows=2, usecols=(1, 2, 3), comments='!')
+@pytest.fixture()
+def dmso_coordinates():
+    return coordinates_from_xyzfile(DMSO)
+
+
+@pytest.fixture()
+def dmso_psi4mol():
+    return psi4mol_from_xyzfile(DMSO)
+
+
+@pytest.fixture()
+def dmso_o1_coordinates():
+    return coordinates_from_xyzfile(DMSO_O1)
+
+
+@pytest.fixture()
+def dmso_o1_psi4mol():
+    return psi4mol_from_xyzfile(DMSO_O1)

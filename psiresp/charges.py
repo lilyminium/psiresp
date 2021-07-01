@@ -1,6 +1,5 @@
 from typing import List
 
-import numpy.typing as npt
 
 from . import base
 from .options import RespStageOptions, ChargeConstraintOptions
@@ -70,9 +69,9 @@ class RespCharges(base.Model):
         return restrained
 
     def fit(self,
-            a_matrix: npt.NDArray,
-            b_matrix: npt.NDArray,
-            ) -> npt.NDArray:
+            a_matrix: np.ndarray,
+            b_matrix: np.ndarray,
+            ) -> np.ndarray:
         """Solve RESP charges with charge_options constraints
 
         Parameters

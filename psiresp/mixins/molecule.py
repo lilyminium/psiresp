@@ -1,14 +1,9 @@
 import io
 import pathlib
 
+import psi4
+
 from .. import base, psi4utils
-
-# class NameMixin(base.Model):
-#     name: str = "mol"
-
-#     @property
-#     def psi4mol(self):
-#         raise NotImplemented
 
 
 class MoleculeMixin(base.Model):
