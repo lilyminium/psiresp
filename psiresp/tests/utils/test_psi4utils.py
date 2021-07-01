@@ -1,5 +1,4 @@
 import pytest
-from numpy.testing import assert_almost_equal
 import numpy as np
 
 from psiresp.utils import psi4utils, ANGSTROM_TO_BOHR
@@ -9,7 +8,7 @@ from ..base import (coordinates_from_xyzfile,
                     assert_coordinates_almost_equal,
                     get_angstrom_coordinates,
                     )
-from ..datafiles import DMSO
+from ..datafiles import DMSO, OPT_LOGFILE, OPT_XYZFILE
 
 
 @pytest.mark.parametrize("loader", [
@@ -65,3 +64,10 @@ def test_get_sp3_ch_ids(file, increment, ref_sp3_ids):
     psi4mol = psi4mol_from_xyzfile(file)
     sp3_ids = psi4utils.get_sp3_ch_ids(psi4mol, increment=increment)
     assert sp3_ids == ref_sp3_ids
+
+
+def test_opt_logfile_to_xyz_string():
+    with open(OPT_XYZFILE, "r") as f:
+        ref = f.read()
+    xyz = psi4utils.opt_logfile_to_xyz_string(OPT_LOGFILE)
+    assert xyz == ref

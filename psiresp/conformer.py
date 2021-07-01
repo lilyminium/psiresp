@@ -57,7 +57,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
         with self.directory() as tmpdir:
             infile, outfile = self.resp.resp.write_opt_file(self.psi4mol)
             self.resp.resp.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
-            xyz = psi4utils.psi4optfile_to_xyz_string(outfile)
+            xyz = psi4utils.opt_logfile_to_xyz_string(outfile)
         return xyz
 
     def add_orientation(self,

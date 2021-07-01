@@ -1,4 +1,5 @@
 import re
+import pathlib
 from typing import Dict, List, Optional, Union
 
 import psi4
@@ -103,6 +104,10 @@ def set_psi4mol_coordinates(psi4mol: psi4.core.Molecule,
     psi4mol.update_geometry()
 
 
+def get_psi4mol_coordinates(psi4mol: psi4.core.Molecule) -> np.ndarray:
+    return psi4mol.geometry().np.astype("float") * BOHR_TO_ANGSTROM
+
+
 def get_sp3_ch_ids(psi4mol: psi4.core.Molecule,
                    increment: int = 0,
                    ) -> Dict[int, List[int]]:
@@ -150,23 +155,24 @@ def psi4mol_to_mol2_string(psi4mol: psi4.core.Molecule) -> str:
     return psi4mol.format_molecule_for_mol()
 
 
-def psi4optfile_to_xyz_string(logfile: str) -> str:
+def opt_logfile_to_xyz_string(logfile: str) -> str:
     """Get geometry in XYZ format from Psi4 optimization log file"""
     with open(logfile, "r") as f:
         contents = f.read()
     last_lines = contents.split("OPTKING Finished Execution")[-1].split("\n")
     atom_spec = []
     for line in last_lines:
-        line = line.strip().split()
-        if len(line) == 4:
+        line = line.strip()
+        fields = line.split()
+        if len(fields) == 4:
             try:
-                atom_line = [line[0]] + list(map(float, line[-3:]))
+                atom_line = [fields[0]] + list(map(float, fields[-3:]))
             except ValueError:
                 continue
             else:
-                atom_spec.append(atom_line)
+                atom_spec.append(line)
 
-    name = logfile.strip(".log")
+    name = pathlib.Path(logfile).stem
     lines = [str(len(atom_spec)), name] + atom_spec
     txt = "\n".join(lines)
     return txt
@@ -174,5 +180,5 @@ def psi4optfile_to_xyz_string(logfile: str) -> str:
 
 def psi4mol_from_psi4optfile(logfile) -> psi4.core.Molecule:
     """Create Psi4 molecule from optimized geometry of log file"""
-    xyz = psi4optfile_to_xyz_string(logfile)
+    xyz = opt_logfile_to_xyz_string(logfile)
     return psi4mol_from_xyz_string(xyz)

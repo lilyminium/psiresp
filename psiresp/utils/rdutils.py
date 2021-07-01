@@ -115,7 +115,7 @@ def generate_conformer_coordinates(psi4mol: psi4.core.Molecule,
     return get_conformer_coordinates(rdmol)
 
 
-def get_conformer_coordinates(self, rdmol: rdkit.Chem.Mol) -> np.ndarray:
+def get_conformer_coordinates(rdmol: rdkit.Chem.Mol) -> np.ndarray:
     """Get conformer coordinates from RDKit molecule
 
     Parameters
@@ -135,8 +135,7 @@ def get_conformer_coordinates(self, rdmol: rdkit.Chem.Mol) -> np.ndarray:
     return coordinates
 
 
-def add_conformer_from_coordinates(self,
-                                   rdmol: rdkit.Chem.Mol,
+def add_conformer_from_coordinates(rdmol: rdkit.Chem.Mol,
                                    coordinates: np.ndarray):
     """Add conformer to RDKit from coordinate array
 
@@ -152,8 +151,11 @@ def add_conformer_from_coordinates(self,
     if coordinates.shape != (n_atoms, 3):
         raise ValueError("Shape of coordinates must be (n_atoms, 3)")
     conformer = Chem.Conformer(n_atoms)
-    for i, (x, y, z) in enumerate(coordinates):
+    for i, xyz in enumerate(coordinates):
+        x, y, z = map(float, xyz)
         conformer.SetAtomPosition(i, Geometry.Point3D(x, y, z))
+    conformer.SetId(rdmol.GetNumConformers())
+    rdmol.AddConformer(conformer)
 
 
 def rdmol_from_psi4mol(psi4mol: psi4.core.Molecule) -> rdkit.Chem.Mol:
@@ -169,8 +171,12 @@ def rdmol_from_psi4mol(psi4mol: psi4.core.Molecule) -> rdkit.Chem.Mol:
     rdmol: rdkit.Chem.Mol
         RDKit Molecule
     """
-    mol = psi4utils.psi4mol_to_mol2_string(psi4mol)
-    return Chem.MolFromMol2Block(mol)
+    molstr = psi4utils.psi4mol_to_mol2_string(psi4mol)
+    rdmol = Chem.MolFromMolBlock(molstr, removeHs=False)
+    coordinates = psi4utils.get_psi4mol_coordinates(psi4mol)
+    rdmol.RemoveAllConformers()
+    add_conformer_from_coordinates(rdmol, coordinates)
+    return rdmol
 
 
 def rdmol_from_file_or_string(string: str) -> rdkit.Chem.Mol:
@@ -195,10 +201,17 @@ def rdmol_from_file_or_string(string: str) -> rdkit.Chem.Mol:
         return parser(string, removeHs=False, sanitize=True)
 
     for parser in ACCEPTED_STRING_PARSERS:
-        rdmol = parser(string, removeHs=False, sanitize=True)
+        try:
+            rdmol = parser(string, removeHs=False, sanitize=True)
+        except RuntimeError:
+            continue
         if rdmol is not None:
             return rdmol
 
     import MDAnalysis as mda
+    from MDAnalysis.topology.guessers import guess_atom_element
     u = mda.Universe(string)
+    if not hasattr(u.atoms, "elements"):
+        elements = [guess_atom_element(atom.type) for atom in u.atoms]
+        u.add_TopologyAttr("elements", elements)
     return u.atoms.convert_to("RDKIT")
