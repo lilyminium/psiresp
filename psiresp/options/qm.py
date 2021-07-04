@@ -1,7 +1,6 @@
 import os
-import io
-import re
 import logging
+import pathlib
 import textwrap
 import subprocess
 from typing import Optional, Tuple
@@ -11,21 +10,22 @@ from typing_extensions import Literal
 import numpy as np
 import psi4
 
-from .. import base, utils
+from .base import options, OptionsBase
+from ..utils import psi4utils
 
 logger = logging.getLogger(__name__)
 
-command_stream = io.StringIO()
+state_logger = logging.getLogger("job_state")
 
-
-class QMMixin(base.Model):
-    """Mixin for QM jobs in Psi4
-
+@options
+class QMOptions(OptionsBase):
+    """Options for QM jobs in Psi4
+    
     Parameters
     ----------
-    qm_method: str
+    method: str
         QM method
-    qm_basis_set: str
+    basis: str
         Basis set
     solvent: str
         Solvent, if any.
@@ -39,26 +39,15 @@ class QMMixin(base.Model):
         N means to compute every N steps.
     g_convergence: str
         Optimization criteria.
-    esp_infile: str
-        Filename to write Psi4 ESP job input
-    opt_infile: str
-        Filename to write Psi4 optimisation job input
-    opt_outfile: str
-        Filename for Psi4 optimisation job output
-    execute_qm: bool
-        Whether to execute the QM jobs. If ``False``, input files will
-        be written but they will not be run. If called from `Resp.run()` or
-        similar, the job will exit so that you can run the QM jobs in parallel
-        yourself.
     """
-    # qm_method: Literal["scf", "hf", "mp2", "mp3", "ccsd"] = "scf"
+    # method: Literal["scf", "hf", "mp2", "mp3", "ccsd"] = "scf"
     # TODO: https://psicode.org/psi4manual/master/api/psi4.driver.energy.html
     # add in all relevant methods
-    qm_method: str = "scf"
+    method: str = "scf"
     # TODO: https://psicode.org/psi4manual/master/basissets_tables.html#apdx-basistables
     # TODO: add in all relevant bases
-    # qm_basis_set: Literal[]
-    qm_basis_set: str = "6-31g*"
+    # basis: Literal[]
+    basis: str = "6-31g*"
     # TODO: should I restrict the solvents?
     solvent: Optional[str] = None
     geom_max_iter: int = 200
@@ -88,29 +77,31 @@ class QMMixin(base.Model):
         return f"molecule {molecule.name()} {{\n{mol}\n}}\n\n"
 
     def write_opt_file(self, psi4mol: psi4.core.Molecule) -> Tuple[str, str]:
-        """Write psi4 optimization input to file
-        and return expected input and output paths.
+        """Write psi4 optimization input to `filename`
+        and return expected output file.
 
         Parameters
         ----------
         psi4mol: psi4.core.Molecule
             Psi4 molecule
+        filename: str
+            Input filename
 
         Returns
         -------
-        infile, outfile: tuple[str, str]
-            Input and output paths
+        output_filename: str
+            Output filename
         """
         opt_file = self.get_mol_spec(psi4mol)
         opt_file += textwrap.dedent(f"""
         set {{
-            basis {self.qm_basis_set}
+            basis {self.basis}
             geom_maxiter {self.geom_maxiter}
             full_hess_every {self.full_hess_every}
             g_convergence {self.g_convergence}
         }}
 
-        optimize('{self.qm_method}')
+        optimize('{self.method}')
         """)
 
         infile = self.opt_infile.format(name=psi4mol.name())
@@ -123,9 +114,10 @@ class QMMixin(base.Model):
         logger.info(f"Wrote optimization input to {infile}")
 
         return infile, outfile
-
+    
     def write_esp_file(self, psi4mol: psi4.core.Molecule) -> str:
-        """Write psi4 esp input to file and return input filename
+        """Write psi4 esp input to `filename`
+        and return expected output file.
 
         Parameters
         ----------
@@ -134,12 +126,12 @@ class QMMixin(base.Model):
 
         Returns
         -------
-        filename: str
-            Input filename
+        output_filename: str
+            Output filename
         """
         esp_file = self.get_mol_spec(psi4mol)
 
-        esp_file += f"set basis {self.qm_basis_set}\n"
+        esp_file += f"set basis {self.basis}\n"
 
         if self.solvent:
             esp_file += textwrap.dedent(f"""
@@ -167,7 +159,7 @@ class QMMixin(base.Model):
             """)
 
         esp_file += textwrap.dedent(f"""\
-        E, wfn = prop('{self.qm_method}', properties=['GRID_ESP'], return_wfn=True)
+        E, wfn = prop('{self.method}', properties=['GRID_ESP'], return_wfn=True)
         esp = wfn.oeprop.Vvals()
             """)
 
@@ -178,36 +170,26 @@ class QMMixin(base.Model):
         logger.info(f"Wrote ESP input to {filename}")
 
         return filename
+    
 
-    def try_run_qm(self, infile: str, outfile: Optional[str] = None,
-                   cwd: Optional[str] = None):
-        """
-        Try to run QM job if ``execute_qm`` is True; else logs the
-        command and raises an error to exist
+    def compute_esp(self, psi4mol: psi4.core.Molecule):
+        infile = self.write_esp_file(psi4mol)
+        cmd = f"{psi4.executable} -i {infile}"
+        if not self.execute:
+            state_logger.info(cmd)
+        else:
+            logger.info(f"Executing command `{cmd}`")
+            subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            esp = np.loadtxt("grid_esp.dat")
+            return esp
+    
 
-        Parameters
-        ----------
-        infile: str
-            Input Psi4 file
-        outfile: str (optional)
-            Output Psi4 file
-        cwd: str (optional)
-            Working directory to run the process from
-
-        Raises
-        ------
-        NoQMExecutionError
-            if QM is not run
-        """
-        command = f"{psi4.executable} -i {infile}"
-        if outfile is not None:
-            command += f"-o {outfile}"
-
-        if not self.execute_qm:
-            command_stream.write(command + "\n")
-            logger.info(command)
-            raise utils.NoQMExecutionError("Not running qm")
-
-        proc = subprocess.run(command, shell=True,
-                              cwd=cwd, stderr=subprocess.PIPE)
-        return proc
+    def compute_optimization(self, psi4mol: psi4.core.Molecule):
+        infile, outfile = self.write_opt_file(psi4mol)
+        cmd = f"{psi4.executable} -i {infile} -o {outfile}"
+        if not self.execute:
+            state_logger.info(cmd)
+        else:
+            logger.info(f"Executing command `{cmd}`")
+            subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            return utils.log2xyz(outfile)

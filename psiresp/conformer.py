@@ -4,12 +4,12 @@ import io
 from typing import Optional, List, Any
 
 import numpy as np
-import psi4
 import MDAnalysis as mda
 from pydantic import PrivateAttr
 
-from . import psi4utils, mixins
+from . import mixins
 from .utils import orientation as orutils
+from .utils import psi4utils
 from .utils.io import datafile
 from .orientation import Orientation
 
@@ -135,7 +135,7 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
         next time.
         """
         xyz = self.compute_optimized_geometry()
-        mol = psi4.core.Molecule.from_string(xyz, dtype="xyz")
+        mol = psi4utils.psi4mol_from_xyzstring(xyz)
         self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True
         self._empty_init()

@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import PrivateAttr, BaseModel, Field
 
 from .conformer import Conformer
-from . import psi4utils, rdutils
+from .utils import psi4utils, rdutils
 from .mixins import RespMoleculeOptions, IOMixin, MoleculeMixin, RespMixin
 from .utils.io import datafile
 

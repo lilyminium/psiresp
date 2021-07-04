@@ -6,7 +6,8 @@ import numpy as np
 from pydantic import BaseModel
 import psi4
 
-from .. import base, psi4utils, utils
+from .. import base, utils
+from ..utils import psi4utils
 from .io import IOMixin
 
 

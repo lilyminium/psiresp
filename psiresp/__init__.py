@@ -5,7 +5,7 @@ A RESP plugin for Psi4
 
 # Add imports here
 from ._version import get_versions
-from .utils import rdutils, psi4utils
+# from .utils import rdutils, psi4utils
 from .mixins import *
 from .orientation import Orientation
 from .conformer import Conformer

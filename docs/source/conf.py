@@ -20,13 +20,13 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
 
-autodoc_mock_imports = []
-try:
-    import psi4
-except ImportError:
-    autodoc_mock_imports.append('psi4')
+# autodoc_mock_imports = []
+# try:
+#     import psi4
+# except ImportError:
+#     autodoc_mock_imports.append('psi4')
 
-import psiresp
+# import psiresp
 
 
 # -- Project information -----------------------------------------------------
@@ -189,3 +189,12 @@ texinfo_documents = [
 ]
 
 # -- Extension configuration -------------------------------------------------
+
+intersphinx_mapping = {'https://docs.python.org/': None,
+                       'https://docs.scipy.org/doc/numpy/': None,
+                       'https://docs.scipy.org/doc/scipy/reference/': None,
+                       'https://matplotlib.org': None,
+                       'https://www.rdkit.org/docs/': None,
+                       'https://docs.mdanalysis.org/stable/': None,
+                       'https://www.psicode.org/psi4manual/master/': None,
+                       }
