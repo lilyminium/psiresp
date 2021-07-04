@@ -64,6 +64,10 @@ class MultiResp(RespMixin):
                 yield conformer
 
     @property
+    def n_conformers(self):
+        return sum(resp.n_conformers for resp in self.resps)
+
+    @property
     def symbols(self):
         values = []
         for resp in self.resps:
@@ -138,7 +142,8 @@ class MultiResp(RespMixin):
         """
         matrices = [scipy.sparse.coo_matrix(resp.get_conformer_a_matrix())
                     for resp in self.resps]
-        return scipy.sparse.block_diag(matrices)
+        sparse = scipy.sparse.block_diag(matrices).tocsr()
+        return sparse  # / self.n_conformers
 
     def get_conformer_b_matrix(self):
         """Assemble the conformer B matrices of each Resp molecule
@@ -149,7 +154,14 @@ class MultiResp(RespMixin):
             The shape of this array is (n_total_atoms,)
         """
         matrices = [resp.get_conformer_b_matrix() for resp in self.resps]
-        return np.concatenate(matrices)
+        return np.concatenate(matrices)  # / self.n_conformers
+
+    @property
+    def n_orientation_array(self):
+        structures = []
+        for resp in self.resps:
+            structures.extend([resp.n_orientations] * resp.n_atoms)
+        return structures
 
     def get_a_matrix(self):
         """Assemble the A matrices of each Resp molecule
@@ -167,8 +179,7 @@ class MultiResp(RespMixin):
             matrices.append(scipy.sparse.coo_matrix(arr))
         rows = scipy.sparse.block_diag(matrices)
         inputs = [[a, rows.T], [rows, None]]
-        sparse = scipy.sparse.bmat(inputs)
-        np.savetxt("test.txt", sparse.toarray(), fmt="%5.1f")
+        sparse = scipy.sparse.bmat(inputs).tocsr()
         return sparse
 
     def get_b_matrix(self):
@@ -181,7 +192,8 @@ class MultiResp(RespMixin):
         """
         b = self.get_conformer_b_matrix()
         charges = [resp.charge for resp in self.resps]
-        return np.concatenate([b, charges])
+        matrix = np.concatenate([b, charges])
+        return matrix
 
     @property
     def resp_atom_increments(self):
@@ -219,7 +231,7 @@ class MultiResp(RespMixin):
                                      "A mix of values is not accepted. Given: "
                                      f"{constraint.molecule_ids}")
                 if not constraint.any_molecule_ids_defined():
-                    constraint.molecule_ids = i
+                    constraint.set_molecule_ids(i)
                     constraint.set_atom_increment(mapping[i])
 
                 elif len(set(constraint.molecule_ids)) == 1:

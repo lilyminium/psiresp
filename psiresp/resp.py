@@ -47,6 +47,10 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
     def resp(self, value):
         self._resp = value
 
+    @property
+    def n_orientation_array(self):
+        return [self.n_orientations] * self.n_atoms
+
     def generate_conformers(self):
         """Generate conformers from settings in conformer_generator.
 

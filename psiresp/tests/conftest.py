@@ -96,6 +96,7 @@ def methylammonium_resp():
                         name="methylammonium",
                         load_input=True,
                         directory_path=data_dir("data/test_multiresp/methylammonium"),)
+    print(resp.charge)
     resp.add_conformer(mol)
     resp.generate_orientations()
     resp.finalize_geometries()

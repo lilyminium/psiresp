@@ -87,7 +87,7 @@ class AtomId:
                     molecule_id = molecule_id[0]
                 else:
                     atom_id = molecule_id
-                    molecule_id = 1
+                    molecule_id = None
         self.atom_id = atom_id
         self.molecule_id = molecule_id
         self.atom_increment = atom_increment
@@ -108,7 +108,7 @@ class AtomId:
         return self.absolute_atom_id == other
 
     def __hash__(self):
-        return hash((self.atom_id, self.molecule_id))
+        return hash(self.absolute_atom_index)
 
     @property
     def absolute_atom_id(self):
@@ -177,8 +177,7 @@ class BaseChargeConstraint(base.Model):
     def molecule_ids(self):
         return [atom.molecule_id for atom in self.atom_ids]
 
-    @molecule_ids.setter
-    def molecule_ids(self, value: int):
+    def set_molecule_ids(self, value: int):
         for atom in self.atom_ids:
             atom.molecule_id = value
 
@@ -483,7 +482,7 @@ class ChargeConstraintOptions(base.Model):
         self.charge_constraints = list(set(self.charge_constraints))
         # this will check for duplicate conflicting charges as a side effect
         self._remove_redundant_charge_constraints()
-        self.charge_constraints = sorted(self.charge_constraints)
+        self.charge_constraints = sorted(set(self.charge_constraints))
 
     def get_constraint_matrix(self, a_matrix, b_matrix):
         """Create full constraint matrix from input matrices and charge constraints.

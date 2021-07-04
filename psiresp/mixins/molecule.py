@@ -93,26 +93,26 @@ class MoleculeMixin(IOMixin):
     def symbols(self):
         return [self.psi4mol.symbol(i) for i in self.indices]
 
-    @property
-    def charge(self):
-        return self.psi4mol.molecular_charge()
+    # @property
+    # def charge(self):
+    #     return self.psi4mol.molecular_charge()
 
-    @charge.setter
-    def charge(self, value):
-        if value != self.psi4mol.molecular_charge():
-            self.psi4mol.set_molecular_charge(value)
-            self.psi4mol.update_geometry()
+    # @charge.setter
+    # def charge(self, value):
+    #     if value != self.psi4mol.molecular_charge():
+    #         self.psi4mol.set_molecular_charge(value)
+    #         self.psi4mol.update_geometry()
 
-    @property
-    def multiplicity(self):
-        return self.psi4mol.multiplicity()
+    # @property
+    # def multiplicity(self):
+    #     return self.psi4mol.multiplicity()
 
-    @multiplicity.setter
-    def multiplicity(self, value):
-        # can cause issues if we set willy-nilly
-        if value != self.psi4mol.multiplicity():
-            self.psi4mol.set_multiplicity(value)
-            self.psi4mol.update_geometry()
+    # @multiplicity.setter
+    # def multiplicity(self, value):
+    #     # can cause issues if we set willy-nilly
+    #     if value != self.psi4mol.multiplicity():
+    #         self.psi4mol.set_multiplicity(value)
+    #         self.psi4mol.update_geometry()
 
     @property
     def psi4mol_geometry_in_bohr(self):

@@ -48,6 +48,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
     # resp_stage_options: RespStage = RespStage()
     # charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
     symbols: List[str] = []
+    n_orientations: List[int] = []
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
 
@@ -88,6 +89,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         diag = np.diag_indices(n_atoms)
         ix = (diag[0][mask], diag[1][mask])
         indices = np.where(mask)[0]
+        n_structures = np.array(self.n_orientations)[mask]
 
         b2 = self.hyp_b ** 2
         n_iter, delta = 0, 2 * self.resp_convergence_tol
@@ -95,13 +97,11 @@ class RespCharges(RespStage, ChargeConstraintOptions):
                and n_iter < self.resp_max_iter):
             q_last = charges.copy()
             a_iter = a_matrix.copy()
-            increment = self.hyp_a / np.sqrt(charges[indices] ** 2 + b2)
+            increment = self.hyp_a / np.sqrt(charges[indices] ** 2 + b2) * n_structures
             a_iter[ix] += increment  # .reshape((-1, 1))
             charges = self._solve_a_b(a_iter, b_matrix)
             delta = np.max(np.abs(charges - q_last)[:n_atoms])
             n_iter += 1
-
-        print(delta, n_iter)
 
         if delta > self.resp_convergence_tol:
             warnings.warn("Charge fitting did not converge to "
@@ -134,6 +134,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         """
 
         a, b = self.get_constraint_matrix(a_matrix, b_matrix)
+        print(self.charge_constraints)
         np.savetxt("test.txt", a.toarray(), fmt="%5.1f")
         q1 = self._solve_a_b(a, b)
         self._unrestrained_charges = q1

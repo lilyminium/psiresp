@@ -35,8 +35,6 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
     hyp_a1: float = 0.0005
     hyp_a2: float = 0.001
     stage_2: bool = False
-    charge: int = 0
-    multiplicity: int = 1
 
     _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
     _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
@@ -87,8 +85,8 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
             The shape of this array is (n_atoms, n_atoms)
         """
         a_matrices = [conf.weighted_a_matrix for conf in self.conformers]
-        # return np.sum(a_matrices, axis=0)
-        return np.mean(a_matrices, axis=0)
+        return np.sum(a_matrices, axis=0)
+        # return np.mean(a_matrices, axis=0)
 
     def get_a_matrix(self) -> np.ndarray:
         """Average the inverse squared distance matrices
@@ -115,8 +113,8 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
             The shape of this vector is (n_atoms,)
         """
         b_matrices = [conf.weighted_b_matrix for conf in self.conformers]
-        # return np.sum(b_matrices, axis=0)
-        return np.mean(b_matrices, axis=0)
+        return np.sum(b_matrices, axis=0)
+        # return np.mean(b_matrices, axis=0)
 
     def get_b_matrix(self) -> np.ndarray:
         """Average the ESP by distance from each conformer
@@ -282,7 +280,7 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
         a_matrix = self.get_a_matrix()
         b_matrix = self.get_b_matrix()
 
-        self._stage_1_charges = RespCharges(symbols=self.symbols,
+        self._stage_1_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
                                             **initial_charge_options.to_kwargs(),
                                             **stage_1.to_kwargs())
         q1 = self._stage_1_charges.fit(a_matrix, b_matrix)
@@ -290,7 +288,7 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
         if self.stage_2:
             final_charge_options.add_stage_2_constraints(q1)
             stage_2 = RespStage.from_model(self, hyp_a=self.hyp_a2)
-            self._stage_2_charges = RespCharges(symbols=self.symbols,
+            self._stage_2_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
                                                 **final_charge_options.to_kwargs(),
                                                 **stage_2.to_kwargs())
             # a, b = self._stage_2_charges.charge_options.get_constraint_matrix(a_matrix, b_matrix)

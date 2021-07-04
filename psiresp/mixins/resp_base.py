@@ -20,6 +20,9 @@ class BaseRespOptions(base.Model):
 
 class RespMoleculeOptions(base.Model):
 
+    charge: int = 0
+    multiplicity: int = 1
+
     conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
     conformer_name_template: str = "{resp.name}_c{counter:03d}"
     max_generated_conformers: int = 0
@@ -27,6 +30,15 @@ class RespMoleculeOptions(base.Model):
     minimize_conformer_geometries: bool = False
     minimize_max_iter: int = 2000
     keep_original_resp_geometry: bool = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.charge != self.psi4mol.molecular_charge():
+            self.psi4mol.set_molecular_charge(self.charge)
+            self.psi4mol.update_geometry()
+        if self.multiplicity != self.psi4mol.multiplicity():
+            self.psi4mol.set_multiplicity(self.multiplicity)
+            self.psi4mol.update_geometry()
 
 
 class RespStage(BaseRespOptions):
