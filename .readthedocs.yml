@@ -18,4 +18,4 @@ formats:
   - pdf
 
 conda:
-  environment: devtools/conda-envs/test_env.yaml
+  environment: devtools/conda-envs/docs_env.yaml
