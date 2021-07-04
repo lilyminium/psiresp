@@ -33,6 +33,7 @@ class Model(BaseModel, metaclass=ModelMeta):
     class Config:
         arbitrary_types_allowed = True
         underscore_attrs_are_private = False
+        validate_assignment = True
 
     def __init__(self, *args, **kwargs):
         super(Model, self).__init__(*args, **kwargs)
@@ -47,7 +48,7 @@ class Model(BaseModel, metaclass=ModelMeta):
         ``object`` and ``kwargs``"""
         default_kwargs = {}
         for key in cls.__fields__:
-            if key == "psi4mol":
+            if key == "psi4mol" and hasattr(obj, "psi4mol"):
                 default_kwargs["psi4mol"] = obj.psi4mol.clone()
                 continue
             try:

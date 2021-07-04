@@ -1,8 +1,8 @@
 import pytest
 
-from psiresp.charge_constraints import (AtomId,
-                                        ChargeConstraint,
-                                        ChargeEquivalence)
+from psiresp.mixins.charge_constraints import (AtomId,
+                                               ChargeConstraint,
+                                               ChargeEquivalence)
 
 
 def test_atom_increment():

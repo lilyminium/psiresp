@@ -45,8 +45,6 @@ class RespCharges(RespStage, ChargeConstraintOptions):
     n_atoms: int
         Number of atoms
     """
-    # resp_stage_options: RespStage = RespStage()
-    # charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
     symbols: List[str] = []
     n_orientations: List[int] = []
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
@@ -134,8 +132,6 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         """
 
         a, b = self.get_constraint_matrix(a_matrix, b_matrix)
-        print(self.charge_constraints)
-        np.savetxt("test.txt", a.toarray(), fmt="%5.1f")
         q1 = self._solve_a_b(a, b)
         self._unrestrained_charges = q1
         if self.restrained:

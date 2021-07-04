@@ -138,15 +138,6 @@ class BaseChargeConstraint(base.Model):
     def validate_atom_ids(cls, item):
         return AtomId(item)
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.atom_ids = [AtomId(x) for x in self.atom_ids]
-
-    # def __init__(self, atom_ids: List[AtomIdType] = []):
-    #     atom_ids = [AtomId(x) for x in atom_ids]
-    #     atom_ids = sorted(set(atom_ids))
-    #     super().__init__(atom_ids)
-
     @property
     def absolute_atom_ids(self):
         return np.array([x.absolute_atom_id for x in self.atom_ids], dtype=int)
@@ -215,10 +206,6 @@ class ChargeConstraint(BaseChargeConstraint):
     """
 
     charge: float = 0
-
-    # def __init__(self, charge: float = 0, atom_ids: List[AtomIdType] = []):
-    #     self.charge = charge
-    #     super().__init__(atom_ids=atom_ids)
 
     def __init__(self, *args, **kwargs):
         if args and len(args) == 1 and not kwargs:
@@ -302,12 +289,6 @@ class ChargeEquivalence(BaseChargeConstraint):
         kwargs["atom_ids"] = list(kwargs["atom_ids"])
         super().__init__(*args, **kwargs)
 
-    # def __init__(self, atom_ids: List[AtomIdType] = []):
-    #     super().__init__(atom_ids=atom_ids)
-    #     if not len(self.atom_ids) >= 2:
-    #         raise ValueError("Must have at least 2 different atoms in a "
-    #                          "charge equivalence constraint")
-
     def __add__(self, other):
         return type(self)(np.concatenate([self.atom_ids, other.atom_ids]))
 
@@ -317,8 +298,12 @@ class ChargeEquivalence(BaseChargeConstraint):
         return other.__add__(self)
 
     def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
         if isinstance(other, type(self)):
             other = other.indices
+        else:
+            other = type(self)(atom_ids=other).indices
         return set(list(self.indices)) == set(list(other))
 
     def __hash__(self):
@@ -366,10 +351,6 @@ class ChargeConstraintOptions(base.Model):
     symmetric_methyls: bool = True
     symmetric_methylenes: bool = True
     _do_not_constrain_ids: List[int] = PrivateAttr(default_factory=list)
-
-    # def __post_init__(self):
-    #     self.clean_charge_constraints()
-    #     self.clean_charge_equivalences()
 
     @validator("charge_equivalences", pre=True, each_item=True)
     def validate_equivalences(cls, item):
@@ -515,10 +496,8 @@ class ChargeConstraintOptions(base.Model):
         a_sparse = scipy.sparse.bmat([[a_block, col_block],
                                       [col_block.transpose(), None]])
         b_dense = np.r_[b_matrix, [c.charge for c in self.charge_constraints]]
-        # b_dense = b_matrix
         b_sparse = np.zeros(a_sparse.shape[0])
         b_sparse[:len(b_dense)] = b_dense
-        # print(col_block.toarray().T, b_sparse[-6:])
         return a_sparse.tocsr(), b_sparse
 
     def add_sp3_equivalences(self, sp3_ch_ids: Dict[int, List[int]] = {}):
@@ -549,7 +528,7 @@ class ChargeConstraintOptions(base.Model):
                 self._do_not_constrain_ids.append(c)
         self.clean_charge_equivalences()
 
-    def add_stage_2_constraints(self, charges=[], ):
+    def add_stage_2_constraints(self, charges=[]):
         """Add ChargeConstraints restraining atoms to the given charges,
         if they are not in charge equivalence constraints.
 

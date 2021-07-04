@@ -23,7 +23,7 @@ def test_rdmol_to_psi4mols(dmso_rdmol, dmso_orientation_psi4mols):
     psi4mols = rdutils.rdmol_to_psi4mols(dmso_rdmol, name="dmso")
     assert len(psi4mols) == 4
     for i, (actual, ref) in enumerate(zip(psi4mols, dmso_orientation_psi4mols), 1):
-        assert_almost_equal(actual.geometry().np, ref.geometry().np, decimal=5)
+        assert_coordinates_almost_equal(actual.geometry().np, ref.geometry().np, decimal=4)
         assert actual.name() == f"dmso_c00{i}"
         assert actual.molecular_charge() == 0
         assert actual.multiplicity() == 1

@@ -1,14 +1,18 @@
-from .resp import Resp, RespBase
+from typing import Optional
+from pydantic import Field
+
+from .mixins import RespOptions
+from .resp import Resp
 from .multiresp import MultiResp
 from .utils.due import due, Doi
 
 
-class BaseRespConfig(RespBase):
-    qm_method = "scf"
-    solvent = None
-    use_radii = "msk"
-    ihfree = True
-    hyp_b = 0.1
+class BaseRespConfig(RespOptions):
+    qm_method: str = Field("scf", const=True)
+    solvent: Optional[str] = Field(None, const=True)
+    use_radii: str = Field("msk", const=True)
+    ihfree: bool = Field(True, const=True)
+    hyp_b: float = Field(0.1, const=True)
 
 
 @due.dcite(

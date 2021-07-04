@@ -25,5 +25,5 @@ def test_get_constraint_matrix_stage_2(dmso_psi4mol):
     ref_a = np.loadtxt(DMSO_STAGE_2_A)
     ref_b = np.loadtxt(DMSO_STAGE_2_B)
 
-    assert_almost_equal(constraint_a, ref_a, decimal=5)
+    assert_almost_equal(constraint_a.toarray(), ref_a, decimal=5)
     assert_almost_equal(constraint_b, ref_b, decimal=5)

@@ -59,8 +59,12 @@ class MoleculeMixin(IOMixin):
             kwargs["psi4mol"] = args[0]
             args = tuple()
         super().__init__(*args, **kwargs)
-        self.psi4mol.set_name(self.name)
+        if self.name is not None:
+            self.psi4mol.set_name(self.name)
+        else:
+            self.name = self.psi4mol.name()
 
+    # TODO: confuzzle with pydantic's aliasing
     # @property
     # def name(self):
     #     return self.psi4mol.name()

@@ -31,8 +31,7 @@ class RespMoleculeOptions(base.Model):
     minimize_max_iter: int = 2000
     keep_original_resp_geometry: bool = False
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def fix_charge_and_multiplicity(self):
         if self.charge != self.psi4mol.molecular_charge():
             self.psi4mol.set_molecular_charge(self.charge)
             self.psi4mol.update_geometry()
@@ -86,7 +85,7 @@ class RespStage(BaseRespOptions):
     def iter_solve(self, charges, symbols, a_matrix, b_matrix):
         if not self.hyp_a:  # i.e. no restraint
             return charges
-        print(b_matrix)
+        print(" b matrix", b_matrix)
 
         mask = self.get_mask_indices(symbols)
         n_atoms = len(symbols)

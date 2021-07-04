@@ -1,5 +1,5 @@
 import concurrent.futures
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import pathlib
 
 import numpy as np
@@ -13,9 +13,13 @@ from .utils.io import datafile
 
 class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
 
-    parent: Optional["MultiResp"] = None
+    parent: Optional[Any] = None  # TODO: troubleshoot MultiResp typing
     _conformers: List[Conformer] = PrivateAttr(default_factory=list)
     _conformer_coordinates = PrivateAttr(default=np.array([]))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fix_charge_and_multiplicity()
 
     @property
     def default_path(self):
@@ -58,9 +62,11 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
         input Psi4 molecule to RESP is used.
         """
         # self._conformers = []
-        all_coordinates = self._conformer_coordinates
+
+        all_coordinates = self.conformer_coordinates
         if len(all_coordinates) > len(self.conformers):
             self._conformers = []
+            self._conformer_coordinates = np.array([])
             for coordinates in all_coordinates:
                 self.add_conformer(coordinates)
             if not self.conformers:
@@ -100,6 +106,7 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
         default_kwargs = self.conformer_options.to_kwargs(**kwargs)
         conf = Conformer(resp=self.resp, psi4mol=mol, name=name, **default_kwargs)
         self._conformers.append(conf)
+        self._conformer_coordinates = np.array(list(self._conformer_coordinates) + [conf.coordinates])
         return conf
 
     def to_mda(self):
@@ -138,4 +145,7 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
         if self.minimize_conformer_geometries:
             rdutils.minimize_conformer_geometries(rdmol,
                                                   self.minimize_max_iter)
-        return np.asarray(rdutils.get_conformer_coordinates(rdmol))
+        coordinates = np.asarray(rdutils.get_conformer_coordinates(rdmol))
+        if not len(coordinates):
+            coordinates = self.coordinates.reshape((1, -1, 3))
+        return coordinates

@@ -1,6 +1,6 @@
 import logging
 import io
-from typing import Optional, List
+from typing import Optional, List, Any
 
 import numpy as np
 import psi4
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
-    resp: mixins.BaseRespOptions
+    resp: Any  # TODO: resp typing
 
     _orientations: List[Orientation] = PrivateAttr(default_factory=list)
     _finalized: bool = PrivateAttr(default=False)
@@ -200,7 +200,7 @@ class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
             new_translations = (np.random.rand(n_trans, 3) - 0.5) * 10
             self.translations.extend(new_translations)
 
-    @ datafile(filename="orientation_coordinates.npy")
+    @datafile(filename="orientation_coordinates.npy")
     def generate_orientation_coordinates(self):
         coordinates = self.coordinates
         self.generate_transformations()
@@ -220,5 +220,8 @@ class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
 
         for translate in self.translations:
             transformed.append(coordinates + translate)
+
+        if not transformed:
+            transformed.append(coordinates)
 
         return np.array(transformed)

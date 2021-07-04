@@ -14,7 +14,13 @@ from .. import utils
 from ..utils.execution import run_with_executor
 
 
-class RespMixin(BaseRespOptions, GridMixin, QMMixin):
+class RespOptions(BaseRespOptions):
+    hyp_a1: float = 0.0005
+    hyp_a2: float = 0.001
+    stage_2: bool = False
+
+
+class RespMixin(RespOptions, GridMixin, QMMixin):
     """
     Resp options
 
@@ -31,10 +37,6 @@ class RespMixin(BaseRespOptions, GridMixin, QMMixin):
     conformer_generator: psiresp.options.ConformerGenerator (optional)
         class to generate conformer geometries
     """
-
-    hyp_a1: float = 0.0005
-    hyp_a2: float = 0.001
-    stage_2: bool = False
 
     _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
     _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)

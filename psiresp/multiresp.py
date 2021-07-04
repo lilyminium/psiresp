@@ -1,15 +1,17 @@
+import pathlib
 from typing import List, Dict, Optional, Union
 
 import numpy as np
 import scipy
 import psi4
+from pydantic import validator, Field
 
-from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions
+from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions, IOMixin
 from .resp import Resp
 from .utils import psi4utils
 
 
-class MultiResp(RespMixin):
+class MultiResp(RespMixin, IOMixin):
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
 
@@ -41,13 +43,20 @@ class MultiResp(RespMixin):
         partial atomic charges for each molecule
         (only exists after calling run)
     """
-
+    name: str = "multiresp"
     resps: List[Resp] = []
+    resp_options: RespMoleculeOptions = Field(default_factory=RespMoleculeOptions)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for resp in self.resps:
             resp.parent = self
+
+    @property
+    def path(self):
+        if self.directory_path is not None:
+            return self.directory_path
+        return pathlib.Path(self.name)
 
     def generate_conformers(self):
         for resp in self.resps:
@@ -103,9 +112,12 @@ class MultiResp(RespMixin):
             mol = psi4mol_or_resp.clone()
             if name is None:
                 name = f"Mol_{len(self.resps) + 1:03d}"
-            psi4mol_or_resp = Resp.from_model(self, psi4mol=mol, name=name)
+            default_kwargs = self.resp_options.to_kwargs(**kwargs)
+            # TODO: this is a bad hack
+            default_kwargs["charge_constraint_options"] = {}
+            psi4mol_or_resp = Resp.from_model(self, psi4mol=mol, name=name, **default_kwargs)
 
-        psi4mol_or_resp.resp = self
+        psi4mol_or_resp.parent = self
         self.resps.append(psi4mol_or_resp)
         return psi4mol_or_resp
 
@@ -213,6 +225,7 @@ class MultiResp(RespMixin):
         """
         mapping = self.resp_atom_increments
         options = self.charge_constraint_options.copy(deep=True)
+
         # add atom increments to atoms
         for constraint in options.iterate_over_constraints():
             for atom_id in constraint.atom_ids:
@@ -223,7 +236,7 @@ class MultiResp(RespMixin):
         # incorporate intramolecular constraints
         # n_atoms = 0
         for i, mol in enumerate(self.resps, 1):
-            opts = ChargeConstraintOptions(**mol.charge_constraint_options)
+            opts = mol.charge_constraint_options.copy(deep=True)
             ignore = []
             for constraint in opts.iterate_over_constraints():
                 if constraint.some_molecule_ids_defined():

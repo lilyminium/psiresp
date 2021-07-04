@@ -14,7 +14,11 @@ def dmso_coordinates():
 
 @pytest.fixture()
 def dmso_psi4mol():
-    return psi4mol_from_xyzfile(DMSO)
+    mol = psi4mol_from_xyzfile(DMSO)
+    mol.set_molecular_charge(0)
+    mol.set_multiplicity(1)
+    mol.update_geometry()
+    return mol
 
 
 @pytest.fixture()
@@ -59,19 +63,27 @@ def nme2ala2_c1_psi4mol():
     return psi4mol_from_xyzfile(NME2ALA2_C1)
 
 
-@pytest.fixture(scope="session")
-def nme2ala2_opt_resp_original():
+@pytest.fixture()
+def nme2ala2_opt_c1_psi4mol():
+    return psi4mol_from_xyzfile(NME2ALA2_OPT_C1)
+
+
+@pytest.fixture()
+def nme2ala2_opt_c2_psi4mol():
+    return psi4mol_from_xyzfile(NME2ALA2_OPT_C2)
+
+
+@pytest.fixture()
+def nme2ala2_opt_resp(nme2ala2_opt_c1_psi4mol, nme2ala2_opt_c2_psi4mol):
     reorientations = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
-    conf1 = psi4mol_from_xyzfile(NME2ALA2_OPT_C1)
-    conf2 = psi4mol_from_xyzfile(NME2ALA2_OPT_C2)
     conformer_options = dict(reorientations=reorientations,
                              keep_original_conformer_geometry=False,
                              orientation_options=dict(load_input=True))
-    resp = psiresp.Resp(conf1, conformer_options=conformer_options,
+    resp = psiresp.Resp(nme2ala2_opt_c1_psi4mol, conformer_options=conformer_options,
                         name="nme2ala2", directory_path=data_dir("data/test_resp"),
                         load_input=True)
-    resp.add_conformer(conf1)
-    resp.add_conformer(conf2)
+    resp.add_conformer(nme2ala2_opt_c1_psi4mol)
+    resp.add_conformer(nme2ala2_opt_c2_psi4mol)
     resp.generate_orientations()
     resp.finalize_geometries()
     resp.compute_esps()
@@ -79,25 +91,23 @@ def nme2ala2_opt_resp_original():
 
 
 @pytest.fixture()
-def nme2ala2_opt_resp(nme2ala2_opt_resp_original):
-    return nme2ala2_opt_resp_original.copy()
+def methylammonium_psi4mol():
+    return psi4mol_from_xyzfile(METHYLAMMONIUM_OPT)
 
 
 @pytest.fixture()
-def methylammonium_resp():
+def methylammonium_resp(methylammonium_psi4mol):
     reorientations = [(1, 5, 7), (7, 5, 1)]
     conformer_options = dict(reorientations=reorientations,
                              keep_original_conformer_geometry=False,
                              orientation_options=dict(load_input=True))
 
-    mol = psi4mol_from_xyzfile(METHYLAMMONIUM_OPT)
-    resp = psiresp.Resp(mol, charge=1,
+    resp = psiresp.Resp(methylammonium_psi4mol, charge=1,
                         conformer_options=conformer_options,
                         name="methylammonium",
                         load_input=True,
-                        directory_path=data_dir("data/test_multiresp/methylammonium"),)
-    print(resp.charge)
-    resp.add_conformer(mol)
+                        directory_path=data_dir("data/test_multiresp"),)
+    resp.add_conformer(methylammonium_psi4mol)
     resp.generate_orientations()
     resp.finalize_geometries()
     resp.compute_esps()

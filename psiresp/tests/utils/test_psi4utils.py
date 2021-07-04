@@ -42,7 +42,9 @@ def test_get_mol_spec(dmso_psi4mol):
     lines = [line for line in mol_spec.split("\n") if line]
     assert lines[0].strip() == "molecule default {"
     assert lines[1].strip() == "units Angstrom"
-    assert lines[2].strip() == "0 1"
+    assert lines[2].strip() == "no_com"
+    assert lines[3].strip() == "no_reorient"
+    assert lines[4].strip() == "0 1"
     assert lines[-1].strip() == "}"
 
 

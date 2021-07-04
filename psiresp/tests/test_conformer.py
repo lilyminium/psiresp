@@ -62,6 +62,7 @@ def unweighted_ab():
 def nme2ala2_conformer(nme2ala2_c1_psi4mol):
     conformer = conformer_from_psi4mol(nme2ala2_c1_psi4mol)
     conformer.generate_orientations()
+    assert len(conformer.orientations) == 1
     return conformer
 
 

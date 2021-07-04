@@ -26,6 +26,7 @@ def test_generate_unit_sphere(n_points, ref_file):
 def test_generate_connolly_spheres(radii, density, n_points):
     grid = mixins.GridMixin(vdw_point_density=density)
     points = grid.generate_connolly_spheres(radii)
+    mask = np.all(np.isnan(points), axis=(0, 2))
     assert points.shape == ((3, n_points[1], 3))
     for sphere, n in zip(points, n_points):
         col = sphere[:, 0]

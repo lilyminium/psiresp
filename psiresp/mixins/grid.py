@@ -30,7 +30,7 @@ class GridMixin(base.Model):
     grid_rmax: float = -1
     use_radii: str = "msk"
     vdw_radii: Dict[str, float] = {}
-    vdw_scale_factors: Tuple[float] = (1.4, 1.6, 1.8, 2.0)
+    vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0]
     vdw_point_density: float = 1.0
 
     @property
@@ -123,7 +123,7 @@ class GridMixin(base.Model):
             shell = self.generate_unit_sphere(n)
             nan_points[i][:len(shell)] = shell
         nan_points *= unique_radii.reshape((-1, 1, 1))
-        nan_points = nan_points[:, ~np.all(np.isnan(nan_points), axis=(0, 2))]
+        # nan_points = nan_points[:, ~np.all(np.isnan(nan_points), axis=(0, 2))]
         return nan_points[inverse]
 
     def get_shell_within_bounds(self,
