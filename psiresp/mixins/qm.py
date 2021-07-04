@@ -39,6 +39,17 @@ class QMMixin(base.Model):
         N means to compute every N steps.
     g_convergence: str
         Optimization criteria.
+    esp_infile: str
+        Filename to write Psi4 ESP job input
+    opt_infile: str
+        Filename to write Psi4 optimisation job input
+    opt_outfile: str
+        Filename for Psi4 optimisation job output
+    execute_qm: bool
+        Whether to execute the QM jobs. If ``False``, input files will
+        be written but they will not be run. If called from `Resp.run()` or
+        similar, the job will exit so that you can run the QM jobs in parallel
+        yourself.
     """
     # qm_method: Literal["scf", "hf", "mp2", "mp3", "ccsd"] = "scf"
     # TODO: https://psicode.org/psi4manual/master/api/psi4.driver.energy.html

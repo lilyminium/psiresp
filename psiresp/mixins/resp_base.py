@@ -10,6 +10,9 @@ from .conformer import ConformerOptions
 
 
 class BaseRespOptions(base.Model):
+    """
+
+    """
     restrained: bool = True
     hyp_b: float = 0.1
     ihfree: bool = True
@@ -85,7 +88,6 @@ class RespStage(BaseRespOptions):
     def iter_solve(self, charges, symbols, a_matrix, b_matrix):
         if not self.hyp_a:  # i.e. no restraint
             return charges
-        print(" b matrix", b_matrix)
 
         mask = self.get_mask_indices(symbols)
         n_atoms = len(symbols)
@@ -104,9 +106,6 @@ class RespStage(BaseRespOptions):
             charges = self._solve_a_b(a_iter, b_matrix)
             delta = np.max(np.abs(charges - q_last)[:n_atoms])
             n_iter += 1
-
-        print("delta")
-        print(delta, n_iter)
 
         if delta > self.resp_convergence_tol:
             warnings.warn("Charge fitting did not converge to "

@@ -21,6 +21,9 @@ class IOOptions(base.Model):
         Whether to save output QM or intermediate files.
     load_input: bool
         Whether to read QM and intermediate files in, where available.
+    directory_path: str
+        Directory path for saving files. If not given, defaults
+        to the name of the instance.
     """
     save_output: bool = False
     load_input: bool = False

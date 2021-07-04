@@ -23,4 +23,4 @@ dependencies:
   - pip:
       - duecredit
       - pytest-xdist
-      - mdanalysis==2.0.0dev0
+      - mdanalysis==2.0.0b0

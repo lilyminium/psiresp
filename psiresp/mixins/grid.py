@@ -20,7 +20,7 @@ class GridMixin(base.Model):
     vdw_radii: dict of {str: float}
         Dictionary of VDW radii to override the radii in the
         `use_radii` set
-    vdw_scale_factors: iterable of floats
+    vdw_scale_factors: list of floats
         Scale factors for the radii
     vdw_point_density: float
         Point density
