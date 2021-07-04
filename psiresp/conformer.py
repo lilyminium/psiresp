@@ -15,7 +15,7 @@ from .orientation import Orientation
 logger = logging.getLogger(__name__)
 
 
-class Conformer(mixins.ConformerOptions, mixins.IOMixin, mixins.MoleculeMixin):
+class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
     resp: mixins.BaseRespOptions
 
     _orientations: List[Orientation] = PrivateAttr(default_factory=list)
@@ -36,7 +36,7 @@ class Conformer(mixins.ConformerOptions, mixins.IOMixin, mixins.MoleculeMixin):
         self._unweighted_b_matrix = None
 
     @property
-    def path(self):
+    def default_path(self):
         return self.resp.path / self.name
 
     @property
@@ -151,7 +151,7 @@ class Conformer(mixins.ConformerOptions, mixins.IOMixin, mixins.MoleculeMixin):
         A = np.zeros((self.n_atoms, self.n_atoms))
         for mol in self.orientations:
             A += mol.get_esp_mat_a()
-        return A  # / self.n_orientations
+        return A / self.n_orientations
 
     def compute_unweighted_b_matrix(self) -> np.ndarray:
         """Average the ESP by distance from each orientation
@@ -166,7 +166,7 @@ class Conformer(mixins.ConformerOptions, mixins.IOMixin, mixins.MoleculeMixin):
         get_esp_mat_bs = [x.get_esp_mat_b for x in self.orientations]
         for mol in self.orientations:
             B += mol.get_esp_mat_b()
-        return B  # / self.n_orientations
+        return B / self.n_orientations
 
     @property
     def transformations(self):

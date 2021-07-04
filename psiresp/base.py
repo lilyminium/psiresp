@@ -32,6 +32,7 @@ class Model(BaseModel, metaclass=ModelMeta):
 
     class Config:
         arbitrary_types_allowed = True
+        underscore_attrs_are_private = False
 
     def __init__(self, *args, **kwargs):
         super(Model, self).__init__(*args, **kwargs)
@@ -57,6 +58,8 @@ class Model(BaseModel, metaclass=ModelMeta):
         return cls(**default_kwargs)
 
     def to_kwargs(self, **kwargs):
-        new = self.copy().dict()
+        original = self.copy().dict()
+        new = {k: getattr(self, k) for k in original}
         new.update(kwargs)
+
         return new

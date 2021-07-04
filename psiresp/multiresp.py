@@ -6,6 +6,7 @@ import psi4
 
 from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions
 from .resp import Resp
+from .utils import psi4utils
 
 
 class MultiResp(RespMixin):
@@ -43,10 +44,14 @@ class MultiResp(RespMixin):
 
     resps: List[Resp] = []
 
-    def __post_init__(self):
-        super().__post_init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         for resp in self.resps:
-            resp.resp = self
+            resp.parent = self
+
+    def generate_conformers(self):
+        for resp in self.resps:
+            resp.generate_conformers()
 
     @property
     def resps_by_name(self):
@@ -162,7 +167,9 @@ class MultiResp(RespMixin):
             matrices.append(scipy.sparse.coo_matrix(arr))
         rows = scipy.sparse.block_diag(matrices)
         inputs = [[a, rows.T], [rows, None]]
-        return scipy.sparse.bmat(inputs)
+        sparse = scipy.sparse.bmat(inputs)
+        np.savetxt("test.txt", sparse.toarray(), fmt="%5.1f")
+        return sparse
 
     def get_b_matrix(self):
         """Assemble the B matrices of each Resp molecule
@@ -173,7 +180,7 @@ class MultiResp(RespMixin):
             The shape of this array is (n_total_atoms + n_resps,)
         """
         b = self.get_conformer_b_matrix()
-        charges = [resp.charge for resp in self.charges]
+        charges = [resp.charge for resp in self.resps]
         return np.concatenate([b, charges])
 
     @property
@@ -213,11 +220,11 @@ class MultiResp(RespMixin):
                                      f"{constraint.molecule_ids}")
                 if not constraint.any_molecule_ids_defined():
                     constraint.molecule_ids = i
-                    constraint.atom_increments = mapping[i]
+                    constraint.set_atom_increment(mapping[i])
 
                 elif len(set(constraint.molecule_ids)) == 1:
                     if constraint.molecule_ids[0] == i:
-                        constraint.atom_increments = mapping[i]
+                        constraint.set_atom_increment(mapping[i])
                 else:
                     ignore.append(constraint)
 
@@ -225,11 +232,11 @@ class MultiResp(RespMixin):
                             if eq not in ignore]
             constraints = [con for con in opts.charge_constraints
                            if con not in ignore]
-            multiopts.charge_equivalences.extend(equivalences)
-            multiopts.charge_constraints.extend(constraints)
-        multiopts.clean_charge_constraints()
-        multiopts.clean_charge_equivalences()
-        return multiopts
+            options.charge_equivalences.extend(equivalences)
+            options.charge_constraints.extend(constraints)
+        options.clean_charge_constraints()
+        options.clean_charge_equivalences()
+        return options
 
     def get_sp3_ch_ids(self) -> Dict[int, List[int]]:
         """Get dictionary of sp3 carbon atom number to bonded hydrogen numbers.

@@ -24,13 +24,14 @@ class IOOptions(base.Model):
     """
     save_output: bool = False
     load_input: bool = False
+    directory_path: Optional[Union[pathlib.Path, str]] = None
 
 
 class IOMixin(IOOptions):
 
     @property
     def path(self):
-        raise NotImplementedError
+        return self.directory_path
 
     @contextlib.contextmanager
     def directory(self):
@@ -116,7 +117,12 @@ class IOMixin(IOOptions):
         -------
         data
         """
+        import numpy as np
+        path = str(self.path / path.format(self=self))
         data = self.try_load_data(path)
+        # if ".dat" in path:
+        #     print(data)
+        #     raise ValueError(np.loadtxt(path))
         if data is not None:
             return data
         data = func(*args, **kwargs)

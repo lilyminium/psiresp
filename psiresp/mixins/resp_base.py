@@ -21,12 +21,12 @@ class BaseRespOptions(base.Model):
 class RespMoleculeOptions(base.Model):
 
     conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
-    conformer_name_template: str = "{resp.name}_{counter:03d}"
+    conformer_name_template: str = "{resp.name}_c{counter:03d}"
     max_generated_conformers: int = 0
     min_conformer_rmsd: float = 1.5
     minimize_conformer_geometries: bool = False
     minimize_max_iter: int = 2000
-    keep_original_resp_geometry: bool = True
+    keep_original_resp_geometry: bool = False
 
 
 class RespStage(BaseRespOptions):
@@ -38,11 +38,6 @@ class RespStage(BaseRespOptions):
         if self.ihfree:
             mask[np.where(symbols == "H")[0]] = False
         return mask
-
-    @staticmethod
-    def _solve_a_b(a, b):
-        from scipy.sparse.linalg import spsolve
-        return spsolve(a, b)
 
     # def iter_solve(self, charges, symbols, a_matrix, b_matrix):
     #     if not self.hyp_a:  # i.e. no restraint
@@ -79,6 +74,7 @@ class RespStage(BaseRespOptions):
     def iter_solve(self, charges, symbols, a_matrix, b_matrix):
         if not self.hyp_a:  # i.e. no restraint
             return charges
+        print(b_matrix)
 
         mask = self.get_mask_indices(symbols)
         n_atoms = len(symbols)

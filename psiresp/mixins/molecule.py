@@ -7,9 +7,10 @@ from pydantic import BaseModel
 import psi4
 
 from .. import base, psi4utils, utils
+from .io import IOMixin
 
 
-class MoleculeMixin(base.Model):
+class MoleculeMixin(IOMixin):
     """Class that contains a Psi4 molecule and a name
 
     Parameters
@@ -53,18 +54,31 @@ class MoleculeMixin(base.Model):
     #     else:
     #         self.name = self.psi4mol.name()
 
-    @property
-    def name(self):
-        return self.psi4mol.name()
-
-    @name.setter
-    def name(self, value):
-        if value is None:
-            value = self.psi4mol.name()
+    def __init__(self, *args, **kwargs):
+        if args and len(args) == 1 and "psi4mol" not in kwargs:
+            kwargs["psi4mol"] = args[0]
+            args = tuple()
+        super().__init__(*args, **kwargs)
         self.psi4mol.set_name(self.name)
+
+    # @property
+    # def name(self):
+    #     return self.psi4mol.name()
+
+    # @name.setter
+    # def name(self, value):
+    #     if value is None:
+    #         value = self.psi4mol.name()
+    #     self.psi4mol.set_name(value)
 
     @property
     def path(self):
+        if self.directory_path is None:
+            return self.default_path
+        return self.directory_path
+
+    @property
+    def default_path(self):
         return pathlib.Path(self.name)
 
     @property

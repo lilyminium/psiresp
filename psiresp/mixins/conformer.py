@@ -20,5 +20,5 @@ class ConformerOptions(IOOptions):
     translations: List[Tuple[float, float, float]] = []
     n_rotations: int = 0
     rotations: List[Tuple[int, int, int]] = []
-    keep_original_conformer_geometry: bool = True
-    orientation_name_template: str = "{conformer.name}_{counter:03d}"
+    keep_original_conformer_geometry: bool = False
+    orientation_name_template: str = "{conformer.name}_o{counter:03d}"

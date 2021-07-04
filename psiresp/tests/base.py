@@ -3,11 +3,17 @@ from io import StringIO
 import os
 import re
 import psi4
+import pathlib
 import numpy as np
 from numpy.testing import assert_almost_equal
 
 from psiresp.utils import BOHR_TO_ANGSTROM
 from psiresp import Orientation, Conformer, Resp
+
+
+def data_dir(subpath):
+    data = pathlib.Path(__file__).resolve().parent
+    return data / subpath
 
 
 def coordinates_from_xyzfile(file):
@@ -51,3 +57,14 @@ def esp_from_gamess_file(file):
     bohr = np.loadtxt(file, comments='!')
     bohr[:, 1:] *= BOHR_TO_ANGSTROM
     return bohr
+
+
+def charges_from_red_file(file):
+    with open(file, 'r') as f:
+        content = f.read()
+
+    mols = [x.split('\n')[1:] for x in content.split('MOLECULE') if x]
+    charges = [np.array([float(x.split()[4]) for x in y if x]) for y in mols]
+    if len(charges) == 1:
+        charges = charges[0]
+    return charges

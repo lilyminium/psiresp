@@ -54,7 +54,7 @@ def load_data(path: Path) -> Data:
         numpy.ndarray or pd.DataFrame
     """
     path = str(path)
-    suffix = pathlib.Path(path).suffix
+    suffix = pathlib.Path(path).suffix[1:]
 
     if suffix == "csv":
         loader = pd.read_csv

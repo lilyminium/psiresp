@@ -1,5 +1,6 @@
 import concurrent.futures
 from typing import Optional, Dict, List
+import pathlib
 
 import numpy as np
 from pydantic import PrivateAttr, BaseModel, Field
@@ -10,10 +11,17 @@ from .mixins import RespMoleculeOptions, IOMixin, MoleculeMixin, RespMixin
 from .utils.io import datafile
 
 
-class Resp(RespMoleculeOptions, RespMixin, IOMixin, MoleculeMixin):
+class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
 
-    _resp: Optional["MultiResp"] = None
+    parent: Optional["MultiResp"] = None
     _conformers: List[Conformer] = PrivateAttr(default_factory=list)
+    _conformer_coordinates = PrivateAttr(default=np.array([]))
+
+    @property
+    def default_path(self):
+        if self.resp is self:
+            return pathlib.Path(self.name)
+        return self.resp.path / self.name
 
     @property
     def conformers(self):
@@ -24,10 +32,16 @@ class Resp(RespMoleculeOptions, RespMixin, IOMixin, MoleculeMixin):
         self._conformers = value
 
     @property
+    def conformer_coordinates(self):
+        if not len(self._conformer_coordinates):
+            self._conformer_coordinates = self.generate_conformer_coordinates()
+        return self._conformer_coordinates
+
+    @property
     def resp(self):
-        if self._resp is None:
+        if self.parent is None:
             return self
-        return self._resp
+        return self.parent
 
     @resp.setter
     def resp(self, value):
@@ -40,7 +54,7 @@ class Resp(RespMoleculeOptions, RespMixin, IOMixin, MoleculeMixin):
         input Psi4 molecule to RESP is used.
         """
         # self._conformers = []
-        all_coordinates = self.generate_conformer_coordinates()
+        all_coordinates = self._conformer_coordinates
         if len(all_coordinates) > len(self.conformers):
             self._conformers = []
             for coordinates in all_coordinates:

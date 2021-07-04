@@ -1,11 +1,11 @@
-from typing import Optional, Union, Tuple, Dict, List
+from typing import Optional, Union, Tuple, Dict, List, Iterable
 from collections import UserList
 import functools
 from collections import defaultdict
 
 import numpy as np
 import scipy
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, validator
 
 from .. import base
 
@@ -128,25 +128,38 @@ class AtomId:
         return new
 
 
-class BaseChargeConstraint(UserList):
+@functools.total_ordering
+class BaseChargeConstraint(base.Model):
     """Base class for charge constraints"""
 
-    def __init__(self, atom_ids: List[AtomIdType] = []):
-        atom_ids = [AtomId(x) for x in atom_ids]
-        atom_ids = sorted(set(atom_ids))
-        super().__init__(atom_ids)
+    atom_ids: List[AtomId] = []
 
-    @property
-    def atom_ids(self):
-        return self.data
+    @validator("atom_ids", pre=True, each_item=True)
+    def validate_atom_ids(cls, item):
+        return AtomId(item)
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.atom_ids = [AtomId(x) for x in self.atom_ids]
+
+    # def __init__(self, atom_ids: List[AtomIdType] = []):
+    #     atom_ids = [AtomId(x) for x in atom_ids]
+    #     atom_ids = sorted(set(atom_ids))
+    #     super().__init__(atom_ids)
 
     @property
     def absolute_atom_ids(self):
-        return np.array([x.absolute_atom_id for x in self.data], dtype=int)
+        return np.array([x.absolute_atom_id for x in self.atom_ids], dtype=int)
 
     @property
     def indices(self):
         return self.absolute_atom_ids - 1
+
+    def __eq__(self, other):
+        return self.atom_ids == other.atom_ids
+
+    def __lt__(self, other):
+        return self.atom_ids[0] < other.atom_ids[0]
 
     def __len__(self):
         return len(self.atom_ids)
@@ -173,8 +186,7 @@ class BaseChargeConstraint(UserList):
     def atom_increments(self):
         return [atom.atom_increment for atom in self.atom_ids]
 
-    @atom_increments.setter
-    def atom_increments(self, value: int):
+    def set_atom_increment(self, value: int):
         for atom in self.atom_ids:
             atom.atom_increment = value
 
@@ -203,9 +215,26 @@ class ChargeConstraint(BaseChargeConstraint):
         Specified atoms
     """
 
-    def __init__(self, charge: float = 0, atom_ids: List[AtomIdType] = []):
-        self.charge = charge
-        super().__init__(atom_ids=atom_ids)
+    charge: float = 0
+
+    # def __init__(self, charge: float = 0, atom_ids: List[AtomIdType] = []):
+    #     self.charge = charge
+    #     super().__init__(atom_ids=atom_ids)
+
+    def __init__(self, *args, **kwargs):
+        if args and len(args) == 1 and not kwargs:
+            item = args[0]
+            if isinstance(item, dict):
+                if len(item) != 1:
+                    raise ValueError("dict must have only one key-value pair "
+                                     "in charge: [atom_ids] format.")
+                item = list(item.items())[0]
+            elif isinstance(item, ChargeConstraint):
+                item = [item.charge, item.atom_ids]
+            kwargs["charge"] = item[0]
+            kwargs["atom_ids"] = list(item[1])
+            args = tuple()
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return (f"<ChargeConstraint charge={self.charge}, "
@@ -264,11 +293,21 @@ class ChargeEquivalence(BaseChargeConstraint):
     def __repr__(self):
         return f"<ChargeEquivalence indices={self.indices}>"
 
-    def __init__(self, atom_ids: List[AtomIdType] = []):
-        super().__init__(atom_ids=atom_ids)
-        if not len(self.atom_ids) >= 2:
-            raise ValueError("Must have at least 2 different atoms in a "
-                             "charge equivalence constraint")
+    def __init__(self, *args, **kwargs):
+        if args and len(args) == 1 and not kwargs:
+            item = args[0]
+            if isinstance(item, ChargeEquivalence):
+                item = item.atom_ids
+            kwargs["atom_ids"] = item
+            args = tuple()
+        kwargs["atom_ids"] = list(kwargs["atom_ids"])
+        super().__init__(*args, **kwargs)
+
+    # def __init__(self, atom_ids: List[AtomIdType] = []):
+    #     super().__init__(atom_ids=atom_ids)
+    #     if not len(self.atom_ids) >= 2:
+    #         raise ValueError("Must have at least 2 different atoms in a "
+    #                          "charge equivalence constraint")
 
     def __add__(self, other):
         return type(self)(np.concatenate([self.atom_ids, other.atom_ids]))
@@ -332,6 +371,14 @@ class ChargeConstraintOptions(base.Model):
     # def __post_init__(self):
     #     self.clean_charge_constraints()
     #     self.clean_charge_equivalences()
+
+    @validator("charge_equivalences", pre=True, each_item=True)
+    def validate_equivalences(cls, item):
+        return ChargeEquivalence(item)
+
+    @validator("charge_constraints", pre=True, each_item=True)
+    def validate_constraints(cls, item):
+        return ChargeConstraint(item)
 
     @property
     def n_charge_constraints(self):
@@ -401,7 +448,7 @@ class ChargeConstraintOptions(base.Model):
             elif len(charges) == len(chrequiv.atom_ids):
                 redundant.append(i_eq)
         for i in redundant[::-1]:
-            del self.equivalences[i]
+            del self.charge_equivalences[i]
 
     def clean_charge_equivalences(self):
         """Clean the ChargeEquivalence constraints.
@@ -415,6 +462,17 @@ class ChargeConstraintOptions(base.Model):
         self._remove_incompatible_and_redundant_equivalent_atoms()
         self.charge_equivalences = sorted(self.charge_equivalences)
 
+    def _remove_redundant_charge_constraints(self):
+        single_atoms = self._get_single_atom_charge_constraints()
+        redundant = []
+        for i_chr, chrconstr in enumerate(self.charge_constraints):
+            if len(chrconstr.atom_ids) == 1:
+                continue
+            if all(atom_id in single_atoms for atom_id in chrconstr.atom_ids):
+                redundant.append(i_chr)
+        for i in redundant[::-1]:
+            del self.charge_constraints[i]
+
     def clean_charge_constraints(self):
         """Clean the ChargeConstraints.
 
@@ -424,7 +482,7 @@ class ChargeConstraintOptions(base.Model):
         # remove duplicates
         self.charge_constraints = list(set(self.charge_constraints))
         # this will check for duplicate conflicting charges as a side effect
-        self._get_single_atom_charge_constraints()
+        self._remove_redundant_charge_constraints()
         self.charge_constraints = sorted(self.charge_constraints)
 
     def get_constraint_matrix(self, a_matrix, b_matrix):
@@ -457,12 +515,12 @@ class ChargeConstraintOptions(base.Model):
         a_block = scipy.sparse.coo_matrix(a_matrix)
         a_sparse = scipy.sparse.bmat([[a_block, col_block],
                                       [col_block.transpose(), None]])
-        # b_dense = np.r_[b_matrix, [c.charge for c in self.charge_constraints]]
-        b_dense = b_matrix
+        b_dense = np.r_[b_matrix, [c.charge for c in self.charge_constraints]]
+        # b_dense = b_matrix
         b_sparse = np.zeros(a_sparse.shape[0])
         b_sparse[:len(b_dense)] = b_dense
         # print(col_block.toarray().T, b_sparse[-6:])
-        return a_sparse.toarray(), b_sparse
+        return a_sparse.tocsr(), b_sparse
 
     def add_sp3_equivalences(self, sp3_ch_ids: Dict[int, List[int]] = {}):
         """
@@ -490,6 +548,7 @@ class ChargeConstraintOptions(base.Model):
             if len(hs) in accepted:
                 self.charge_equivalences.append(ChargeEquivalence(hs))
                 self._do_not_constrain_ids.append(c)
+        self.clean_charge_equivalences()
 
     def add_stage_2_constraints(self, charges=[], ):
         """Add ChargeConstraints restraining atoms to the given charges,

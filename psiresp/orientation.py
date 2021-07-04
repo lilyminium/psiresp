@@ -7,7 +7,7 @@ from . import mixins, utils
 from .utils.io import datafile
 
 
-class Orientation(mixins.OrientationOptions, mixins.IOMixin, mixins.MoleculeMixin):
+class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
@@ -46,7 +46,7 @@ class Orientation(mixins.OrientationOptions, mixins.IOMixin, mixins.MoleculeMixi
     _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
 
     @property
-    def path(self):
+    def default_path(self):
         return self.conformer.path / self.name
 
     @property
@@ -86,15 +86,15 @@ class Orientation(mixins.OrientationOptions, mixins.IOMixin, mixins.MoleculeMixi
         """Get B matrix for solving"""
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 
-    @datafile(filename="grid.dat")
+    @datafile(filename="{self.name}_grid.dat")
     def compute_grid(self):
         return self.resp.generate_vdw_grid(self.symbols, self.coordinates)
 
-    @datafile(filename="grid_esp.dat")
+    @datafile(filename="{self.name}_grid_esp.dat")
     def compute_esp(self):
         grid = self.grid
         if self.psi4mol_geometry_in_bohr:
-            grid = grid * constants.ANGSTROM_TO_BOHR
+            grid = grid * utils.ANGSTROM_TO_BOHR
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)

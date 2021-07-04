@@ -1,5 +1,7 @@
+import warnings
 from typing import Optional, List
 
+import scipy
 import numpy as np
 from pydantic import PrivateAttr, Field
 
@@ -9,7 +11,7 @@ from .charge_constraints import ChargeConstraintOptions
 from .resp_base import RespStage
 
 
-class RespCharges(base.Model):
+class RespCharges(RespStage, ChargeConstraintOptions):
     """Self-contained class wrapping RespStageOptions and ChargeConstraintOptions
     to solve RESP charges with charge constraints
 
@@ -43,8 +45,8 @@ class RespCharges(base.Model):
     n_atoms: int
         Number of atoms
     """
-    resp_stage_options: RespStage = RespStage()
-    charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
+    # resp_stage_options: RespStage = RespStage()
+    # charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
     symbols: List[str] = []
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
@@ -70,6 +72,51 @@ class RespCharges(base.Model):
             return self.unrestrained_charges
         return restrained
 
+    def get_mask_indices(self, symbols):
+        symbols = np.asarray(symbols)
+        mask = np.ones_like(symbols, dtype=bool)
+        if self.ihfree:
+            mask[np.where(symbols == "H")[0]] = False
+        return mask
+
+    def iter_solve(self, charges, symbols, a_matrix, b_matrix):
+        if not self.hyp_a:  # i.e. no restraint
+            return charges
+
+        mask = self.get_mask_indices(symbols)
+        n_atoms = len(symbols)
+        diag = np.diag_indices(n_atoms)
+        ix = (diag[0][mask], diag[1][mask])
+        indices = np.where(mask)[0]
+
+        b2 = self.hyp_b ** 2
+        n_iter, delta = 0, 2 * self.resp_convergence_tol
+        while (delta > self.resp_convergence_tol
+               and n_iter < self.resp_max_iter):
+            q_last = charges.copy()
+            a_iter = a_matrix.copy()
+            increment = self.hyp_a / np.sqrt(charges[indices] ** 2 + b2)
+            a_iter[ix] += increment  # .reshape((-1, 1))
+            charges = self._solve_a_b(a_iter, b_matrix)
+            delta = np.max(np.abs(charges - q_last)[:n_atoms])
+            n_iter += 1
+
+        print(delta, n_iter)
+
+        if delta > self.resp_convergence_tol:
+            warnings.warn("Charge fitting did not converge to "
+                          f"resp_convergence_tol={self.resp_convergence_tol} "
+                          f"with resp_max_iter={self.resp_max_iter}")
+        return charges
+
+    @staticmethod
+    def _solve_a_b(a, b):
+        from scipy.sparse.linalg import spsolve, lsmr
+        try:
+            return spsolve(a, b)
+        except RuntimeError:  # TODO: this could be slow?
+            return lsmr(a, b)[0]
+
     def fit(self,
             a_matrix: np.ndarray,
             b_matrix: np.ndarray,
@@ -86,14 +133,11 @@ class RespCharges(base.Model):
         numpy.ndarray
         """
 
-        a, b = self.charge_options.get_constraint_matrix(a_matrix, b_matrix)
-        print(a)
-        np.savetxt("test.txt", a, fmt="%6.3f")
-        # print(a)
-        # print(a.toarray())
-        q1 = self.resp_stage_options._solve_a_b(a, b)
+        a, b = self.get_constraint_matrix(a_matrix, b_matrix)
+        np.savetxt("test.txt", a.toarray(), fmt="%5.1f")
+        q1 = self._solve_a_b(a, b)
         self._unrestrained_charges = q1
-        if self.resp_stage_options.restrained:
-            q2 = self.resp_stage_options.iter_solve(q1, self.symbols, a, b)
+        if self.restrained:
+            q2 = self.iter_solve(q1, self.symbols, a, b)
             self._restrained_charges = q2
         return self.charges
