@@ -1,7 +1,7 @@
 from typing import List, Callable, Optional
 import concurrent.futures
 
-from .mixins.qm import command_stream
+from ..mixins.qm import command_stream
 
 
 class NoQMExecutionError(RuntimeError):

@@ -1,7 +1,7 @@
 from typing import Tuple, Dict, List
 
 import numpy as np
-
+from scipy.spatial import distance as spdist
 
 from .. import vdwradii, base
 
@@ -114,20 +114,20 @@ class GridMixin(base.Model):
         points: list of numpy.ndarray of shape (N, 3)
             cartesian coordinates of points
         """
+        radii = np.asarray(radii)
         unique_radii, inverse = np.unique(radii, return_inverse=True)
         surface_areas = (unique_radii ** 2) * np.pi * 4
         n_points = (surface_areas * self.vdw_point_density).astype(int)
-        points = [self.generate_unit_sphere(n) * radius
-                  for n, radius in zip(n_points, unique_radii)]
-        nan_points = np.empty((len(radii), max(n_points), 3)) * np.nan
-        for i in inverse:
-            i_points = points[i]
-            nan_points[i][:i_points[0], :i_points[1]] = i_points
-        return nan_points * radii
+        nan_points = np.full((len(unique_radii), max(n_points), 3), np.nan)
+        for i, n in enumerate(n_points):
+            shell = self.generate_unit_sphere(n)
+            nan_points[i][:len(shell)] = shell
+        nan_points *= unique_radii.reshape((-1, 1, 1))
+        nan_points = nan_points[:, ~np.all(np.isnan(nan_points), axis=(0, 2))]
+        return nan_points[inverse]
 
     def get_shell_within_bounds(self,
                                 radii: np.ndarray,
-                                spheres: np.ndarray,
                                 coordinates: np.ndarray,
                                 ) -> np.ndarray:
         """
@@ -147,16 +147,28 @@ class GridMixin(base.Model):
         numpy.ndarray
             with shape (L, 3)
         """
+
         inner_bound = radii * self.grid_rmin
         inner_bound = np.where(inner_bound < radii, radii, inner_bound)
         outer_bound = radii * self.effective_rmax
 
-        spheres = spheres.transpose((1, 0, 2))  # n_points, n_atoms, 3
-        shell = spheres + coordinates
-        distances = np.linalg.norm(shell - coordinates, axis=2)
+        spheres = self.generate_connolly_spheres(radii)
+        shell = spheres + coordinates.reshape((-1, 1, 3))  # n_atoms, n_points, 3
+        shell_points = np.concatenate(shell)
+
+        # we want to ignore self-to-self false negatives
+        # so we mask all distances calculated from an atom's sphere to the atom
+        # x, y form the mask
+        n_atoms, n_points, _ = spheres.shape
+        atom_indices = np.arange(n_atoms)
+        y = np.repeat(atom_indices, n_points)
+        x = np.arange(len(shell_points))
+
+        distances = spdist.cdist(shell_points, coordinates)  # n_points, n_atoms
         within_bounds = (distances >= inner_bound) & (distances <= outer_bound)
+        within_bounds[(x, y)] = True
         inside = np.all(within_bounds, axis=1)
-        return shell[inside].reshape((-1, 3))
+        return shell_points[inside]
 
     def generate_vdw_grid(self,
                           symbols: List[str],
@@ -177,14 +189,9 @@ class GridMixin(base.Model):
             This has shape (M, 3)
         """
         symbol_radii = self.get_vdwradii_for_elements(symbols)
-        base_spheres = self.generate_connolly_spheres(symbol_radii)
 
         points = []
-
-        for factor in self.scale_factors:
+        for factor in self.vdw_scale_factors:
             radii = symbol_radii * factor
-            spheres = base_spheres * factor
-            shell = self.get_shell_within_bounds(radii, spheres, coordinates)
-            points.append(shell)
-
-        return np.concatenate(points)
+            points.extend(self.get_shell_within_bounds(radii, coordinates))
+        return np.array(points)

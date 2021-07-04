@@ -1,6 +1,67 @@
-from typing import Tuple
+from typing import Tuple, List
+import itertools
 
 import numpy as np
+
+
+def id_to_indices(atom_ids: List[int]) -> List[int]:
+    """Convert atom numbers (indexed from 1) to indices (indexed from 0)
+
+    This also works with negative atom numbers, where -1 is the last item.
+
+    Parameters
+    ----------
+    atom_ids: list of ints
+    """
+    return [a - 1 if a > 0 else a for a in atom_ids]
+
+
+def generate_atom_combinations(symbols: List[str]):
+    """Yield combinations of atom indices for transformations
+
+    The method first yields combinations of 3 heavy atom indices.
+    Each combination is followed by its reverse. Once the heavy atoms
+    are exhausted, the heavy atoms then get combined with the hydrogens.
+
+    Parameters
+    ----------
+    symbols: list of str
+        List of atom elements
+
+    Examples
+    --------
+
+    ::
+
+        >>> symbols = ["H", "C", "C", "O", "N"]
+        >>> comb = OrientationOptions.generate_atom_combinations(symbols)
+        >>> next(comb)
+        (1, 2, 3)
+        >>> next(comb)
+        (3, 2, 1)
+        >>> next(comb)
+        (1, 2, 4)
+        >>> next(comb)
+        (4, 2, 1)
+
+    """
+    symbols = np.asarray(symbols)
+    is_H = symbols == "H"
+    h_atoms = list(np.flatnonzero(is_H) + 1)
+    heavy_atoms = list(np.flatnonzero(~is_H) + 1)
+    seen = set()
+
+    for comb in itertools.combinations(heavy_atoms, 3):
+        seen.add(comb)
+        yield comb
+        yield comb[::-1]
+
+    for comb in itertools.combinations(heavy_atoms + h_atoms, 3):
+        if comb in seen:
+            continue
+        seen.add(comb)
+        yield comb
+        yield comb[::-1]
 
 
 def get_sin_cos_angle_oab(a: float, b: float) -> Tuple[float, float]:

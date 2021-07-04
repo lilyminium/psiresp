@@ -1,96 +1,75 @@
-import psiresp
 import pytest
-import os
 import numpy as np
 
-from numpy.testing import (assert_almost_equal, assert_equal, assert_allclose)
-from .utils import mol_from_file
-from .datafiles import ABMAT
+from numpy.testing import assert_almost_equal
+
+from .datafiles import NME2ALA2_C1_ABMAT
+from .base import (conformer_from_psi4mol,
+                   psi4mol_from_xyzfile)
 
 
-class TestConformer:
-    @pytest.fixture()
-    def psi4mol(self):
-        return mol_from_file('nme2ala2_c1.xyz')
+def test_add_reorientations_with_original(dmso_psi4mol,
+                                          dmso_coordinates,
+                                          dmso_o1_coordinates,
+                                          dmso_o2_coordinates):
+    conformer = conformer_from_psi4mol(dmso_psi4mol)
+    conformer.keep_original_conformer_geometry = True
+    conformer.n_reorientations = 2
+    conformer.generate_orientations()
+    assert len(conformer.orientations) == 3
+    reference = [dmso_coordinates, dmso_o1_coordinates, dmso_o2_coordinates]
+    for orientation, ref in zip(conformer.orientations, reference):
+        assert_almost_equal(orientation.coordinates, ref)
 
-    @pytest.fixture()
-    def opt_mol(self):
-        return mol_from_file('nme2ala2_opt_c1.xyz')
 
-    @pytest.fixture(scope='function')
-    def conformer(self, psi4mol):
-        return psiresp.Conformer(psi4mol)
+def test_add_reorientations_without_original(dmso_psi4mol,
+                                             dmso_o1_coordinates,
+                                             dmso_o2_coordinates):
+    conformer = conformer_from_psi4mol(dmso_psi4mol)
+    conformer.keep_original_conformer_geometry = False
+    conformer.n_reorientations = 2
+    conformer.generate_orientations()
+    assert len(conformer.orientations) == 2
+    reference = [dmso_o1_coordinates, dmso_o2_coordinates]
+    for orientation, ref in zip(conformer.orientations, reference):
+        assert_almost_equal(orientation.coordinates, ref)
 
-    @pytest.mark.fast
-    def test_init_conformer_defaults(self, conformer):
-        assert conformer.name == 'conf'
-        assert conformer.charge == 0
-        assert conformer.psi4mol.molecular_charge() == 0
-        assert conformer.multiplicity == 1
-        assert conformer.psi4mol.multiplicity() == 1
-        assert conformer.n_atoms == 25
-        assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
-        assert len(conformer.orientations) == 1
-        # assert len(conformer.orientations) == 1
 
-    @pytest.mark.fast
-    def test_init_conformer_options(self, psi4mol):
-        orient = [(5, 18, 19), (19, 18, 5)]
-        options = psiresp.options.OrientationOptions(reorientations=orient)
+def test_add_orientations_with_updated_options(dmso_psi4mol,
+                                               dmso_o1_coordinates):
+    conformer = conformer_from_psi4mol(dmso_psi4mol)
+    conformer.keep_original_conformer_geometry = False
+    conformer.orientation_options.save_output = False
+    conformer.orientation_options.load_input = True
+    conformer.orientation_name_template = "carrot_{counter:02d}"
+    assert conformer.load_input == False
+    assert conformer.save_output == False
+    conformer.add_orientation(dmso_o1_coordinates)
+    assert len(conformer.orientations) == 1
+    orientation = conformer.orientations[0]
+    assert orientation.name == "carrot_01"
+    assert_almost_equal(orientation.coordinates, dmso_o1_coordinates)
+    assert orientation.save_output == False
+    assert orientation.load_input == True
 
-        conformer = psiresp.Conformer(psi4mol, name='nme2ala2', charge=2, multiplicity=2, orientation_options=options)
-        assert conformer.name == 'nme2ala2'
-        assert conformer.charge == 2
-        assert conformer.psi4mol.molecular_charge() == 2
-        assert conformer.multiplicity == 2
-        assert conformer.psi4mol.multiplicity() == 2
-        assert conformer.n_atoms == 25
-        assert_equal(conformer.symbols, list('CHHHCONHCCHHHCHHHCONHCHHH'))
-        assert len(conformer.orientations) == 3
-        assert conformer.orientations[0].name == 'nme2ala2_o001'
 
-    # @pytest.mark.optimize
-    # @pytest.mark.slow
-    # @pytest.mark.parametrize('save_xyz,save_files', [
-    #     (False, False),
-    #     (False, True),
-    #     (True, False),
-    #     (True, True),
-    # ])
-    # def test_optimize_psi4mol(self, conformer, opt_mol, save_xyz,
-    #                            save_files, tmpdir):
-    #     xyz = 'default_opt.xyz'
-    #     log = 'default_opt.log'
-    #     opt = opt_mol.psi4mol().np
-    #     with tmpdir.as_cwd():
-    #         conformer.optimize_psi4mol(save_opt_psi4mol=save_xyz,
-    #                                     save_files=save_files)
-    #         assert_allclose(conformer.psi4mol.psi4mol().np, opt,
-    #                         rtol=0.05, atol=1e-4)
-    #         if save_files:
-    #             assert os.path.exists(log)
-    #         else:
-    #             assert not os.path.exists(log)
+@pytest.fixture()
+def unweighted_ab():
+    return np.loadtxt(NME2ALA2_C1_ABMAT)
 
-    #         if save_xyz:
-    #             assert os.path.exists(xyz)
-    #         else:
-    #             assert not os.path.exists(xyz)
 
-    @pytest.mark.fast
-    def test_clone(self, conformer):
-        new = conformer.clone()
-        assert new.psi4mol is not conformer.psi4mol
-        assert_almost_equal(new.psi4mol.geometry().np, conformer.psi4mol.geometry().np)
-        assert new.name == 'conf_copy'
-        assert new.charge == 0
-        assert new.multiplicity == 1
-        assert len(new.orientations) == len(conformer.orientations)
-        assert new.orientation_options == conformer.orientation_options
+@pytest.fixture()
+def nme2ala2_conformer(nme2ala2_c1_psi4mol):
+    conformer = conformer_from_psi4mol(nme2ala2_c1_psi4mol)
+    conformer.generate_orientations()
+    return conformer
 
-    def test_get_unweighted_ab(self, conformer):
-        ref = np.loadtxt(ABMAT)
-        ref_a = ref[:-1]
-        ref_b = ref[-1]
-        assert_almost_equal(conformer.get_unweighted_a_matrix(), ref_a)
-        assert_almost_equal(conformer.get_unweighted_b_matrix(), ref_b)
+
+def test_get_unweighted_a(nme2ala2_conformer, unweighted_ab):
+    actual = nme2ala2_conformer.unweighted_a_matrix
+    assert_almost_equal(actual, unweighted_ab[:-1])
+
+
+def test_get_unweighted_b(nme2ala2_conformer, unweighted_ab):
+    actual = nme2ala2_conformer.unweighted_b_matrix
+    assert_almost_equal(actual, unweighted_ab[-1])

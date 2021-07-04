@@ -1,9 +1,12 @@
 import io
+from typing import Optional, Any
 import pathlib
 
+import numpy as np
+from pydantic import BaseModel
 import psi4
 
-from .. import base, psi4utils
+from .. import base, psi4utils, utils
 
 
 class MoleculeMixin(base.Model):
@@ -42,13 +45,23 @@ class MoleculeMixin(base.Model):
     """
 
     psi4mol: psi4.core.Molecule
-    name: str = "mol"
+    name: Optional[str] = None
 
-    def __post_init__(self):
-        if self.name:
-            self.psi4mol.set_name(self.name)
-        else:
-            self.name = self.psi4mol.name()
+    # def __post_init__(self):
+    #     if self.name:
+    #         self.psi4mol.set_name(self.name)
+    #     else:
+    #         self.name = self.psi4mol.name()
+
+    @property
+    def name(self):
+        return self.psi4mol.name()
+
+    @name.setter
+    def name(self, value):
+        if value is None:
+            value = self.psi4mol.name()
+        self.psi4mol.set_name(self.name)
 
     @property
     def path(self):
@@ -94,9 +107,9 @@ class MoleculeMixin(base.Model):
     @property
     def coordinates(self):
         geometry = self.psi4mol.geometry().np.astype("float")
-        if self.psi4mol_geometry_in_bohr:
-            geometry *= constants.BOHR_TO_ANGSTROM
-        return geometry
+        # if self.psi4mol_geometry_in_bohr:
+        #     geometry *= constants.BOHR_TO_ANGSTROM
+        return geometry * utils.BOHR_TO_ANGSTROM
 
     def to_mda(self):
         """Create a MDAnalysis.Universe from molecule
@@ -124,7 +137,7 @@ class MoleculeMixin(base.Model):
         u = self.to_mda()
         u.atoms.write(filename)
 
-    def copy(self, name: str = None) -> "MoleculeMixin":
+    def clone(self, name: str = None) -> "MoleculeMixin":
         """Copy to new instance"""
         mol = self.psi4mol.clone()
         if name is not None:

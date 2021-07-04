@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import List, Dict
 
+from pydantic import Field
+
 from .charge_constraints import ChargeConstraint, ChargeEquivalence
 from .charge_constraints import AtomId
 from . import mixins, base
@@ -14,8 +16,17 @@ class OrientationOptions(mixins.IOMixin):
 class ConformerOptions(mixins.IOMixin):
     optimize_geometry: bool = False
     weight: float = 1
-    orientation_options: OrientationOptions = OrientationOptions()
-    orientation_generator: OrientationGenerator = OrientationGenerator()
+    orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)
+    # orientation_generator: OrientationGenerator = Field(default_factory=OrientationGenerator)
+
+    n_reorientations: int = 0
+    reorientations: List[Tuple[int, int, int]] = []
+    n_translations: int = 0
+    translations: List[Tuple[float, float, float]] = []
+    n_rotations: int = 0
+    rotations: List[Tuple[int, int, int]] = []
+    keep_conformer_geometry: bool = True
+    orientation_name_template: str = "{conformer.name}_{counter:03d}"
 
 
 class ChargeConstraintOptions(base.Model):

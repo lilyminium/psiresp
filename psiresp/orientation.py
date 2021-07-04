@@ -1,9 +1,13 @@
+from typing import Optional
+
 import numpy as np
+from pydantic import PrivateAttr
 
-from . import base, mixins, options, utils
+from . import mixins, utils
+from .utils.io import datafile
 
 
-class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
+class Orientation(mixins.OrientationOptions, mixins.IOMixin, mixins.MoleculeMixin):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
@@ -36,13 +40,10 @@ class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
         atomic units.
     """
 
-    conformer: "Conformer"
-
-    def __post_init__(self):
-        super().__post_init__()
-        self._grid = None
-        self._esp = None
-        self._r_inv = None
+    conformer: mixins.ConformerOptions
+    _grid: Optional[np.ndarray] = PrivateAttr(default=None)
+    _esp: Optional[np.ndarray] = PrivateAttr(default=None)
+    _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
 
     @property
     def path(self):
@@ -85,11 +86,11 @@ class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
         """Get B matrix for solving"""
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 
-    @mixins.io.datafile(filename="grid.dat")
+    @datafile(filename="grid.dat")
     def compute_grid(self):
-        return self.resp.resp.generate_vdw_grid(self.symbols, self.coordinates)
+        return self.resp.generate_vdw_grid(self.symbols, self.coordinates)
 
-    @mixins.io.datafile(filename="grid_esp.dat")
+    @datafile(filename="grid_esp.dat")
     def compute_esp(self):
         grid = self.grid
         if self.psi4mol_geometry_in_bohr:
@@ -97,8 +98,8 @@ class Orientation(options.OrientationOptions, mixins.MoleculeMixin):
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.resp.resp.write_esp_file(self.psi4mol)
-            self.resp.resp.try_run_qm(infile, cwd=tmpdir)
+            infile = self.resp.write_esp_file(self.psi4mol)
+            self.resp.try_run_qm(infile, cwd=tmpdir)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         return esp

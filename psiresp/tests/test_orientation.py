@@ -1,85 +1,79 @@
-import psiresp
-import pytest
-import os
-import numpy as np
 
-from numpy.testing import (assert_almost_equal, assert_equal, assert_allclose)
-from .utils import (mol_from_file, esp_from_gamess_file, coordinates_from_xyz, datafile)
+
+import pytest
+import numpy as np
+from numpy.testing import assert_almost_equal
+
+from psiresp.tests.datafiles import (DMSO, DMSO_ESP, DMSO_RINV,
+                                     DMSO_O1, DMSO_O1_ESP, DMSO_O1_RINV,
+                                     DMSO_O2, DMSO_O2_ESP, DMSO_O2_RINV,
+                                     )
+from psiresp.tests.base import (coordinates_from_xyzfile,
+                                psi4mol_from_xyzfile,
+                                orientation_from_psi4mol,
+                                esp_from_gamess_file
+                                )
 
 
 class BaseTestOrientation:
+    xyzfile = None
+    espfile = None
+    rinv_file = None
 
-    molname = None
-    orientname = None
+    @pytest.fixture()
+    def gamess_esp(self):
+        return esp_from_gamess_file(self.espfile)
 
-    @pytest.fixture(scope='class')
-    def opt_mol(self):
-        return mol_from_file('{}.xyz'.format(self.orientname))
+    @pytest.fixture()
+    def grid(self, gamess_esp):
+        return gamess_esp[:, 1:]
 
-    @pytest.fixture(scope='function')
-    def opt_orientation(self, opt_mol, tmpdir):
-        with tmpdir.as_cwd():
-            conformer = psiresp.Conformer(opt_mol)
-        return conformer.orientations[0]
+    @pytest.fixture()
+    def esp(self, gamess_esp):
+        return gamess_esp[:, 0]
 
-    @pytest.fixture(scope='function')
-    def esp(self):
-        return esp_from_gamess_file('{}.esp'.format(self.orientname))
-
-    @pytest.fixture(scope="function")
+    @pytest.fixture()
     def r_inv(self):
-        filename = datafile(f"{self.orientname}_r_inv.dat")
-        return np.loadtxt(filename)
+        return np.loadtxt(self.rinv_file)
 
-    @pytest.fixture(scope='function')
-    def coordinates(self):
-        return coordinates_from_xyz('{}.xyz'.format(self.orientname))
+    @pytest.fixture()
+    def orientation(self, esp):
+        psi4mol = psi4mol_from_xyzfile(self.xyzfile)
+        orientation = orientation_from_psi4mol(psi4mol)
+        orientation._esp = esp
+        return orientation
 
-    def test_correct_coordinates(self, opt_orientation, coordinates):
-        assert_almost_equal(opt_orientation.coordinates, coordinates)
+    def test_coordinates(self, orientation):
+        coordinates = coordinates_from_xyzfile(self.xyzfile)
+        assert_almost_equal(orientation.coordinates, coordinates)
 
-    def test_get_grid(self, opt_orientation, esp, tmpdir):
-        ref = esp[:, 1:]
-        with tmpdir.as_cwd():
-            assert_almost_equal(opt_orientation.grid, ref, decimal=4)
+    def test_grid(self, orientation, grid):
+        assert_almost_equal(orientation.grid, grid, decimal=5)
 
-    def test_get_esp(self, opt_orientation, esp, tmpdir):
-        ref = esp[:, 0]
-        with tmpdir.as_cwd():
-            assert_almost_equal(opt_orientation.esp, ref, decimal=4)
+    @pytest.mark.slow
+    def test_esp(self, grid, esp):
+        psi4mol = psi4mol_from_xyzfile(self.xyzfile)
+        orientation = orientation_from_psi4mol(psi4mol)
+        orientation._grid = grid
+        assert_almost_equal(orientation.esp, esp, decimal=4)
 
-    def test_get_rinv(self, opt_orientation, r_inv, tmpdir):
-        with tmpdir.as_cwd():
-            calc_r_inv = opt_orientation.r_inv
-        assert_almost_equal(calc_r_inv, r_inv)
-
-
-@pytest.mark.fast
-class TestOrientationDMSO0(BaseTestOrientation):
-    orientname = 'dmso_opt_c1'
+    def test_rinv(self, orientation, r_inv):
+        assert_almost_equal(orientation.r_inv, r_inv, decimal=5)
 
 
-@pytest.mark.fast
-class TestOrientationDMSO1(BaseTestOrientation):
-    molname = 'dmso_c1'
-    orientname = 'dmso_opt_c1_o1'
-
-    @pytest.fixture(scope='class')
-    def geometry(self):
-        return mol_from_file('{}.xyz'.format(self.molname))
-
-    @pytest.fixture(scope='function')
-    def orientation(self, geometry):
-        conformer = psiresp.Conformer(geometry, name=None)
-        return conformer.orientations[0]
-
-    def test_init_orientation(self, orientation):
-        assert orientation.name == 'default_o001'
-        assert orientation.n_atoms == 10
-        assert_equal(orientation.indices, np.arange(10).astype(int))
-        assert_equal(orientation.symbols, list('CHHHSOCHHH'))
+class TestOrientationDMSO(BaseTestOrientation):
+    xyzfile = DMSO
+    espfile = DMSO_ESP
+    rinv_file = DMSO_RINV
 
 
-@pytest.mark.fast
-class TestOrientationDMSO2(TestOrientationDMSO1):
-    orientname = 'dmso_opt_c1_o2'
+class TestOrientationDMSO_O1(BaseTestOrientation):
+    xyzfile = DMSO_O1
+    espfile = DMSO_O1_ESP
+    rinv_file = DMSO_O1_RINV
+
+
+class TestOrientationDMSO_O2(BaseTestOrientation):
+    xyzfile = DMSO_O2
+    espfile = DMSO_O2_ESP
+    rinv_file = DMSO_O2_RINV

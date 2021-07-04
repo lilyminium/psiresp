@@ -4,12 +4,11 @@ import numpy as np
 import scipy
 import psi4
 
-from . import mixins
-from .resp import Resp, RespBase
-from .options import ChargeConstraintOptions
+from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions
+from .resp import Resp
 
 
-class MultiResp(RespBase):
+class MultiResp(RespMixin):
     """
     Class to manage R/ESP for multiple molecules of multiple conformers.
 

@@ -1,22 +1,35 @@
 import logging
-from typing import Optional
+import io
+from typing import Optional, List
 
 import numpy as np
+import psi4
+import MDAnalysis as mda
+from pydantic import PrivateAttr
 
-from . import psi4utils, mixins, options
+from . import psi4utils, mixins
+from .utils import orientation as orutils
+from .utils.io import datafile
 from .orientation import Orientation
 
 logger = logging.getLogger(__name__)
 
 
-class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
-    resp: "Resp"
+class Conformer(mixins.ConformerOptions, mixins.IOMixin, mixins.MoleculeMixin):
+    resp: mixins.BaseRespOptions
 
-    def __post_init__(self):
-        super().__post_init__()
-        self.orientations = []
-        self._finalized = False
-        self._empty_init()
+    _orientations: List[Orientation] = PrivateAttr(default_factory=list)
+    _finalized: bool = PrivateAttr(default=False)
+    _unweighted_a_matrix: Optional[np.ndarray] = PrivateAttr(default=None)
+    _unweighted_b_matrix: Optional[np.ndarray] = PrivateAttr(default=None)
+
+    @property
+    def orientations(self):
+        return self._orientations
+
+    @orientations.setter
+    def orientations(self, value):
+        self._orientations = value
 
     def _empty_init(self):
         self._unweighted_a_matrix = None
@@ -50,7 +63,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
     def n_orientations(self):
         return len(self.orientations)
 
-    @mixins.io.datafile(filename="optimized_geometry.xyz")
+    @datafile(filename="optimized_geometry.xyz")
     def compute_optimized_geometry(self):
         if not self.optimize_geometry:
             return psi4utils.psi4mol_to_xyz_string(self.psi4mol)
@@ -86,8 +99,8 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
         """
         if name is None:
             counter = len(self.orientations) + 1
-            name = self.orientation_options.format_name(conformer=self,
-                                                        counter=counter)
+            name = self.orientation_name_template.format(conformer=self,
+                                                         counter=counter)
         mol = psi4utils.psi4mol_with_coordinates(self.psi4mol,
                                                  coordinates_or_psi4mol,
                                                  name=name)
@@ -99,14 +112,14 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
 
     def generate_orientations(self):
         """Generate Orientations for this conformer"""
-        self.orientations = []
-        coords = self.orientation_generator.get_transformed_coordinates(self.symbols,
-                                                                        self.coordinates)
-        for coordinates in coords:
-            self.add_orientation(coordinates)
+        all_coordinates = self.generate_orientation_coordinates()
+        if len(all_coordinates) > len(self.orientations):
+            self._orientations = []
+            for coordinates in all_coordinates:
+                self.add_orientation(coordinates)
 
-        if not self.orientations:
-            self.add_orientation(self.psi4mol)
+            if not self.orientations:
+                self.add_orientation(self.psi4mol)
 
     def finalize_geometry(self):
         """Finalize geometry of psi4mol
@@ -138,7 +151,7 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
         A = np.zeros((self.n_atoms, self.n_atoms))
         for mol in self.orientations:
             A += mol.get_esp_mat_a()
-        return A / self.n_orientations
+        return A  # / self.n_orientations
 
     def compute_unweighted_b_matrix(self) -> np.ndarray:
         """Average the ESP by distance from each orientation
@@ -153,4 +166,59 @@ class Conformer(options.ConformerOptions, mixins.MoleculeMixin):
         get_esp_mat_bs = [x.get_esp_mat_b for x in self.orientations]
         for mol in self.orientations:
             B += mol.get_esp_mat_b()
-        return B / self.n_orientations
+        return B  # / self.n_orientations
+
+    @property
+    def transformations(self):
+        return [self.reorientations, self.rotations, self.translations]
+
+    @property
+    def n_specified_transformations(self):
+        return sum(map(len, self.transformations))
+
+    @property
+    def n_transformations(self):
+        return sum([self.n_rotations, self.n_translations, self.n_reorientations])
+
+    def generate_transformations(self):
+        """Generate atom combinations and coordinates for transformations.
+
+        This is used to create the number of transformations specified
+        by n_rotations, n_reorientations and n_translations if these
+        transformations are not already given.
+        """
+        for kw in ("reorientations", "rotations"):
+            target = getattr(self, f"n_{kw}")
+            container = getattr(self, kw)
+            n = max(target - len(container), 0)
+            combinations = orutils.generate_atom_combinations(self.symbols)
+            while len(container) < target:
+                container.append(next(combinations))
+
+        n_trans = self.n_translations - len(self.translations)
+        if n_trans > 0:
+            new_translations = (np.random.rand(n_trans, 3) - 0.5) * 10
+            self.translations.extend(new_translations)
+
+    @ datafile(filename="orientation_coordinates.npy")
+    def generate_orientation_coordinates(self):
+        coordinates = self.coordinates
+        self.generate_transformations()
+
+        transformed = []
+        if self.keep_original_conformer_geometry:
+            transformed.append(coordinates)
+        for reorient in self.reorientations:
+            indices = orutils.id_to_indices(reorient)
+            new = orutils.orient_rigid(*indices, coordinates)
+            transformed.append(new)
+
+        for rotate in self.rotations:
+            indices = orutils.id_to_indices(rotate)
+            new = orutils.rotate_rigid(*indices, coordinates)
+            transformed.append(new)
+
+        for translate in self.translations:
+            transformed.append(coordinates + translate)
+
+        return np.array(transformed)

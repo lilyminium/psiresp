@@ -172,34 +172,34 @@ class MultiResp:
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
 
         stage_1_options = RespOptions(**stage_1_options)
-        self.stage_1_charges = RespCharges(stage_1_options,
-                                           symbols=self.symbols,
-                                           n_structures=self.n_structure_array)
-        self.stage_1_charges.fit(a1, b1)
+        self._stage_1_charges = RespCharges(stage_1_options,
+                                            symbols=self.symbols,
+                                            n_structures=self.n_structure_array)
+        self._stage_1_charges.fit(a1, b1)
 
         for i, mol in enumerate(self.molecules, 1):
             a = self.atom_increment_mapping[i]
             b = a + mol.n_atoms
-            mol.stage_1_charges = self.stage_1_charges.copy(start_index=a,
-                                                            end_index=b,
-                                                            n_structures=mol.n_structure_array)
+            mol.stage_1_charges = self._stage_1_charges.copy(start_index=a,
+                                                             end_index=b,
+                                                             n_structures=mol.n_structure_array)
 
         if stage_2:
-            final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
+            final_charge_options.add_stage_2_constraints(self._stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
-            self.stage_2_charges = RespCharges(stage_2_options,
-                                               symbols=self.symbols,
-                                               n_structures=self.n_structure_array)
-            self.stage_2_charges.fit(a2, b2)
+            self._stage_2_charges = RespCharges(stage_2_options,
+                                                symbols=self.symbols,
+                                                n_structures=self.n_structure_array)
+            self._stage_2_charges.fit(a2, b2)
 
             for i, mol in enumerate(self.molecules, 1):
                 a = self.atom_increment_mapping[i]
                 b = a + mol.n_atoms
-                mol.stage_2_charges = self.stage_2_charges.copy(start_index=a,
-                                                                end_index=b,
-                                                                n_structures=mol.n_structure_array)
+                mol.stage_2_charges = self._stage_2_charges.copy(start_index=a,
+                                                                 end_index=b,
+                                                                 n_structures=mol.n_structure_array)
         return self.charges
 
     def run(self,

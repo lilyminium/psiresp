@@ -206,8 +206,8 @@ class Resp(base.IOBase):
         self.indices = np.arange(self.n_atoms)
         self.charge_constraint_options = charge_constraint_options
 
-        self.stage_1_charges = None
-        self.stage_2_charges = None
+        self._stage_1_charges = None
+        self._stage_2_charges = None
 
         log.debug(f"Resp(name={self.name}) created with " f"{len(self.conformers)} conformers")
 
@@ -250,12 +250,12 @@ class Resp(base.IOBase):
 
     @property
     def charges(self):
-        if self.stage_2_charges is not None:
-            return self.stage_2_charges.charges
+        if self._stage_2_charges is not None:
+            return self._stage_2_charges.charges
         try:
-            return self.stage_1_charges.charges
+            return self._stage_1_charges.charges
         except AttributeError:
-            return self.stage_1_charges
+            return self._stage_1_charges
 
     @property
     def n_structures(self):
@@ -365,21 +365,21 @@ class Resp(base.IOBase):
 
         a1, b1 = initial_charge_options.get_constraint_matrix(a_matrix, b_matrix)
         stage_1_options = RespOptions(**stage_1_options)
-        self.stage_1_charges = RespCharges(stage_1_options,
-                                           symbols=self.symbols,
-                                           n_structures=self.n_structure_array)
-        self.stage_1_charges.fit(a1, b1)
+        self._stage_1_charges = RespCharges(stage_1_options,
+                                            symbols=self.symbols,
+                                            n_structures=self.n_structure_array)
+        self._stage_1_charges.fit(a1, b1)
 
         if stage_2:
-            final_charge_options.add_stage_2_constraints(self.stage_1_charges.charges,
+            final_charge_options.add_stage_2_constraints(self._stage_1_charges.charges,
                                                          sp3_ch_ids=self.sp3_ch_ids)
             print(final_charge_options)
 
             a2, b2 = final_charge_options.get_constraint_matrix(a_matrix, b_matrix)
-            self.stage_2_charges = RespCharges(stage_2_options,
-                                               symbols=self.symbols,
-                                               n_structures=self.n_structure_array)
-            self.stage_2_charges.fit(a2, b2)
+            self._stage_2_charges = RespCharges(stage_2_options,
+                                                symbols=self.symbols,
+                                                n_structures=self.n_structure_array)
+            self._stage_2_charges.fit(a2, b2)
 
         return self.charges
 

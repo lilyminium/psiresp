@@ -2,6 +2,7 @@
 import logging
 import pathlib
 import os
+import functools
 from typing import Union, Optional, Callable
 
 import pandas as pd
@@ -12,6 +13,27 @@ logger = logging.getLogger(__name__)
 
 Data = Union[ArrayLike, pd.DataFrame]
 Path = Union[pathlib.Path, str]
+
+
+def datafile(func: Optional[Callable] = None,
+             filename: Optional[str] = None,
+             ) -> Callable:
+    """Try to load data from file. If not found, saves data to same path"""
+
+    if func is None:
+        return functools.partial(datafile, filename=filename)
+
+    if filename is None:
+        fname = func.__name__
+        if fname.startswith("compute_"):
+            fname = fname.split("compute_", maxsplit=1)[1]
+        filename = fname + ".dat"
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        return self.try_datafile(filename, func, self, *args, **kwargs)
+    return wrapper
+
 
 def load_text(file: str):
     """Load text from file"""
@@ -25,7 +47,7 @@ def load_data(path: Path) -> Data:
     ----------
     path: pathlib.Path or str
         Data path
-    
+
     Returns
     -------
     data: numpy.ndarray or pd.DataFrame
@@ -44,7 +66,7 @@ def load_data(path: Path) -> Data:
         loader = load_text
     else:
         raise ValueError(f"Can't find loader for {suffix} file")
-    
+
     return loader(path)
 
 

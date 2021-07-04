@@ -1,5 +1,6 @@
 import os
 import io
+import re
 import logging
 import textwrap
 import subprocess
@@ -92,7 +93,7 @@ class QMMixin(base.Model):
         opt_file = self.get_mol_spec(psi4mol)
         opt_file += textwrap.dedent(f"""
         set {{
-            qm_basis_set {self.qm_basis_set}
+            basis {self.qm_basis_set}
             geom_maxiter {self.geom_maxiter}
             full_hess_every {self.full_hess_every}
             g_convergence {self.g_convergence}
@@ -127,7 +128,7 @@ class QMMixin(base.Model):
         """
         esp_file = self.get_mol_spec(psi4mol)
 
-        esp_file += f"set qm_basis_set {self.qm_basis_set}\n"
+        esp_file += f"set basis {self.qm_basis_set}\n"
 
         if self.solvent:
             esp_file += textwrap.dedent(f"""

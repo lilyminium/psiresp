@@ -1,8 +1,12 @@
-from typing import List
+from typing import Optional, List
+
+import numpy as np
+from pydantic import PrivateAttr, Field
 
 
-from . import base
-from .options import RespStageOptions, ChargeConstraintOptions
+from .. import base
+from .charge_constraints import ChargeConstraintOptions
+from .resp_base import RespStage
 
 
 class RespCharges(base.Model):
@@ -39,13 +43,11 @@ class RespCharges(base.Model):
     n_atoms: int
         Number of atoms
     """
-    resp_stage_options: RespStageOptions = RespStageOptions()
+    resp_stage_options: RespStage = RespStage()
     charge_options: ChargeConstraintOptions = ChargeConstraintOptions()
     symbols: List[str] = []
-
-    def __post_init__(self):
-        self._unrestrained_charges = None
-        self._restrained_charges = None
+    _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
+    _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
 
     @property
     def n_atoms(self):
@@ -85,6 +87,10 @@ class RespCharges(base.Model):
         """
 
         a, b = self.charge_options.get_constraint_matrix(a_matrix, b_matrix)
+        print(a)
+        np.savetxt("test.txt", a, fmt="%6.3f")
+        # print(a)
+        # print(a.toarray())
         q1 = self.resp_stage_options._solve_a_b(a, b)
         self._unrestrained_charges = q1
         if self.resp_stage_options.restrained:
