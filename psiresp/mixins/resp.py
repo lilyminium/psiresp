@@ -15,34 +15,34 @@ from ..utils.execution import run_with_executor
 
 
 class RespOptions(BaseRespOptions):
-    hyp_a1: float = 0.0005
-    hyp_a2: float = 0.001
-    stage_2: bool = False
-
-
-class RespMixin(RespOptions, GridMixin, QMMixin):
-    """
-    Resp options
+    """Resp options
 
     Parameters
     ----------
-    charge: int (optional)
-        overall charge of the molecule.
-    multiplicity: int (optional)
-        multiplicity of the molecule
+    hyp_a1: float (optional)
+        scale factor of asymptote limits of hyperbola, in the stage 1 fit
+    hyp_a2: float (optional)
+        scale factor of asymptote limits of hyperbola, in the stage 2 fit
+    """
+    hyp_a1: float = 0.0005
+    hyp_a2: float = 0.001
+
+
+class RespMixin(RespOptions, GridMixin, QMMixin):
+    """Resp mixin for actually running the job
+
+    Parameters
+    ----------
     charge_constraint_options: psiresp.options.ChargeConstraintOptions (optional)
         charge constraints and charge equivalence constraints
     conformer_options: psiresp.options.ConformerOptions (optional)
         Default arguments for creating a conformer for this object
-    conformer_generator: psiresp.options.ConformerGenerator (optional)
-        class to generate conformer geometries
+
     """
 
     _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
     _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
-
     charge_constraint_options: ChargeConstraintOptions = Field(default_factory=ChargeConstraintOptions)
-
     conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
 
     @property
@@ -202,6 +202,7 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
         return self.charge_constraint_options.copy(deep=True)
 
     def generate_orientations(self):
+        """Generate Orientations for all conformers"""
         for conformer in self.conformers:
             conformer.generate_orientations()
 
@@ -293,7 +294,6 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
             self._stage_2_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
                                                 **final_charge_options.to_kwargs(),
                                                 **stage_2.to_kwargs())
-            # a, b = self._stage_2_charges.charge_options.get_constraint_matrix(a_matrix, b_matrix)
             self._stage_2_charges.fit(a_matrix, b_matrix)
 
         return self.charges

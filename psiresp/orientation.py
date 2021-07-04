@@ -18,10 +18,6 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
     ----------
     conformer: psiresp.Conformer
         The conformer that owns this orientation
-    psi4mol: psi4.core.Molecule
-        Psi4 molecule that forms the basis of this orientation
-    name: str (optional)
-        The name of this orientation
 
     Attributes
     ----------

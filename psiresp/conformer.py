@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
+    """Class to manage one conformer
+    """
     resp: Any  # TODO: resp typing
 
     _orientations: List[Orientation] = PrivateAttr(default_factory=list)

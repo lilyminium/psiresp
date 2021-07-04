@@ -17,6 +17,10 @@ class MultiResp(RespMixin, IOMixin):
 
     Parameters
     ----------
+    name: str
+        Name for the job. This affects which directory to save files to.
+    resp_options: RespOptions
+        Options for creating new Resp instances
     resps: list of Resp
         Molecules for multi-molecule fit, set up in Resp classes.
     charge_constraint_options: psiresp.ChargeConstraintOptions (optional)

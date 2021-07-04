@@ -14,6 +14,7 @@ from .due import due, Doi
     path="psiresp.resp2",
 )
 class Resp2(RespMoleculeOptions, RespMixin, MoleculeMixin):
+    """Class to manage one Resp2 job"""
     solvent: Optional[str] = "water"
     qm_method: str = "PW6B95"
     qm_basis_set: str = "aug-cc-pV(D+d)Z"
