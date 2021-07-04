@@ -344,7 +344,12 @@ class ChargeConstraintOptions(base.Model):
         :class:`ChargeEquivalence` class.
         It will be used to create constraints so that each atom in the
         given group is constrained to the same charge.
-
+    symmetric_methyls: bool
+        Whether to constrain methyl hydrogens around a carbon to
+        equivalent charge
+    symmetric_methylenes: bool
+        Whether to constrain methylene hydrogens around a carbon to
+        equivalent charge
     """
     charge_constraints: List[ChargeConstraint] = []
     charge_equivalences: List[ChargeEquivalence] = []

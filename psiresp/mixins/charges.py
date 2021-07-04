@@ -12,27 +12,18 @@ from .resp_base import RespStage
 
 
 class RespCharges(RespStage, ChargeConstraintOptions):
-    """Self-contained class wrapping RespStageOptions and ChargeConstraintOptions
-    to solve RESP charges with charge constraints
+    """Self-contained class to solve RESP charges with charge constraints
 
     Parameters
     ----------
-    resp_stage_options: RespStageOptions
-        This contains the parameters for a particular stage of RESP fitting
-    charge_options: ChargeConstraintOptions
-        This contains the charge constraints pertinent to this stage of
-        RESP fitting
     symbols: list of str
         Element symbols of the atoms to be fitted. Required to determine
         which atoms are Hs
+    n_orientations: list of ints
+        List of number of orientations
 
     Attributes
     ----------
-    resp_stage_options: RespStageOptions
-        This contains the parameters for a particular stage of RESP fitting
-    charge_options: ChargeConstraintOptions
-        This contains the charge constraints pertinent to this stage of
-        RESP fitting
     symbols: list of str
         Element symbols of the atoms to be fitted. Required to determine
         which atoms are Hs

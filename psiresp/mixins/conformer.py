@@ -10,6 +10,18 @@ class OrientationOptions(IOOptions):
 
 
 class ConformerOptions(IOOptions):
+    """Options for Conformers
+
+    Parameters
+    ----------
+    optimize_geometry: bool
+        Whether to optimize the geometry with Psi4
+    weight: float
+        How much to weight this conformer in the resp calculation
+    orientation_options: OrientationOptions or dict
+        Options for creating new Orientations
+
+    """
     optimize_geometry: bool = False
     weight: float = 1
     orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)

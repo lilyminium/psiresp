@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.6, 3.7]
+        python-version: [3.7]
         codecov: [true]
         include:
           - name: macOS
@@ -79,7 +79,7 @@ jobs:
 
       - name: run_tests
         run: |
-          PYTEST_FLAGS="-m fast --disable-pytest-warnings --durations=50"
+          PYTEST_FLAGS=" --disable-pytest-warnings --durations=50"
           if [ ${{ matrix.codecov }} = "true" ]; then
             PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
           fi
