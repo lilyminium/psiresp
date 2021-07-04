@@ -1,3 +1,4 @@
+
 import concurrent.futures
 from typing import Optional, Dict, List, Any
 import pathlib
@@ -11,7 +12,11 @@ from .mixins import RespMoleculeOptions, IOMixin, MoleculeMixin, RespMixin
 from .utils.io import datafile
 
 
-class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
+# class BaseResp(RespMoleculeOptions, RespMixin, MoleculeMixin):
+#     pass  # I think this helps render the docstrings
+
+
+class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
     """Class to manage one Resp job
     """
 

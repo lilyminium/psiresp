@@ -31,7 +31,7 @@ def join_split_docstring(parts: Dict[str, List[str]]) -> str:
     headings = ("Parameters", "Attributes", "Examples")
     for heading in headings:
         section = parts.pop(heading, [])
-        lines.append("\n".join(section))
+        lines.append("\n".join([x for x in section if x.strip()]))
     for section in parts.values():
         lines.append("\n".join(section))
     docstring = "\n\n".join(lines) + "\n\n"
@@ -48,7 +48,7 @@ def extend_docstring_with_base(docstring: str, base_class: type) -> str:
             section = base_parts.pop(k)
             if doc_parts.get(k):
                 section = section[2:]
-            doc_parts[k].extend(section)
+            doc_parts[k].extend([x for x in section if x not in doc_parts[k]])
 
     # for k, lines in base_parts.items():
     #     if k != "" and k in doc_parts:

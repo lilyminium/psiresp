@@ -21,6 +21,7 @@ class BaseRespConfig(RespOptions):
     path="psiresp.configs",
 )
 class RespA1(BaseRespConfig, Resp):
+    """RespA1 config"""
     qm_basis = "6-31g*"
     stage_2 = True
     hyp_a1 = 0.0005
@@ -34,6 +35,7 @@ class RespA1(BaseRespConfig, Resp):
     path="psiresp.configs",
 )
 class MultiRespA1(BaseRespConfig, MultiResp):
+    """RespA1 config"""
     qm_basis = "6-31g*"
     stage_2 = True
     hyp_a1 = 0.0005
@@ -47,6 +49,7 @@ class MultiRespA1(BaseRespConfig, MultiResp):
     path="psiresp.configs",
 )
 class RespA2(BaseRespConfig, Resp):
+    """RespA2 config"""
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.01
@@ -60,6 +63,7 @@ class RespA2(BaseRespConfig, Resp):
     path="psiresp.configs",
 )
 class MultiRespA2(BaseRespConfig, MultiResp):
+    """RespA2 config"""
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.01
@@ -73,6 +77,7 @@ class MultiRespA2(BaseRespConfig, MultiResp):
     path="psiresp.configs",
 )
 class EspA1(BaseRespConfig, Resp):
+    """EspA1 config"""
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.0
@@ -86,6 +91,7 @@ class EspA1(BaseRespConfig, Resp):
     path="psiresp.configs",
 )
 class MultiEspA1(BaseRespConfig, MultiResp):
+    """EspA1 config"""
     qm_basis = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.0
@@ -100,6 +106,7 @@ class MultiEspA1(BaseRespConfig, MultiResp):
     path="psiresp.configs",
 )
 class EspA2(BaseRespConfig, Resp):
+    """EspA2 config"""
     qm_basis = "sto-3g"
     stage_2 = False
     hyp_a1 = 0.0
@@ -114,6 +121,7 @@ class EspA2(BaseRespConfig, Resp):
     path="psiresp.configs",
 )
 class MultiEspA2(BaseRespConfig, MultiResp):
+    """EspA2 config"""
     qm_basis = "sto-3g"
     stage_2 = False
     hyp_a1 = 0.0
@@ -127,6 +135,7 @@ class MultiEspA2(BaseRespConfig, MultiResp):
     path="psiresp.configs",
 )
 class ATBResp(Resp):
+    """ATBResp config"""
     qm_basis = "6-31g*"
     qm_method = "b3lyp"
     solvent = "solvent"
@@ -145,6 +154,7 @@ class ATBResp(Resp):
     path="psiresp.configs",
 )
 class MultiATBResp(MultiResp):
+    """ATBResp config"""
     qm_basis = "6-31g*"
     qm_method = "b3lyp"
     solvent = "solvent"

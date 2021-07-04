@@ -19,6 +19,9 @@ class ModelMeta(ModelMetaclass):
         clsdict["__doc__"] = docstring
         return ModelMetaclass.__new__(cls, name, bases, clsdict)
 
+    def __init__(self, name, bases, clsdict):
+        self.__doc__ = clsdict["__doc__"]
+
 
 class Model(BaseModel, metaclass=ModelMeta):
     """Base class that all option-containing classes should subclass.

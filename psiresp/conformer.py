@@ -1,3 +1,4 @@
+
 import logging
 import io
 from typing import Optional, List, Any
@@ -15,7 +16,7 @@ from .orientation import Orientation
 logger = logging.getLogger(__name__)
 
 
-class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
+class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
     """Class to manage one conformer
     """
     resp: Any  # TODO: resp typing
