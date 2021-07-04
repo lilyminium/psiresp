@@ -20,13 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
 
-# autodoc_mock_imports = []
-# try:
-#     import psi4
-# except ImportError:
-#     autodoc_mock_imports.append('psi4')
-
-# import psiresp
+import psiresp
 
 
 # -- Project information -----------------------------------------------------

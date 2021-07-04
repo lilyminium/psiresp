@@ -135,7 +135,7 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
         next time.
         """
         xyz = self.compute_optimized_geometry()
-        mol = psi4utils.psi4mol_from_xyzstring(xyz)
+        mol = psi4utils.psi4mol_from_xyz_string(xyz)
         self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True
         self._empty_init()

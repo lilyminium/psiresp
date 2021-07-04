@@ -4,11 +4,11 @@ channels:
   - psi4
 
 dependencies:
-  # - numpy>=1.20.0
+  - numpy>=1.20.0
   - pip
-  # - psi4
+  - psi4
   # - python==3.7
-  # - qcelemental
+  - qcelemental
   # Pip-only installs
   - pip:
       - duecredit
@@ -16,4 +16,4 @@ dependencies:
       - sphinx_rtd_theme
       - sphinxcontrib-bibtex<2.0.0
       - sphinx-sitemap
-      # - mdanalysis==2.0.0b0
+      - mdanalysis==2.0.0b0
