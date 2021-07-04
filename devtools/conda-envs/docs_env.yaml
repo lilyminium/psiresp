@@ -6,7 +6,7 @@ channels:
 dependencies:
   # - numpy>=1.20.0
   - pip
-  - psi4
+  # - psi4
   # - python==3.7
   # - qcelemental
   # Pip-only installs

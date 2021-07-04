@@ -84,3 +84,32 @@ jobs:
             PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
           fi
           pytest -n 4 psiresp/tests $PYTEST_FLAGS
+
+  build_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: setup_miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+          channel-priority: flexible
+          channels: conda-forge, psi4
+          add-pip-as-python-dependency: true
+          architecture: x64
+          environment-file: devtools/conda-envs/docs_env.yaml
+          activate-environment: psiresp-docs
+
+      - name: install_psiresp
+        run: python setup.py install
+      
+      - name: build_docs
+        run: |
+          python setup.py build_ext
+
+      # - name: deploy_docs
+      #   if: github.event_name != 'pull_request'
+
+
