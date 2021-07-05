@@ -18,68 +18,100 @@ jobs:
     if: "github.repository == 'lilyminium/psiresp'"
     runs-on: ${{ matrix.os }}
     strategy:
-        fail-fast: false
-        matrix:
-          os: [ubuntu-latest, ]
-          python-version: [3.6, 3.7]
-          include:
-            - name: macOS
-              os: macOS-latest
-              python-version: 3.7
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.7]
+        codecov: [true]
+        include:
+          - name: macOS
+            os: macOS-latest
+            python-version: 3.7
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
       GH_OS: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: setup_osx
-      if: startsWith(matrix.os, 'macOS')
-      run: |
-        # Set OS specific vars and compiler flags
-        echo "OS_NAME=osx" >> $GITHUB_ENV
-        echo "MACOSX_DEPLOYMENT_TARGET=10.9" >> $GITHUB_ENV
-        ulimit -S -n 2048
+      - name: setup_osx
+        if: startsWith(matrix.os, 'macOS')
+        run: |
+          # Set OS specific vars and compiler flags
+          echo "OS_NAME=osx" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=10.9" >> $GITHUB_ENV
+          ulimit -S -n 2048
 
-    - name: setup_linux
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        # Set OS specific vars and compiler flags
-        echo "OS_NAME=linux" >> $GITHUB_ENV
-        gcc -v
-        echo "CC=gcc" >> $GITHUB_ENV
-        g++ -v
-        echo "CXX=g++" >> $GITHUB_ENV
-        gfortran -v
-        echo "FC=gfortran" >> $GITHUB_ENV
+      - name: setup_linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          # Set OS specific vars and compiler flags
+          echo "OS_NAME=linux" >> $GITHUB_ENV
+          gcc -v
+          echo "CC=gcc" >> $GITHUB_ENV
+          g++ -v
+          echo "CXX=g++" >> $GITHUB_ENV
+          gfortran -v
+          echo "FC=gfortran" >> $GITHUB_ENV
 
-    - name: setup_miniconda
-      uses: conda-incubator/setup-miniconda@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-        auto-update-conda: true
-        channel-priority: flexible
-        channels: conda-forge, psi4
-        add-pip-as-python-dependency: true
-        architecture: x64
-        environment-file: devtools/conda-envs/test_env.yaml
-        activate-environment: test
-    
-    - name: check_setup
-      run: |
-        # Check OS and python setup
-        echo "OS: ${OS_NAME}"
-        which python
-        conda list
+      - name: setup_miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+          channel-priority: flexible
+          channels: conda-forge, psi4
+          add-pip-as-python-dependency: true
+          architecture: x64
+          environment-file: devtools/conda-envs/test_env.yaml
+          activate-environment: test
 
-    - name: install_psiresp
-      run:  python setup.py install
+      - name: check_setup
+        run: |
+          # Check OS and python setup
+          echo "OS: ${OS_NAME}"
+          which python
+          conda list
 
-    - name: run_tests
-      run: |
-        PYTEST_FLAGS="-m fast --disable-pytest-warnings --durations=50"
-        if [ ${{ matrix.codecov }} = "true" ]; then
-          PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
-        fi
-        pytest -n 4 tests $PYTEST_FLAGS
+      - name: install_psiresp
+        run: python setup.py install
+
+      - name: run_tests
+        run: |
+          PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
+          pytest -n 4 psiresp/tests $PYTEST_FLAGS
+        
+      - name: codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+          fail_ci_if_error: True
+          verbose: True
+
+  build_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: setup_miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+          channel-priority: flexible
+          channels: conda-forge, psi4
+          add-pip-as-python-dependency: true
+          architecture: x64
+          environment-file: devtools/conda-envs/docs_env.yaml
+          activate-environment: psiresp-docs
+
+      - name: install_psiresp
+        run: python setup.py install
+      
+      - name: build_docs
+        run: |
+          python setup.py build_ext
+
+
+

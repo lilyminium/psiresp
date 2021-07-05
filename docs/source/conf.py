@@ -13,12 +13,15 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 # Incase the project was not installed
+
+
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
 
-# import psiresp
+import psiresp
+
 
 # -- Project information -----------------------------------------------------
 
@@ -61,6 +64,8 @@ autosummary_generate = True
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
+
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -178,3 +183,12 @@ texinfo_documents = [
 ]
 
 # -- Extension configuration -------------------------------------------------
+
+intersphinx_mapping = {'https://docs.python.org/': None,
+                       'https://docs.scipy.org/doc/numpy/': None,
+                       'https://docs.scipy.org/doc/scipy/reference/': None,
+                       'https://matplotlib.org': None,
+                       'https://www.rdkit.org/docs/': None,
+                       'https://docs.mdanalysis.org/stable/': None,
+                       'https://www.psicode.org/psi4manual/master/': None,
+                       }

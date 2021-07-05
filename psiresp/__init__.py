@@ -4,12 +4,14 @@ A RESP plugin for Psi4
 """
 
 # Add imports here
+from ._version import get_versions
+# from .utils import rdutils, psi4utils
+from .mixins import *
 from .orientation import Orientation
 from .conformer import Conformer
 from .resp import Resp
 from .multiresp import MultiResp
-from .resp2 import Resp2, MultiResp2
-from .options import IOOptions, OrientationOptions, ChargeOptions, QMOptions, RespOptions
+# from .resp2 import Resp2, MultiResp2
 from .configs import (
     RespA1,
     RespA2,
@@ -22,8 +24,9 @@ from .configs import (
     MultiEspA2,
 )
 
+
 # Handle versioneer
-from ._version import get_versions
+
 
 versions = get_versions()
 __version__ = versions["version"]
