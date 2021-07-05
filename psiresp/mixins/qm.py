@@ -5,10 +5,8 @@ import logging
 import textwrap
 import subprocess
 from typing import Optional, Tuple
-from dataclasses import dataclass
 
 from typing_extensions import Literal
-import numpy as np
 import psi4
 
 from .. import base, utils

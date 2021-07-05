@@ -1,8 +1,6 @@
-from typing import List, Optional
-import concurrent.futures
 
 import numpy as np
-from pydantic import PrivateAttr, Field
+from pydantic import Field
 
 
 from .. import base

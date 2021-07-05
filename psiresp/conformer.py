@@ -4,7 +4,6 @@ import io
 from typing import Optional, List, Any
 
 import numpy as np
-import MDAnalysis as mda
 from pydantic import PrivateAttr
 
 from . import mixins
@@ -166,7 +165,6 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
             The shape of this vector is (n_atoms,)
         """
         B = np.zeros(self.n_atoms)
-        get_esp_mat_bs = [x.get_esp_mat_b for x in self.orientations]
         for mol in self.orientations:
             B += mol.get_esp_mat_b()
         return B  # / self.n_orientations
@@ -193,7 +191,6 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
         for kw in ("reorientations", "rotations"):
             target = getattr(self, f"n_{kw}")
             container = getattr(self, kw)
-            n = max(target - len(container), 0)
             combinations = orutils.generate_atom_combinations(self.symbols)
             while len(container) < target:
                 container.append(next(combinations))

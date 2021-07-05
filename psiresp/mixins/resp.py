@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 import concurrent.futures
 
 import numpy as np
@@ -10,7 +10,6 @@ from .qm import QMMixin
 from .grid import GridMixin
 from .charge_constraints import ChargeConstraintOptions
 from .conformer import ConformerOptions
-from .. import utils
 from ..utils.execution import run_with_executor
 
 

@@ -1,12 +1,10 @@
-import io
-from typing import Optional, Any
+from typing import Optional
 import pathlib
 
 import numpy as np
-from pydantic import BaseModel
 import psi4
 
-from .. import base, utils
+from .. import utils
 from ..utils import psi4utils
 from .io import IOMixin
 
@@ -137,9 +135,10 @@ class MoleculeMixin(IOMixin):
         -------
         MDAnalysis.Universe
         """
+        from io import StringIO
         import MDAnalysis as mda
         mol = psi4utils.psi4mol_to_xyz_string(self.psi4mol)
-        u = mda.Universe(io.StringIO(mol), format="XYZ")
+        u = mda.Universe(StringIO(mol), format="XYZ")
         return u
 
     def write(self, filename):

@@ -24,11 +24,8 @@ DOCSTRING = """Class that contains a Psi4 molecule and a name
 
     Examples
     --------
-
     ::
-
         mol = MoleculeMixin()
-
     .. versionchanged:: 1.0.0
 
 """
@@ -40,7 +37,7 @@ def test_split_docstring_into_parts():
     assert len(parts) == 4
     assert len(parts["Parameters"]) == 6
     assert len(parts["Attributes"]) == 6
-    assert len(parts["Examples"]) == 8
+    assert len(parts["Examples"]) == 5
 
 
 def test_join_split_docstring():
@@ -94,7 +91,6 @@ EXTENDED = """Class that contains a Psi4 molecule and a name
 
     Examples
     --------
-
     ::
         mol = MoleculeMixin()
     .. versionchanged:: 1.0.0

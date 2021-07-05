@@ -1,19 +1,14 @@
 
-import concurrent.futures
 from typing import Optional, Dict, List, Any
 import pathlib
 
 import numpy as np
-from pydantic import PrivateAttr, BaseModel, Field
+from pydantic import PrivateAttr
 
 from .conformer import Conformer
 from .utils import psi4utils, rdutils
-from .mixins import RespMoleculeOptions, IOMixin, MoleculeMixin, RespMixin
+from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .utils.io import datafile
-
-
-# class BaseResp(RespMoleculeOptions, RespMixin, MoleculeMixin):
-#     pass  # I think this helps render the docstrings
 
 
 class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
