@@ -1,17 +1,22 @@
 name: psiresp-docs
 channels:
   - psi4
+  - rdkit
   # - conda-forge
 
 dependencies:
   - pip
   - psi4
   - python
+  - rdkit
   # Pip-only installs
   - pip:
       - duecredit
+      - mdanalysis==2.0.0b0
       - numpy>=1.20.0
+      - pandas
       - qcelemental
+      - scipy
       - sphinx
       - sphinx_rtd_theme
       - sphinxcontrib-bibtex<2.0.0
