@@ -1,5 +1,4 @@
-from typing import Optional, Union, Tuple, Dict, List, Iterable
-from collections import UserList
+from typing import Optional, Union, Tuple, Dict, List
 import functools
 from collections import defaultdict
 

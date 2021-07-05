@@ -166,7 +166,7 @@ def opt_logfile_to_xyz_string(logfile: str) -> str:
         fields = line.split()
         if len(fields) == 4:
             try:
-                atom_line = [fields[0]] + list(map(float, fields[-3:]))
+                list(map(float, fields[-3:]))
             except ValueError:
                 continue
             else:

@@ -38,13 +38,6 @@ class Model(BaseModel, metaclass=ModelMeta):
         underscore_attrs_are_private = False
         validate_assignment = True
 
-    def __init__(self, *args, **kwargs):
-        super(Model, self).__init__(*args, **kwargs)
-        self.__post_init__()
-
-    def __post_init__(self):
-        pass
-
     @classmethod
     def from_model(cls, obj, **kwargs) -> "Model":
         """Construct an instance from compatible attributes of

@@ -7,7 +7,7 @@ def split_docstring_into_parts(docstring: str) -> Dict[str, List[str]]:
     """Split docstring around headings"""
     parts = defaultdict(list)
     heading_pattern = "[ ]{4}[ ]*[A-Z][a-z]+\s*\n[ ]{4}[ ]*[-]{4}[-]+\s*\n"
-    directive_pattern = "[ ]{4}[ ]*\.\. [a-z]+::.*\n"
+    # directive_pattern = "[ ]{4}[ ]*\.\. [a-z]+::.*\n"
     # pattern = re.compile("(" + heading_pattern + "|" + directive_pattern + ")")
     pattern = re.compile("(" + heading_pattern + ")")
     sections = re.split(pattern, docstring)

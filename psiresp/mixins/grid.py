@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, List
+from typing import Dict, List
 
 import numpy as np
 from scipy.spatial import distance as spdist
@@ -37,10 +37,6 @@ class GridMixin(base.Model):
     def effective_rmax(self):
         return self.grid_rmax if self.grid_rmax >= 0 else np.inf
 
-    def __post_init__(self):
-        if self.effective_rmax < self.grid_rmin:
-            raise ValueError(f"grid_rmax (given: {self.grid_rmax}) must be equal to "
-                             f"or greater than grid_rmin (given: {self.grid_rmin})")
 
     @property
     def all_vdw_radii(self):

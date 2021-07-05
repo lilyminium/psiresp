@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Union
 import numpy as np
 import scipy
 import psi4
-from pydantic import validator, Field
+from pydantic import Field
 
 from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions, IOMixin
 from .resp import Resp

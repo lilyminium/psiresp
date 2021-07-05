@@ -3,7 +3,7 @@ import concurrent.futures
 
 from pydantic import PrivateAttr
 
-from .mixins import RespMoleculeOptions, IOMixin, MoleculeMixin, RespMixin
+from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .resp import Resp
 from .due import due, Doi
 
@@ -78,3 +78,17 @@ class Resp2(RespMoleculeOptions, RespMixin, MoleculeMixin):
                           command_log=esp_command_log)
         self.gas.run()
         self.solvated.run()
+
+
+
+def test_avg_unit_cell_more_beads():
+    grid_z_coords = np.full((3, 3), 10, dtype=float)
+    grid_norm = np.array([[2, 1, 1],
+                          [1, 2, 1],
+                           1, 1, 2]], dtype=int)
+    expected_surface = np.array([[5, 10, 10],
+                                 [10, 5, 10],
+                                 [10, 10, 5]], dtype=float)
+    z_ref = np.zeros((n_cells, n_cells))
+    averaged_surface = avg_unit_cell(z_ref, grid_z_coords, grid_norm)
+    assert_almost_equal(averaged_surface, expected_surface)

@@ -1,6 +1,5 @@
 
 import logging
-import io
 from typing import Optional, List, Any
 
 import numpy as np

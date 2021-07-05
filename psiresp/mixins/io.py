@@ -3,7 +3,7 @@ import pathlib
 import os
 import tempfile
 import contextlib
-from typing import Union, Optional, Callable
+from typing import Union, Optional
 
 
 from .. import base
