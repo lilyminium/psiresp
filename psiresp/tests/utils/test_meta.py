@@ -96,9 +96,7 @@ EXTENDED = """Class that contains a Psi4 molecule and a name
     --------
 
     ::
-
         mol = MoleculeMixin()
-
     .. versionchanged:: 1.0.0
 
 """
