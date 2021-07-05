@@ -556,3 +556,11 @@ class ChargeConstraintOptions(base.Model):
 
         self.clean_charge_constraints()
         self.clean_charge_equivalences()
+
+    def add_charge_constraint(self, atom_ids=[], charge=0):
+        constraint = ChargeConstraint(charge=charge, atom_ids=atom_ids)
+        self.charge_constraints.append(constraint)
+    
+    def add_charge_equivalence(self, atom_ids=[]):
+        constraint = ChargeEquivalence(atom_ids)
+        self.charge_equivalences.append(constraint)

@@ -89,6 +89,7 @@ jobs:
           fail_ci_if_error: True
           verbose: True
 
+  # TODO: the miniconda build for this is reaaaaally slow
   build_docs:
     runs-on: ubuntu-latest
     steps:
@@ -100,7 +101,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
           channel-priority: flexible
-          channels: conda-forge, psi4
+          channels: rdkit, psi4
           add-pip-as-python-dependency: true
           architecture: x64
           environment-file: devtools/conda-envs/docs_env.yaml

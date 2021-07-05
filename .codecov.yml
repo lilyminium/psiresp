@@ -13,4 +13,4 @@ comment:
   flags: null
   paths: null
 ignore:
-  - "psiresp/due.py"
+  - "psiresp/utils/due.py"

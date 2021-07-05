@@ -61,7 +61,8 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
    import psi4
    import psiresp
 
-   mol = psi4.Molecule.from_string("""10
+   mol = psi4.Molecule.from_string("""\
+      10
       ! from R.E.D. examples/2-Dimethylsulfoxide
       C  3.87500   0.67800  -8.41700
       H  3.80000   1.69000  -8.07600
@@ -75,47 +76,50 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
       H  5.58200  -0.21900  -6.48500""", fix_com=True,
       fix_orientation=True)
 
-   r = psiresp.Resp.from_molecules([mol], charge=0, name='dmso')
-   charges = r.run(stage_2=True,  # run stage 2
-                   opt=True,  # geometry optimize first
-                   hyp_a1=0.0005, # hyperbola restraints
-                   hyp_a2=0.001,
-                   restraint=True,  # restrain
-                   method='hf',
-                   basis='6-31g*',
-                   equivalent_methyls=True,  # restrain methyl carbons to have the same charge
-                   n_orient=2)  # automatically generate 2 molecules
+   r = psiresp.Resp(mol,
+                    charge=0,  # overall charge of the molecule
+                    multiplicity=1,  # overall multiplicity
+                    name="dmso",  # name -- affects directory paths
+                    stage_2=True,  # run 2-stage RESP
+                    restraint=True,  # restrain ESP fit
+                    hyp_a1=0.0005,  # hyperbola restraints for stage 1
+                    hyp_a2=0.001,  # hyperbola restraints for stage 2
+                    qm_method="hf",
+                    qm_basis_set="6-31g*",
+                    charge_constraint_options=dict(
+                       charge_equivalences=[
+                          # constrain first (atom 1) and second (atom 7) carbons to same charge
+                          (1, 7),
+                          # constrain all Hs to the same charge
+                          (2, 3, 4, 8, 9, 10),
+                          ],
+                       charge_constraints=[
+                          # constrain the S (atom 5) and O (atom 6) charges to sum to -0.19617
+                          (-0.19617, [5, 6]),
+                          ],
+                       ),
+                    # generate 2 orientations per conformer
+                    conformer_options=dict(n_reorientations=2),
+                    )
+   charges = r.run()
+
 ```
 Alternatively, use the preconfigured RespA1 class in ``psiresp.configs``.
 
 ```python
-   import psi4
-   import psiresp
 
-   mol = psi4.Molecule.from_string("""10
-      ! from R.E.D. examples/2-Dimethylsulfoxide
-      C  3.87500   0.67800  -8.41700
-      H  3.80000   1.69000  -8.07600
-      H  3.40600   0.02600  -7.71100
-      H  3.38900   0.58300  -9.36600
-      S  5.35900   0.29300  -8.55900
-      O  5.46000  -1.05900  -9.01400
-      C  6.05500   0.43000  -7.19300
-      H  7.08700   0.16300  -7.29000
-      H  5.98000   1.44100  -6.85300
-      H  5.58200  -0.21900  -6.48500""", fix_com=True,
-      fix_orientation=True)
+   r = psiresp.RespA1(mol, charge=0, multiplicity=1, name="dmso")
+   r.charge_constraint_options.add_charge_equivalence(atom_ids=[1, 7])
+   r.charge_constraint_options.add_charge_equivalence(atom_ids=[2, 3, 4, 8, 9, 10])
+   r.charge_constraint_options.add_charge_constraint(charge=-0.19617, atom_ids=[5, 6])
+   r.conformer_options.n_reorientations = 2
 
-   r = psiresp.RespA1.from_molecules([mol], charge=0, name='dmso')
-   charges = r.run(opt=True,  # geometry optimize first
-                   equivalent_methyls=True,  # restrain methyl carbons to have the same charge
-                   n_orient=2)  # automatically generate 2 molecules
+   charges = r.run()
 ```
 
 ### Pre-configured models
 
-Each of these comes with a MultiResp counterpart, although MultiATBResp and MultiResp2 are entirely untested due to the 
-original sources not supporting intermolecular charge constraints.
+Each of these comes with a MultiResp counterpart.
 
 **Probably work:**
 
@@ -126,8 +130,6 @@ original sources not supporting intermolecular charge constraints.
 **Hard to test, maybe work:**
 
 * EspA2 (Psi4 minimises to quite a different geometry with HF/STO-3G compared to GAMESS)
-* Resp2 (Ethanol example works; others can't say for sure, optimisation at PW6B95/aug-cc-pV(D+d)Z is so slow)
-* ATBResp (Paper pretty light on details; charges produced by ATB now differ from original 2011 paper)
 
 ### Copyright
 
