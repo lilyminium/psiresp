@@ -21,12 +21,8 @@ class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
 
     Attributes
     ----------
-    psi4mol: psi4.core.Molecule
-        Psi4 molecule that forms the basis of this orientation
     conformer: psiresp.Conformer
         The conformer that owns this orientation
-    name: str (optional)
-        The name of this orientation
     grid: numpy.ndarray
         The grid of points on which to compute the ESP
     esp: numpy.ndarray

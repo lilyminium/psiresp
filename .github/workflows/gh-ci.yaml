@@ -79,11 +79,15 @@ jobs:
 
       - name: run_tests
         run: |
-          PYTEST_FLAGS=" --disable-pytest-warnings --durations=50"
-          if [ ${{ matrix.codecov }} = "true" ]; then
-            PYTEST_FLAGS="${PYTEST_FLAGS} --cov=psiresp --cov-report=xml"
-          fi
+          PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
           pytest -n 4 psiresp/tests $PYTEST_FLAGS
+        
+      - name: codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: coverage.xml
+          fail_ci_if_error: True
+          verbose: True
 
   build_docs:
     runs-on: ubuntu-latest
@@ -109,7 +113,5 @@ jobs:
         run: |
           python setup.py build_ext
 
-      # - name: deploy_docs
-      #   if: github.event_name != 'pull_request'
 
 
