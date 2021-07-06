@@ -25,7 +25,7 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
 
     @property
     def default_path(self):
-        if self.resp is self:
+        if self.resp is self:  # lgtm[py/comparison-using-is]
             return pathlib.Path(self.name)
         return self.resp.path / self.name
 

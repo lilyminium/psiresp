@@ -11,3 +11,7 @@ path_classifiers:
     - devtools/*
   generated:
     - psiresp/_version.py
+  test:
+    - psiresp/tests
+  utils:
+    - psiresp/utils/due.py
