@@ -7,7 +7,7 @@ from . import mixins, utils
 from .utils.io import datafile
 
 
-class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
+class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,

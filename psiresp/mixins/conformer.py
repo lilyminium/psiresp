@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from pydantic import Field
+from pydantic import Field, validator
 from .io import IOOptions
 
 
@@ -49,9 +49,6 @@ class ConformerOptions(IOOptions):
     orientation_name_template: str
         Template to generate new orientation names
     """
-    optimize_geometry: bool = False
-    weight: float = 1
-    orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)
 
     n_reorientations: int = 0
     reorientations: List[Tuple[int, int, int]] = []
@@ -59,5 +56,9 @@ class ConformerOptions(IOOptions):
     translations: List[Tuple[float, float, float]] = []
     n_rotations: int = 0
     rotations: List[Tuple[int, int, int]] = []
-    keep_original_conformer_geometry: bool = False
+    keep_original_conformer_geometry: bool = True
     orientation_name_template: str = "{conformer.name}_o{counter:03d}"
+
+    optimize_geometry: bool = False
+    weight: float = 1
+    orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)

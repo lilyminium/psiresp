@@ -6,9 +6,20 @@
 Welcome to PsiRESP's documentation!
 =========================================================
 
-This is a package for using Psi4 to calculate RESP charges. PsiRESP supports multi-molecule,
-multi-conformer, and multi-orientation fits. It offers methods for automated conformer
-generation using RDKit, and automated orientation generation using rigid-body reorientation.
+PsiRESP is a package for calculating atomic partial charges from
+restrained and unrestrained electrostatic potential fits using Psi4.
+It is highly flexible, configurable, easy to use, and totally written in Python.
+It supports fitting to multiple orientations and conformers,
+as well as both intra-molecular and inter-molecular charge constraints for
+multi-molecule fits. As fitting to multiple conformers and orientations
+is recommended for best results, PsiRESP furthermore has methods for
+automated conformer generation using RDKit, and automated orientation generation
+around heavy atoms.
+
+For ease of use, PsiRESP offers pre-configured classes that correspond with
+existing popular tools such as the RESP ESP Charge Derive (R.E.D.) tools
+and the Automated Topology Builder.
+
 
 .. toctree::
    :maxdepth: 2

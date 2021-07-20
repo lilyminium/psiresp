@@ -3,9 +3,11 @@ import pathlib
 from typing import Dict, List, Optional, Union
 
 import psi4
+import rdkit
 import numpy as np
+from qcelemental.exceptions import MoleculeFormatError
 
-from . import BOHR_TO_ANGSTROM, ANGSTROM_TO_BOHR
+from . import BOHR_TO_ANGSTROM, ANGSTROM_TO_BOHR, rdutils
 
 CoordinateInputs = Union[psi4.core.Molecule, np.ndarray]
 
@@ -182,3 +184,68 @@ def psi4mol_from_psi4optfile(logfile) -> psi4.core.Molecule:
     """Create Psi4 molecule from optimized geometry of log file"""
     xyz = opt_logfile_to_xyz_string(logfile)
     return psi4mol_from_xyz_string(xyz)
+
+
+def psi4mol_to_rdmol(psi4mol: psi4.core.Molecule) -> rdkit.Chem.Mol:
+    """"Create RDKit molecule from Psi4 molecule
+
+    Parameters
+    ----------
+    psi4mol: psi4.core.Molecule
+        Psi4 molecule
+
+    Returns
+    -------
+    rdmol: rdkit.Chem.Mol
+        RDKit Molecule
+    """
+    molstr = psi4mol_to_mol2_string(psi4mol)
+    rdmol = rdutils.rdmol_from_string(molstr)
+    coordinates = get_psi4mol_coordinates(psi4mol)
+    rdmol.RemoveAllConformers()
+    rdutils.add_conformer_from_coordinates(rdmol, coordinates)
+    return rdmol
+
+
+def psi4mols_from_rdmol(rdmol: rdkit.Chem.Mol,
+                        name: str = "mol",
+                        conformer_name_template: str = "{name}_c{i:03d}",
+                        ) -> List[psi4.core.Molecule]:
+    """Convert all conformers of an RDKit molecule to Psi4 molecules
+
+    Parameters
+    ----------
+    rdmol: rdkit.Chem.Mol
+        RDKit Molecule
+    name: str
+        Name of the overall molecule
+    conformer_name_template: str
+        Template used to format the conformer name
+
+    Returns
+    -------
+    list of psi4.core.Molecules
+    """
+    mols = []
+    for i in range(rdmol.GetNumConformers()):
+        xyz = rdutils.rdmol_to_string(rdmol, dtype="xyz", conf_id=i)
+        mol = psi4mol_from_xyz_string(xyz)
+        mol.set_name(conformer_name_template.format(name=name, i=i+1))
+        mol.activate_all_fragments()
+        mols.append(mol)
+    return mols
+
+
+def psi4mols_from_file(filename: str, **kwargs):
+    DTYPES = ["xyz", "xyz+", "psi4", "psi4+"]
+    with open(filename, "r") as f:
+        content = f.read()
+
+    for dtype in DTYPES:
+        try:
+            return [psi4.core.Molecule.from_string(content, dtype=dtype)]
+        except MoleculeFormatError:
+            pass
+
+    rdmol = rdutils.rdmol_from_string(content)
+    return psi4mols_from_rdmol(rdmol, **kwargs)

@@ -3,6 +3,7 @@ import numpy as np
 
 from numpy.testing import assert_almost_equal
 
+import psiresp
 from .datafiles import NME2ALA2_C1_ABMAT
 from .base import (conformer_from_psi4mol,
                    psi4mol_from_xyzfile)
@@ -12,9 +13,9 @@ def test_add_reorientations_with_original(dmso_psi4mol,
                                           dmso_coordinates,
                                           dmso_o1_coordinates,
                                           dmso_o2_coordinates):
-    conformer = conformer_from_psi4mol(dmso_psi4mol)
-    conformer.keep_original_conformer_geometry = True
-    conformer.n_reorientations = 2
+    conformer = conformer_from_psi4mol(dmso_psi4mol,
+                                       keep_original_conformer_geometry=True,
+                                       n_reorientations=2)
     conformer.generate_orientations()
     assert len(conformer.orientations) == 3
     reference = [dmso_coordinates, dmso_o1_coordinates, dmso_o2_coordinates]
@@ -25,9 +26,9 @@ def test_add_reorientations_with_original(dmso_psi4mol,
 def test_add_reorientations_without_original(dmso_psi4mol,
                                              dmso_o1_coordinates,
                                              dmso_o2_coordinates):
-    conformer = conformer_from_psi4mol(dmso_psi4mol)
-    conformer.keep_original_conformer_geometry = False
-    conformer.n_reorientations = 2
+    conformer = conformer_from_psi4mol(dmso_psi4mol,
+                                       keep_original_conformer_geometry=False,
+                                       n_reorientations=2)
     conformer.generate_orientations()
     assert len(conformer.orientations) == 2
     reference = [dmso_o1_coordinates, dmso_o2_coordinates]
@@ -37,7 +38,8 @@ def test_add_reorientations_without_original(dmso_psi4mol,
 
 def test_add_orientations_with_updated_options(dmso_psi4mol,
                                                dmso_o1_coordinates):
-    conformer = conformer_from_psi4mol(dmso_psi4mol)
+    conformer = conformer_from_psi4mol(dmso_psi4mol,
+                                       keep_original_conformer_geometry=False)
     conformer.keep_original_conformer_geometry = False
     conformer.orientation_options.save_output = False
     conformer.orientation_options.load_input = True
@@ -74,3 +76,9 @@ def test_get_unweighted_a(nme2ala2_conformer, unweighted_ab):
 def test_get_unweighted_b(nme2ala2_conformer, unweighted_ab):
     actual = nme2ala2_conformer.unweighted_b_matrix
     assert_almost_equal(actual, unweighted_ab[-1])
+
+
+@pytest.mark.parametrize("load_input", [True, False])
+def test_propagating_options(load_input):
+    options = psiresp.mixins.ConformerOptions(load_input=load_input)
+    assert options.orientation_options.load_input == load_input

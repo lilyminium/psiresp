@@ -37,6 +37,21 @@ class Model(BaseModel, metaclass=ModelMeta):
         underscore_attrs_are_private = False
         validate_assignment = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self_fields = set(self.__fields__)
+        for name, field in self.__fields__.items():
+            if not field.default_factory:
+                continue
+            fieldcls = field.default_factory
+            if (name.endswith("options")
+                and name not in self.__fields_set__
+                and isinstance(fieldcls, ModelMeta)):
+                keywords = self_fields & set(fieldcls.__fields__)
+                values = {k: getattr(self, k) for k in keywords}
+                value = fieldcls(**values)
+                setattr(self, name, value)
+
     @classmethod
     def from_model(cls, obj, **kwargs) -> "Model":
         """Construct an instance from compatible attributes of

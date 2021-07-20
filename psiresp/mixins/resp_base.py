@@ -60,13 +60,13 @@ class RespMoleculeOptions(base.Model):
     charge: int = 0
     multiplicity: int = 1
 
-    conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
     conformer_name_template: str = "{resp.name}_c{counter:03d}"
     max_generated_conformers: int = 0
     min_conformer_rmsd: float = 1.5
     minimize_conformer_geometries: bool = False
     minimize_max_iter: int = 2000
-    keep_original_resp_geometry: bool = False
+    keep_original_resp_geometry: bool = True
+    conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
 
     def fix_charge_and_multiplicity(self):
         if self.charge != self.psi4mol.molecular_charge():

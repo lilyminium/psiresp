@@ -19,8 +19,8 @@ psiresp.utils.rdutils
       get_conformer_coordinates
       minimize_conformer_geometries
       rdmol_from_file_or_string
-      rdmol_from_psi4mol
-      rdmol_to_psi4mols
+      psi4mol_to_rdmol
+      psi4mols_from_rdmol
    
    
 

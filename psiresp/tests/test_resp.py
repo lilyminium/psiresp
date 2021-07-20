@@ -9,10 +9,19 @@ from .datafiles import (DMSO_QMRA,
                         DMSO_QMRA_RESPA2_CHARGES, DMSO_QMRA_RESPA1_CHARGES, DMSO_QMRA_ESPA1_CHARGES,
                         ETHANOL_C1, ETHANOL_C2,
                         ETHANOL_RESPA2_CHARGES, ETHANOL_RESPA1_CHARGES, ETHANOL_ESPA1_CHARGES,
-                        NME2ALA2_OPT_RESPA2_CHARGES, NME2ALA2_OPT_RESPA1_CHARGES, NME2ALA2_OPT_ESPA1_CHARGES
+                        NME2ALA2_OPT_RESPA2_CHARGES, NME2ALA2_OPT_RESPA1_CHARGES, NME2ALA2_OPT_ESPA1_CHARGES,
                         )
 
 # from .datafiles import DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4
+
+
+def test_resp_from_file():
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA,
+                                     conformer_options=dict(n_reorientations=2))
+    resp.generate_conformers()
+    resp.generate_orientations()
+    assert len(resp.conformers) == 1
+    assert len(list(resp.orientations)) == 3
 
 
 class TestNoOrient:

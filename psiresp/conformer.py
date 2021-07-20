@@ -14,7 +14,7 @@ from .orientation import Orientation
 logger = logging.getLogger(__name__)
 
 
-class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
+class Conformer(mixins.ConformerOptions, mixins.MoleculeMixin):
     """Class to manage one conformer
     """
     resp: Any  # TODO: resp typing
@@ -122,7 +122,7 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
             if not self.orientations:
                 self.add_orientation(self.psi4mol)
 
-    def finalize_geometry(self):
+    def finalize_geometry(self, force=False):
         """Finalize geometry of psi4mol
 
         If :attr:`psiresp.conformer.Conformer.optimize_geometry` is ``True``,
@@ -132,6 +132,8 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
         final geometry will get written to an xyz file to bypass this check
         next time.
         """
+        if self._finalized and not force:
+            return
         xyz = self.compute_optimized_geometry()
         mol = psi4utils.psi4mol_from_xyz_string(xyz)
         self.psi4mol.set_geometry(mol.geometry())

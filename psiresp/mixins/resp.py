@@ -9,7 +9,7 @@ from .resp_base import BaseRespOptions, RespStage
 from .qm import QMMixin
 from .grid import GridMixin
 from .charge_constraints import ChargeConstraintOptions
-from .conformer import ConformerOptions
+from .conformer import ConformerOptions, OrientationOptions
 from ..utils.execution import run_with_executor
 
 
@@ -42,7 +42,9 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
     _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
     _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
     charge_constraint_options: ChargeConstraintOptions = Field(default_factory=ChargeConstraintOptions)
+    orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)
     conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
+    
 
     @property
     def orientations(self):
@@ -189,10 +191,7 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
         SystemExit
             If ``execute_qm`` is False
         """
-        for conformer in self.conformers:
-            if not conformer._finalized:
-                raise ValueError("Finalize conformer geometry before computing "
-                                 "orientation ESPs")
+        self.finalize_geometries(executor=executor, timeout=timeout)
         functions = [orient.compute_esp for orient in self.orientations]
         run_with_executor(functions, executor=executor, timeout=timeout,
                           command_log=command_log)

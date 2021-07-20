@@ -48,7 +48,16 @@ def extend_docstring_with_base(docstring: str, base_class: type) -> str:
             section = base_parts.pop(k)
             if doc_parts.get(k):
                 section = section[2:]
-            doc_parts[k].extend([x for x in section if x not in doc_parts[k]])
+            extension = [x for x in section if x not in doc_parts[k]]
+            for i, item in enumerate(extension):
+                if item.strip().startswith("psi4mol"):
+                    first_index = i
+                    break
+            else:
+                first_index = 0
+            first = extension.pop(0)
+            doc_parts[k].append(first)
+            doc_parts[k].extend(extension)
 
     # for k, lines in base_parts.items():
     #     if k != "" and k in doc_parts:

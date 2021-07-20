@@ -17,8 +17,8 @@ psiresp.tests.utils.test\_rdutils
       test_add_conformer_from_coordinates
       test_get_conformer_coordinates
       test_rdmol_from_file
-      test_rdmol_from_psi4mol
-      test_rdmol_to_psi4mols
+      test_psi4mol_to_rdmol
+      test_psi4mols_from_rdmol
    
    
 

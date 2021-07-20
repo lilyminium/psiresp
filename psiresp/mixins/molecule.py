@@ -47,11 +47,27 @@ class MoleculeMixin(IOMixin):
     psi4mol: psi4.core.Molecule
     name: Optional[str] = None
 
-    # def __post_init__(self):
-    #     if self.name:
-    #         self.psi4mol.set_name(self.name)
-    #     else:
-    #         self.name = self.psi4mol.name()
+    @classmethod
+    def from_molfile(cls, molfile: str, **kwargs):
+        """Create class from molecule file
+
+        Parameters
+        ----------
+        molfile: str
+            filename containing the molecule specification. This will
+            get automatically parsed if it is a valid PDB, XYZ, MOL, or MOL2
+            file, or has a suffix that can get parsed by MDAnalysis. This
+            must only contain *one* molecule specification; multiple
+            molecules (e.g. in the PDB format) are not supported.
+        **kwargs:
+            Further arguments for initialization of the class
+            (see class docstring)
+        """
+        mols = psi4utils.psi4mols_from_file(molfile)
+        if len(mols) != 1:
+            raise ValueError("Must provide only one molecule specification. "
+                             f"Given: {len(mols)}")
+        return cls(psi4mol=mols[0], **kwargs)
 
     def __init__(self, *args, **kwargs):
         if args and len(args) == 1 and "psi4mol" not in kwargs:
