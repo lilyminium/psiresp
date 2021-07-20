@@ -2,7 +2,7 @@ import warnings
 from typing import Optional, List
 
 import numpy as np
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, Field
 
 
 from .charge_constraints import ChargeConstraintOptions
@@ -12,19 +12,8 @@ from .resp_base import RespStage
 class RespCharges(RespStage, ChargeConstraintOptions):
     """Self-contained class to solve RESP charges with charge constraints
 
-    Parameters
-    ----------
-    symbols: list of str
-        Element symbols of the atoms to be fitted. Required to determine
-        which atoms are Hs
-    n_orientations: list of ints
-        List of number of orientations
-
     Attributes
     ----------
-    symbols: list of str
-        Element symbols of the atoms to be fitted. Required to determine
-        which atoms are Hs
     charges: numpy.ndarray of floats or None
         Overall target charges, if computed
     restrained_charges: numpy.ndarray of floats or None
@@ -34,8 +23,10 @@ class RespCharges(RespStage, ChargeConstraintOptions):
     n_atoms: int
         Number of atoms
     """
-    symbols: List[str] = []
-    n_orientations: List[int] = []
+    symbols: List[str] = Field(description=("Atom element symbols. "
+                                            "Required to determine Hs"))
+    n_orientations: List[str] = Field(description=("Number of orientations "
+                                                   "per RESP molecule"))
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
 

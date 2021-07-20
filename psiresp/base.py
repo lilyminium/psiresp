@@ -13,8 +13,15 @@ class ModelMeta(ModelMetaclass):
 
     def __new__(cls, name, bases, clsdict):
         docstring = clsdict.get("__doc__", "")
+        schema_parts = mtutils.schema_to_docstring_sections(clsdict)
+
+        # ordered highest to lowest priority
+        sections = [schema_parts]
         for base in bases:
-            docstring = mtutils.extend_docstring_with_base(docstring, base)
+            sections.append(mtutils.get_cls_docstring_sections(base))
+
+        docstring = mtutils.create_docstring_from_sections(docstring, sections,
+                                                           order_first=["psi4mol"])
         clsdict["__doc__"] = docstring
         return ModelMetaclass.__new__(cls, name, bases, clsdict)
 
@@ -46,7 +53,7 @@ class Model(BaseModel, metaclass=ModelMeta):
             fieldcls = field.default_factory
             if (name.endswith("options")
                 and name not in self.__fields_set__
-                and isinstance(fieldcls, ModelMeta)):
+                    and isinstance(fieldcls, ModelMeta)):
                 keywords = self_fields & set(fieldcls.__fields__)
                 values = {k: getattr(self, k) for k in keywords}
                 value = fieldcls(**values)
