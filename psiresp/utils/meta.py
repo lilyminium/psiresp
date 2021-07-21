@@ -114,7 +114,10 @@ def type_to_string(type_alias):
     try:
         return type_alias.__name__
     except AttributeError:
-        name = type_alias.__origin__.__name__
+        try:
+            name = type_alias.__origin__.__name__
+        except AttributeError:
+            name = type_alias.__origin._name
         if type_alias.__args__:
             args = [type_to_string(x) for x in type_alias.__args__]
             name = f"{name}[{', '.join(args)}]"
