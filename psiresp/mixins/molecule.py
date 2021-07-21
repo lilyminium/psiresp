@@ -74,6 +74,24 @@ class MoleculeMixin(IOMixin):
         else:
             self.name = self.psi4mol.name()
 
+    def __getstate__(self):
+        psi4mol = self.psi4mol.to_string(dtype="psi4")
+        dict_ = dict(self.__dict__)
+        dict_["psi4mol"] = psi4mol
+
+        return {'__dict__': dict_, '__fields_set__': self.__fields_set__}
+
+    def __setstate__(self, state):
+        state_dict = state["__dict__"]
+        try:
+            molstring = state_dict.pop("psi4mol")
+        except KeyError:
+            raise TypeError("State must have a `psi4mol` defined")
+        psi4mol = psi4.core.Molecule.from_string(molstring, dtype="psi4")
+        state_dict["psi4mol"] = psi4mol
+        object.__setattr__(self, '__dict__', state_dict)
+        object.__setattr__(self, '__fields_set__', state['__fields_set__'])
+
     # TODO: confuzzle with pydantic's aliasing
     # @property
     # def name(self):

@@ -77,3 +77,5 @@ AMM_NME_OPT_ESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimeth
 # ABMAT = datafile("nme2ala2_abmat.dat")
 
 # ETOH_RESP2_GAS_C1_GRID = resource_filename(__name__, "data/test_resp2/resp2_ethanol_gas_c001_o001_grid.dat")
+
+# RESP_YAML = resource_filename()

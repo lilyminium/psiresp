@@ -161,6 +161,8 @@ class TestNoOrient:
         reference = charges_from_red_file(charge_file)
         assert_almost_equal(charges, reference, decimal=3)
 
+# def test_resp_from_file()...
+
 
 # class TestRespNoOptimization:
 
