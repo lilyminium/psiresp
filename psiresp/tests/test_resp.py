@@ -21,7 +21,7 @@ def test_resp_from_file():
     resp.generate_conformers()
     resp.generate_orientations()
     assert len(resp.conformers) == 1
-    assert len(list(resp.orientations)) == 3
+    assert len(list(resp.orientations)) == 2
 
 
 class TestNoOrient:

@@ -1,8 +1,9 @@
 import pytest
 import psiresp
+from rdkit import Chem
 
 from .base import coordinates_from_xyzfile, psi4mol_from_xyzfile, data_dir
-from .datafiles import (DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4,
+from .datafiles import (DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4, DMSO_TPL,
                         NME2ALA2_C1, NME2ALA2_OPT_C1, NME2ALA2_OPT_C2,
                         METHYLAMMONIUM_OPT)
 
@@ -19,6 +20,11 @@ def dmso_psi4mol():
     mol.set_multiplicity(1)
     mol.update_geometry()
     return mol
+
+
+@pytest.fixture()
+def dmso_rdmol():
+    return Chem.MolFromTPLFile(DMSO_TPL)
 
 
 @pytest.fixture()

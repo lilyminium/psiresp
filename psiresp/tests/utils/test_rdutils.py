@@ -10,13 +10,8 @@ from ..base import (coordinates_from_xyzfile,
                     assert_coordinates_almost_equal,
                     get_angstrom_coordinates,
                     )
-from ..datafiles import (DMSO_TPL, DMSO_ORIENTATION_COORDINATES,
+from ..datafiles import (DMSO_ORIENTATION_COORDINATES,
                          DMSO, DMSO_PDB, DMSO_GRO)
-
-
-@pytest.fixture()
-def dmso_rdmol():
-    return Chem.MolFromTPLFile(DMSO_TPL)
 
 
 def test_get_conformer_coordinates(dmso_rdmol):

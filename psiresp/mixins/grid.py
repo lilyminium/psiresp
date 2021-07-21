@@ -1,42 +1,46 @@
 from typing import Dict, List
+from typing_extensions import Literal
 
 import numpy as np
 from scipy.spatial import distance as spdist
+from pydantic import Field
 
 from .. import vdwradii, base
 
 
 class GridMixin(base.Model):
-    """Options for setting up the grid for ESP computation
+    """Options for setting up the grid for ESP computation"""
 
-    Parameters
-    ----------
-    grid_rmin: float
-        minimum radius
-    grid_rmax: float
-        maximum radius
-    use_radii: str
-        Name of the radius set to use
-    vdw_radii: dict of {str: float}
-        Dictionary of VDW radii to override the radii in the
-        `use_radii` set
-    vdw_scale_factors: list of floats
-        Scale factors for the radii
-    vdw_point_density: float
-        Point density
-    """
-
-    grid_rmin: float = 0
-    grid_rmax: float = -1
-    use_radii: str = "msk"
-    vdw_radii: Dict[str, float] = {}
-    vdw_scale_factors: List[float] = [1.4, 1.6, 1.8, 2.0]
-    vdw_point_density: float = 1.0
+    grid_rmin: float = Field(
+        default=0,
+        description="Minimum radius around atom for constructing shells"
+    )
+    grid_rmax: float = Field(
+        default=-1,
+        description=("Maximum radius around atom for constructing shells. "
+                     "If set to -1, no points are clipped.")
+    )
+    use_radii: Literal[(*vdwradii.options,)] = Field(
+        default="msk",
+        description="Name of the radius set to use",
+    )
+    vdw_radii: Dict[str, float] = Field(
+        default_factory=dict,
+        description=("Dictionary of specific VDW radii to override the radii "
+                     "the `use_radii` set"),
+    )
+    vdw_scale_factors: List[float] = Field(
+        default=[1.4, 1.6, 1.8, 2.0],
+        description="Scale factors used to generate grid shells",
+    )
+    vdw_point_density: float = Field(
+        default=1.0,
+        description="Point density in the generated grid shells"
+    )
 
     @property
     def effective_rmax(self):
         return self.grid_rmax if self.grid_rmax >= 0 else np.inf
-
 
     @property
     def all_vdw_radii(self):
