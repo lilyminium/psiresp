@@ -14,18 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class IOOptions(base.Model):
-    """I/O options
-
-    Parameters
-    ----------
-    save_output: bool
-        Whether to save output QM or intermediate files.
-    load_input: bool
-        Whether to read QM and intermediate files in, where available.
-    directory_path: str
-        Directory path for saving files. If not given, defaults
-        to the name of the instance.
-    """
+    """I/O options"""
     save_output: bool = Field(
         default=False,
         description="Whether to save output QM or intermediate files."

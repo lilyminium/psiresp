@@ -145,6 +145,8 @@ class QMMixin(base.Model):
 
     @validator("solvent")
     def validate_solvent(cls, v):
+        if v is None:
+            return v
         cased = get_cased_value(v, QM_SOLVENTS)
         assert cased, "must be one of `psiresp.mixins.qm.QM_SOLVENTS` or None"
         return cased
