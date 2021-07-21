@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Dict, List
 import textwrap
 import re

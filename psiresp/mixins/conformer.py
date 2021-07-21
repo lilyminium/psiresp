@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from pydantic import Field, validator
+from pydantic import Field
 from .io import IOOptions
 
 
