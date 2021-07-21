@@ -45,7 +45,7 @@ class ConformerOptions(IOOptions):
                      "first and fourth atoms respectively.")
     )
     keep_original_conformer_geometry: bool = Field(
-        default=True,
+        default=False,
         description="Whether to keep the original conformation in the conformer.")
     orientation_name_template: str = Field(
         default="{conformer.name}_o{counter:03d}",

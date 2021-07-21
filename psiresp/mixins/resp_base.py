@@ -65,7 +65,7 @@ class RespMoleculeOptions(base.Model):
     min_conformer_rmsd: float = 1.5
     minimize_conformer_geometries: bool = False
     minimize_max_iter: int = 2000
-    keep_original_resp_geometry: bool = True
+    keep_original_resp_geometry: bool = False
     conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
 
     def fix_charge_and_multiplicity(self):

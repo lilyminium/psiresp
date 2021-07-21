@@ -111,13 +111,24 @@ def create_docstring_from_sections(docstring: str,
     return "\n\n".join(sections)
 
 
+def type_to_string(type_alias):
+    try:
+        return type_alias.__name__
+    except AttributeError:
+        name = type_alias.__origin__.__name__
+        if type_alias.__args__:
+            args = [type_to_string(x) for x in type_alias.__args__]
+            name = f"{name}[{', '.join(args)}]"
+        return name
+
+
 def schema_to_docstring_sections(cls_fields):
     from pydantic.fields import ModelField
 
     sections = {name: {} for name in MERGED_SECTIONS}
     for name, field in cls_fields.items():
         if isinstance(field, ModelField) and field.field_info.description:
-            ftype = str(field.outer_type_)
+            ftype = type_to_string(field.outer_type_)
             desc = textwrap.indent(field.field_info.description, INDENT)
             for section_fields in sections.values():
                 section_fields[name] = [f"{name} : {ftype}", desc]
