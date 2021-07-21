@@ -93,7 +93,6 @@ def create_docstring_from_sections(docstring: str,
     doc_parts = split_docstring_into_parts(docstring)
     doc_intro = re.split(SECTION_PATTERN, docstring, maxsplit=1)[0]
     merged = merge_sections(doc_parts, *doc_sections)
-    print(docstring)
     sections = [doc_intro]
 
     for heading in MERGED_SECTIONS:
@@ -118,7 +117,7 @@ def schema_to_docstring_sections(cls_fields):
     sections = {name: {} for name in MERGED_SECTIONS}
     for name, field in cls_fields.items():
         if isinstance(field, ModelField) and field.field_info.description:
-            ftype = field.outer_type_.__name__
+            ftype = str(field.outer_type_)
             desc = textwrap.indent(field.field_info.description, INDENT)
             for section_fields in sections.values():
                 section_fields[name] = [f"{name} : {ftype}", desc]

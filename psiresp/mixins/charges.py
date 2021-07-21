@@ -25,7 +25,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
     """
     symbols: List[str] = Field(description=("Atom element symbols. "
                                             "Required to determine Hs"))
-    n_orientations: List[str] = Field(description=("Number of orientations "
+    n_orientations: List[int] = Field(description=("Number of orientations "
                                                    "per RESP molecule"))
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
