@@ -78,14 +78,9 @@ class RespMoleculeOptions(base.Model):
 
 
 class RespStage(BaseRespOptions):
-    """Resp Stage options
-
-    Parameters
-    ----------
-    hyp_a: float
-        scale factor of asymptote limits of hyperbola
-    """
-    hyp_a: float = 0.0005
+    """Resp Stage options"""
+    hyp_a: float = Field(default=0.0005,
+                         description="scale factor of asymptote limits of hyperbola")
 
     def get_mask_indices(self, symbols):
         symbols = np.asarray(symbols)

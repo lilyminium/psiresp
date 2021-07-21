@@ -12,8 +12,7 @@ from .utils.io import datafile
 
 
 class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
-    """Class to manage one Resp job
-    """
+    """Class to manage one Resp job"""
 
     parent: Optional[Any] = None  # TODO: troubleshoot MultiResp typing
     _conformers: List[Conformer] = PrivateAttr(default_factory=list)

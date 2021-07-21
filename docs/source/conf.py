@@ -15,12 +15,11 @@
 # Incase the project was not installed
 
 
+import psiresp
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
-
-import psiresp
 
 
 # -- Project information -----------------------------------------------------
@@ -62,8 +61,8 @@ mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?
 
 autosummary_generate = True
 napoleon_google_docstring = False
-napoleon_use_param = False
-napoleon_use_ivar = True
+# napoleon_use_param = False
+# napoleon_use_ivar = True
 autodoc_typehints = "description"
 
 

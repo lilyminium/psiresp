@@ -110,12 +110,16 @@ def create_docstring_from_sections(docstring: str,
     return "\n\n".join(sections)
 
 
+def get_qualified_class_name(cls):
+    return f"{cls.__module__}.{cls.__name__}"
+
+
 def type_to_string(type_alias):
     try:
-        return type_alias.__name__
+        return get_qualified_class_name(type_alias)
     except AttributeError:
         try:
-            name = type_alias.__origin__.__name__
+            name = get_qualified_class_name(type_alias.__origin__)
         except AttributeError:
             try:
                 name = type_alias.__origin__._name

@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, Field
 
 from . import mixins, utils
 from .utils.io import datafile
@@ -14,15 +14,8 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
     users are expected to work primarily with
     :class:`psiresp.conformer.Conformer` or :class:`psiresp.resp.Resp`.
 
-    Parameters
-    ----------
-    conformer: psiresp.Conformer
-        The conformer that owns this orientation
-
     Attributes
     ----------
-    conformer: psiresp.Conformer
-        The conformer that owns this orientation
     grid: numpy.ndarray
         The grid of points on which to compute the ESP
     esp: numpy.ndarray
@@ -32,7 +25,7 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
         atomic units.
     """
 
-    conformer: mixins.ConformerOptions
+    conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
     _grid: Optional[np.ndarray] = PrivateAttr(default=None)
     _esp: Optional[np.ndarray] = PrivateAttr(default=None)
     _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)

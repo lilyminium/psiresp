@@ -20,8 +20,9 @@ class ModelMeta(ModelMetaclass):
         for base in bases:
             sections.append(mtutils.get_cls_docstring_sections(base))
 
+        prioritize = ["psi4mol", "conformer"]
         docstring = mtutils.create_docstring_from_sections(docstring, sections,
-                                                           order_first=["psi4mol"])
+                                                           order_first=prioritize)
         clsdict["__doc__"] = docstring
         return ModelMetaclass.__new__(cls, name, bases, clsdict)
 

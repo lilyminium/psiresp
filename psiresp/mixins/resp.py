@@ -14,37 +14,36 @@ from ..utils.execution import run_with_executor
 
 
 class RespOptions(BaseRespOptions):
-    """Resp options
-
-    Parameters
-    ----------
-    hyp_a1: float (optional)
-        scale factor of asymptote limits of hyperbola, in the stage 1 fit
-    hyp_a2: float (optional)
-        scale factor of asymptote limits of hyperbola, in the stage 2 fit
-    """
-    hyp_a1: float = 0.0005
-    hyp_a2: float = 0.001
+    """Resp options"""
+    hyp_a1: float = Field(
+        default=0.0005,
+        description=("scale factor of asymptote limits of hyperbola, "
+                     "in the stage 1 fit"),
+    )
+    hyp_a2: float = Field(
+        default=0.001,
+        description=("scale factor of asymptote limits of hyperbola, "
+                     "in the stage 2 fit"),
+    )
 
 
 class RespMixin(RespOptions, GridMixin, QMMixin):
-    """Resp mixin for actually running the job
-
-    Parameters
-    ----------
-    charge_constraint_options: psiresp.options.ChargeConstraintOptions (optional)
-        charge constraints and charge equivalence constraints
-    conformer_options: psiresp.options.ConformerOptions (optional)
-        Default arguments for creating a conformer for this object
-
-    """
+    """Resp mixin for actually running the job"""
 
     _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
     _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
-    charge_constraint_options: ChargeConstraintOptions = Field(default_factory=ChargeConstraintOptions)
-    orientation_options: OrientationOptions = Field(default_factory=OrientationOptions)
-    conformer_options: ConformerOptions = Field(default_factory=ConformerOptions)
-    
+    charge_constraint_options: ChargeConstraintOptions = Field(
+        default_factory=ChargeConstraintOptions,
+        description="Charge constraints and charge equivalence constraints",
+    )
+    orientation_options: OrientationOptions = Field(
+        default_factory=OrientationOptions,
+        description="Default arguments for creating a new Orientation",
+    )
+    conformer_options: ConformerOptions = Field(
+        default_factory=ConformerOptions,
+        description="Default arguments for creating a conformer for this object"
+    )
 
     @property
     def orientations(self):

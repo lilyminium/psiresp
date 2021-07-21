@@ -19,12 +19,6 @@ class MultiResp(RespMixin, IOMixin):
 
     Parameters
     ----------
-    name: str
-        Name for the job. This affects which directory to save files to.
-    resp_options: RespOptions
-        Options for creating new Resp instances
-    resps: list of Resp
-        Molecules for multi-molecule fit, set up in Resp classes.
     charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         Charge constraints and charge equivalence constraints.
         When running a fit, both these *and* the constraints supplied
@@ -34,8 +28,6 @@ class MultiResp(RespMixin, IOMixin):
 
     Attributes
     ----------
-    molecules: list of Resp
-        Molecules for multi-molecule fit, set up in Resp classes.
     n_molecules: int
         number of molecule Resp classes
     n_structures: int
@@ -49,9 +41,19 @@ class MultiResp(RespMixin, IOMixin):
         partial atomic charges for each molecule
         (only exists after calling run)
     """
-    name: str = "multiresp"
-    resps: List[Resp] = []
-    resp_options: RespMoleculeOptions = Field(default_factory=RespMoleculeOptions)
+    name: str = Field(
+        default="multiresp",
+        description=("Name for the job. "
+                     "This affects which directory to save files to."),
+    )
+    resps: List[Resp] = Field(
+        default_factory=list,
+        description="Resp classes for multi-molecule fit",
+    )
+    resp_options: RespMoleculeOptions = Field(
+        default_factory=RespMoleculeOptions,
+        description="Options for creating new Resp instances",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
