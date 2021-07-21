@@ -18,12 +18,26 @@ def get_container_item_type(field):
 
 class ClientParser(argparse.ArgumentParser):
 
+    def _add_field_option(self, field_name, field):
+        OPTION_TYPES = {
+            int: self._add_int_option,
+            float: self._add_float_option,
+            str: self._add_str_option,
+            bool: self._add_bool_option,
+        }
+        field_type = get_field_type(field)
+        for option_type, parser in OPTION_TYPES.items():
+            if issubclass(field_type, option_type):
+                return parser(field_name, field)
+        if issubclass(field_type, (list, set, tuple)):
+            self._add_iterable_option(field_name, field)
+
     def _base_add_option(self, field_name, field, **kwargs):
         parameters = dict(required=False,
                           default=field.default,
                           help=field.description)
         parameters.update(kwargs)
-        self.add_argunent(f"-{field_name}", **parameters)
+        self.add_argument(f"-{field_name}", **parameters)
 
     def _add_int_option(self, field_name, field):
         self._base_add_option(field_name, type=int)
