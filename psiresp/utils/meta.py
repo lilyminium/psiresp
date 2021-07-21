@@ -111,7 +111,8 @@ def create_docstring_from_sections(docstring: str,
 
 
 def get_qualified_class_name(cls):
-    return f"{cls.__module__}.{cls.__name__}"
+    return cls.__name__
+    # return f"{cls.__module__}.{cls.__name__}"
 
 
 def type_to_string(type_alias):
