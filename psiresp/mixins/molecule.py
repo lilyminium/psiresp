@@ -3,6 +3,7 @@ import pathlib
 
 import numpy as np
 import psi4
+from pydantic import Field
 
 from .. import utils
 from ..utils import psi4utils
@@ -12,19 +13,8 @@ from .io import IOMixin
 class MoleculeMixin(IOMixin):
     """Class that contains a Psi4 molecule and a name
 
-    Parameters
-    ----------
-    psi4mol: psi4.core.Molecule
-        Psi4 molecule
-    name: str
-        Name
-
     Attributes
     ----------
-    psi4mol: psi4.core.Molecule
-        Psi4 molecule
-    name: str
-        Name
     path: pathlib.Path
         Associated directory
     n_atoms: int
@@ -44,8 +34,13 @@ class MoleculeMixin(IOMixin):
 
     """
 
-    psi4mol: psi4.core.Molecule
-    name: Optional[str] = None
+    psi4mol: psi4.core.Molecule = Field(description="Psi4 molecule")
+    name: Optional[str] = Field(
+        default=None,
+        description=("Name of this instance. "
+                     "This is mostly used to find or create directories for "
+                     "saving QM and intermediate files."),
+    )
 
     @classmethod
     def from_molfile(cls, molfile: str, **kwargs):

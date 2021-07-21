@@ -8,12 +8,63 @@ from typing import Optional, Tuple
 
 from typing_extensions import Literal
 import psi4
+from pydantic import Field, validator
 
 from .. import base, utils
 
 logger = logging.getLogger(__name__)
 
 command_stream = io.StringIO()
+
+QM_METHODS = [
+    # TODO: can I get this dynamically from Psi4?
+    "scf", "hf", "b3lyp", "pw6b95",
+    "scf", "rscf", "uscf", "roscf",
+    "hf", "rhf", "uhf", "rohf",
+    "blyp", "b3lyp-d3", "b3lyp-d3bj",
+    "mp2", "mp3", "mp4",
+    "cc2", "cc3",
+    "cisd", "cisdt", "cisdtq",
+    "ccsd", "ccsd(t)", "fno-df-ccsd(t)",
+    "sapt0", "sapt2", "sapt2+", "sapt2+(3)", "sapt2+3",
+    "pbe", "pbe-d3", "pbe-d3bj",
+    "m06-2x", "pw6b95-d3bj",
+]
+
+QM_BASIS_SETS = [
+    "sto-3g", "3-21g",
+    "6-31g", "6-31+g", "6-31++g",
+    "6-31g(d)", "6-31g*", "6-31+g(d)", "6-31+g*", "6-31++g(d)", "6-31++g*",
+    "6-31g(d,p)", "6-31g**", "6-31+g(d,p)", "6-31+g**", "6-31++g(d,p)", "6-31++g**",
+    "6-311g", "6-311+g", "6-311++g",
+    "6-311g(d)", "6-311g*", "6-311+g(d)", "6-311+g*", "6-311++g(d)", "6-311++g*",
+    "6-311g(d,p)", "6-311g**", "6-311+g(d,p)", "6-311+g**", "6-311++g(d,p)", "6-311++g**",
+    "6-311g(2d)", "6-311+g(2d)", "6-311++g(2d)",
+    "6-311g(2d,p)", "6-311+g(2d,p)", "6-311++g(2d,p)",
+    "6-311g(2d,2p)", "6-311+g(2d,2p)", "6-311++g(2d,2p)",
+    "6-311g(2df)", "6-311+g(2df)", "6-311++g(2df)",
+    "6-311g(2df,p)", "6-311+g(2df,p)", "6-311++g(2df,p)",
+    "6-311g(2df,2p)", "6-311+g(2df,2p)", "6-311++g(2df,2p)",
+    "6-311g(2df,2pd)", "6-311+g(2df,2pd)", "6-311++g(2df,2pd)",
+    "6-311g(3df)", "6-311+g(3df)", "6-311++g(3df)",
+    "6-311g(3df,p)", "6-311+g(3df,p)", "6-311++g(3df,p)",
+    "6-311g(3df,2p)", "6-311+g(3df,2p)", "6-311++g(3df,2p)",
+    "6-311g(3df,2pd)", "6-311+g(3df,2pd)", "6-311++g(3df,2pd)",
+    "6-311g(3df,3pd)", "6-311+g(3df,3pd)", "6-311++g(3df,3pd)",
+    "aug-cc-pVXZ", "aug-cc-pV(D+d)Z", "heavy-aug-cc-pVXZ",
+    "jun-cc-pVXZ", "may-cc-pVXZ", "cc-pVXZ",
+    "cc-pVXZ", "cc-pV(X+d)Z", "cc-pCVXZ",
+    "cc-pCV(X+d)Z", "cc-pwCVXZ", "cc-pwCV(X+d)Z"
+]
+
+QM_SOLVENTS = ["water"]
+
+
+def get_cased_value(value, allowed_values=[]):
+    lower = value.strip().lower()
+    for allowed in allowed_values:
+        if allowed.lower() == lower:
+            return allowed
 
 
 class QMMixin(base.Model):
@@ -49,14 +100,9 @@ class QMMixin(base.Model):
         similar, the job will exit so that you can run the QM jobs in parallel
         yourself.
     """
-    # qm_method: Literal["scf", "hf", "mp2", "mp3", "ccsd"] = "scf"
-    # TODO: https://psicode.org/psi4manual/master/api/psi4.driver.energy.html
-    # add in all relevant methods
-    qm_method: str = "scf"
-    # TODO: https://psicode.org/psi4manual/master/basissets_tables.html#apdx-basistables
-    # TODO: add in all relevant bases
-    # qm_basis_set: Literal[]
-    qm_basis_set: str = "6-31g*"
+
+    qm_method: Literal[(*QM_METHODS,)] = "scf"
+    qm_basis_set: Literal[(*QM_BASIS_SETS,)] = "6-31g*"
     # TODO: should I restrict the solvents?
     solvent: Optional[str] = None
     geom_max_iter: int = 200
@@ -66,6 +112,24 @@ class QMMixin(base.Model):
     opt_infile: str = "{name}_opt.in"
     opt_outfile: str = "{name}_opt.out"
     execute_qm: bool = True
+
+    @validator("qm_method")
+    def validate_method(cls, v):
+        cased = get_cased_value(v, QM_METHODS)
+        assert cased, "must be one of `psiresp.mixins.qm.QM_METHODS`"
+        return cased
+
+    @validator("qm_basis_set")
+    def validate_basis_set(cls, v):
+        cased = get_cased_value(v, QM_BASIS_SETS)
+        assert cased, "must be one of `psiresp.mixins.qm.QM_BASIS_SETS`"
+        return cased
+
+    @validator("solvent")
+    def validate_solvent(cls, v):
+        cased = get_cased_value(v, QM_SOLVENTS)
+        assert cased, "must be one of `psiresp.mixins.qm.QM_SOLVENTS` or None"
+        return cased
 
     @staticmethod
     def get_mol_spec(molecule: psi4.core.Molecule) -> str:
