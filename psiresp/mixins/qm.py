@@ -59,6 +59,16 @@ QM_BASIS_SETS = [
 
 QM_SOLVENTS = ["water"]
 
+QM_G_CONVERGENCES = [
+    "qchem", "molpro", "turbomole", "cfour", "nwchem_loose",
+    "gau", "gau_loose", "gau_tight", "interfrag_tight", "gau_verytight",
+]
+
+QMMethod = Literal[(*QM_METHODS,)]
+QMBasisSet = Literal[(*QM_BASIS_SETS,)]
+QMSolvent = Optional[Literal[(*QM_SOLVENTS,)]]
+QMGConvergence = Literal[(*QM_G_CONVERGENCES,)]
+
 
 def get_cased_value(value, allowed_values=[]):
     lower = value.strip().lower()
@@ -68,50 +78,58 @@ def get_cased_value(value, allowed_values=[]):
 
 
 class QMMixin(base.Model):
-    """Mixin for QM jobs in Psi4
+    """Mixin for QM jobs in Psi4"""
 
-    Parameters
-    ----------
-    qm_method: str
-        QM method
-    qm_basis_set: str
-        Basis set
-    solvent: str
-        Solvent, if any.
-        This has only been tested on "water" and None.
-    geom_max_iter: int
-        Maximum number of geometry optimization steps
-    full_hess_every: int
-        Number of steps between each Hessian computation during geometry
-        optimization. 0 computes only the initial Hessian, 1 means
-        to compute every step, -1 means to never compute the full Hessian.
-        N means to compute every N steps.
-    g_convergence: str
-        Optimization criteria.
-    esp_infile: str
-        Filename to write Psi4 ESP job input
-    opt_infile: str
-        Filename to write Psi4 optimisation job input
-    opt_outfile: str
-        Filename for Psi4 optimisation job output
-    execute_qm: bool
-        Whether to execute the QM jobs. If ``False``, input files will
-        be written but they will not be run. If called from `Resp.run()` or
-        similar, the job will exit so that you can run the QM jobs in parallel
-        yourself.
-    """
-
-    qm_method: Literal[(*QM_METHODS,)] = "scf"
-    qm_basis_set: Literal[(*QM_BASIS_SETS,)] = "6-31g*"
-    # TODO: should I restrict the solvents?
-    solvent: Optional[str] = None
-    geom_max_iter: int = 200
-    full_hess_every: int = 10
-    g_convergence: str = "gau_tight"
-    esp_infile: str = "{name}_esp.in"
-    opt_infile: str = "{name}_opt.in"
-    opt_outfile: str = "{name}_opt.out"
-    execute_qm: bool = True
+    qm_method: QMMethod = Field(
+        default="hf",
+        description="QM method for optimizing geometry and calculating ESPs",
+    )
+    qm_basis_set: QMBasisSet = Field(
+        default="6-31g*",
+        description="QM basis set for optimizing geometry and calculating ESPs",
+    )
+    solvent: QMSolvent = Field(
+        default=None,
+        description="Implicit solvent for QM jobs, if any.",
+    )
+    geom_max_iter: int = Field(
+        default=200,
+        description="Maximum number of geometry optimization steps",
+    )
+    full_hess_every: int = Field(
+        default=10,
+        description=("Number of steps between each Hessian computation "
+                     "during geometry optimization. "
+                     "0 computes only the initial Hessian, "
+                     "1 means to compute every step, "
+                     "-1 means to never compute the full Hessian. "
+                     "N means to compute every N steps."),
+    )
+    g_convergence: QMGConvergence = Field(
+        default="gau_tight",
+        description="Criteria for concluding geometry optimization"
+    )
+    esp_infile: str = Field(
+        default="{name}_esp.in",
+        description="Filename to write Psi4 ESP job input",
+    )
+    opt_infile: str = Field(
+        default="{name}_opt.in",
+        description="Filename to write Psi4 optimisation job input",
+    )
+    opt_outfile: str = Field(
+        default="{name}_opt.out",
+        description="Filename for Psi4 optimisation job output",
+    )
+    execute_qm: bool = Field(
+        default=True,
+        description=("Whether to execute the QM jobs. "
+                     "If ``False``, input files will be written but not run. "
+                     "If called from `Resp.run()` or similar, "
+                     "the job will exit so that you can run the QM jobs "
+                     "in parallel yourself."
+                     ),
+    )
 
     @validator("qm_method")
     def validate_method(cls, v):
@@ -129,6 +147,12 @@ class QMMixin(base.Model):
     def validate_solvent(cls, v):
         cased = get_cased_value(v, QM_SOLVENTS)
         assert cased, "must be one of `psiresp.mixins.qm.QM_SOLVENTS` or None"
+        return cased
+
+    @validator("g_convergence")
+    def validate_convergence(cls, v):
+        cased = get_cased_value(v, QM_G_CONVERGENCES)
+        assert cased, "must be one of `psiresp.mixins.qm.QM_G_CONVERGENCES`"
         return cased
 
     @staticmethod

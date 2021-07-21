@@ -1,5 +1,4 @@
 from typing import Dict, List
-from typing_extensions import Literal
 
 import numpy as np
 from scipy.spatial import distance as spdist
@@ -20,7 +19,7 @@ class GridMixin(base.Model):
         description=("Maximum radius around atom for constructing shells. "
                      "If set to -1, no points are clipped.")
     )
-    use_radii: Literal[(*vdwradii.options,)] = Field(
+    use_radii: vdwradii.VdwRadiiSet = Field(
         default="msk",
         description="Name of the radius set to use",
     )

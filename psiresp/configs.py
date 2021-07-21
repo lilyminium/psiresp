@@ -2,15 +2,17 @@ from typing import Optional
 from pydantic import Field
 
 from .mixins import RespOptions
+from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
+from .vdwradii import VdwRadiiSet
 from .resp import Resp
 from .multiresp import MultiResp
 from .utils.due import due, Doi
 
 
 class BaseRespConfig(RespOptions):
-    qm_method: str = Field("scf", const=True)
-    solvent: Optional[str] = Field(None, const=True)
-    use_radii: str = Field("msk", const=True)
+    qm_method: QMMethod = Field("hf", const=True)
+    solvent: QMSolvent = Field(None, const=True)
+    use_radii: VdwRadiiSet = Field("msk", const=True)
     ihfree: bool = Field(True, const=True)
     hyp_b: float = Field(0.1, const=True)
 
@@ -22,7 +24,7 @@ class BaseRespConfig(RespOptions):
 )
 class RespA1(BaseRespConfig, Resp):
     """RespA1 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = True
     hyp_a1 = 0.0005
     hyp_a2 = 0.001
@@ -36,7 +38,7 @@ class RespA1(BaseRespConfig, Resp):
 )
 class MultiRespA1(BaseRespConfig, MultiResp):
     """RespA1 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = True
     hyp_a1 = 0.0005
     hyp_a2 = 0.001
@@ -50,7 +52,7 @@ class MultiRespA1(BaseRespConfig, MultiResp):
 )
 class RespA2(BaseRespConfig, Resp):
     """RespA2 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.01
     hyp_a2 = 0.0
@@ -64,7 +66,7 @@ class RespA2(BaseRespConfig, Resp):
 )
 class MultiRespA2(BaseRespConfig, MultiResp):
     """RespA2 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.01
     hyp_a2 = 0.0
@@ -78,7 +80,7 @@ class MultiRespA2(BaseRespConfig, MultiResp):
 )
 class EspA1(BaseRespConfig, Resp):
     """EspA1 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0
@@ -92,7 +94,7 @@ class EspA1(BaseRespConfig, Resp):
 )
 class MultiEspA1(BaseRespConfig, MultiResp):
     """EspA1 config"""
-    qm_basis = "6-31g*"
+    qm_basis: QMBasisSet = "6-31g*"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0
@@ -107,7 +109,7 @@ class MultiEspA1(BaseRespConfig, MultiResp):
 )
 class EspA2(BaseRespConfig, Resp):
     """EspA2 config"""
-    qm_basis = "sto-3g"
+    qm_basis: QMBasisSet = "sto-3g"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0
@@ -122,7 +124,7 @@ class EspA2(BaseRespConfig, Resp):
 )
 class MultiEspA2(BaseRespConfig, MultiResp):
     """EspA2 config"""
-    qm_basis = "sto-3g"
+    qm_basis: QMBasisSet = "sto-3g"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0
@@ -136,10 +138,10 @@ class MultiEspA2(BaseRespConfig, MultiResp):
 )
 class ATBResp(Resp):
     """ATBResp config"""
-    qm_basis = "6-31g*"
-    qm_method = "b3lyp"
-    solvent = "solvent"
-    use_radii = "msk"
+    qm_basis: QMBasisSet = "6-31g*"
+    qm_method: QMMethod = "b3lyp"
+    solvent: QMSolvent = "solvent"
+    use_radii: VdwRadiiSet = "msk"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0
@@ -155,10 +157,10 @@ class ATBResp(Resp):
 )
 class MultiATBResp(MultiResp):
     """ATBResp config"""
-    qm_basis = "6-31g*"
-    qm_method = "b3lyp"
-    solvent = "solvent"
-    use_radii = "msk"
+    qm_basis: QMBasisSet = "6-31g*"
+    qm_method: QMMethod = "b3lyp"
+    solvent: QMSolvent = "solvent"
+    use_radii: VdwRadiiSet = "msk"
     stage_2 = False
     hyp_a1 = 0.0
     hyp_a2 = 0.0

@@ -1,3 +1,6 @@
+from typing_extensions import Literal
+
+
 MSK_RADII = {  # from FMOPRP in GAMESS fmoio.src
     'H': 1.20,                                                                      'He': 1.20,
     'Li': 1.37, 'Be': 1.45,  'B': 1.45,  'C': 1.50, 'N': 1.50, 'O': 1.40, 'F': 1.35, 'Ne': 1.30,
@@ -76,3 +79,5 @@ options = {
     'alvarez': ALVAREZ_RADII,
     'msk': MSK_RADII,
 }
+
+VdwRadiiSet = Literal[(*options,)]
