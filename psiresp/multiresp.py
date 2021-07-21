@@ -2,6 +2,7 @@
 
 import pathlib
 from typing import List, Dict, Optional, Union
+import yaml
 
 import numpy as np
 import scipy
@@ -50,10 +51,42 @@ class MultiResp(RespMixin, IOMixin):
         default_factory=list,
         description="Resp classes for multi-molecule fit",
     )
-    resp_options: RespMoleculeOptions = Field(
+    molecule_options: RespMoleculeOptions = Field(
         default_factory=RespMoleculeOptions,
         description="Options for creating new Resp instances",
     )
+
+    @classmethod
+    def from_yaml(cls, filename):
+        with open(filename, "r") as f:
+            content = yaml.full_load(f)
+
+        molecules = content.pop("molecules", {})
+        obj = cls(**content)
+        global_mol_options = obj.molecule_options.to_kwargs()
+
+        if not molecules:
+            molecules[obj.name] = {}
+            obj.name = "multiresp"
+
+        for name, local_mol_options in molecules.items():
+            options = dict(**global_mol_options)
+            options["name"] = name
+            options.update(local_mol_options)
+            name = options["name"]
+            try:
+                molfile = options.pop("molfile")
+            except KeyError:
+                raise TypeError("a `molfile` must be given for each molecule "
+                                "containing the molecule specification. "
+                                "A `molfile` was not given for the molecule "
+                                f"named '{name}'. "
+                                "Accepted formats include PDB, XYZ, MOL2.")
+            else:
+                molfile = molfile.format(**options)
+            resp = Resp.from_molfile(molfile, **options)
+            obj.add_resp(resp)
+        return obj
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,9 +153,11 @@ class MultiResp(RespMixin, IOMixin):
             mol = psi4mol_or_resp.clone()
             if name is None:
                 name = f"Mol_{len(self.resps) + 1:03d}"
-            default_kwargs = self.resp_options.to_kwargs(**kwargs)
+            default_kwargs = self.molecule_options.to_kwargs()
             # TODO: this is a bad hack
+            # TODO: automatically set molecule number at this part?
             default_kwargs["charge_constraint_options"] = {}
+            default_kwargs.update(kwargs)
             psi4mol_or_resp = Resp.from_model(self, psi4mol=mol, name=name, **default_kwargs)
 
         psi4mol_or_resp.parent = self

@@ -3,6 +3,10 @@
 # please see the Resp documentation for
 # explanation of each of the options
 
+# the file does not need to be in any particular order
+# but has been organized in conceptual groups
+name: dmso
+
 # IO options
 load_input: false
 save_output: true
@@ -28,21 +32,18 @@ hyp_b: 0.1
 stage_2: true
 ihfree: true
 
-molecules:
-  # molecules are defined by the Resp names
-  dmso:  # this Resp job is called "dmso"
-    filename: dmso_opt_c1.xyz
-    charge: 0
-    multiplicity: 1
-    load_input: false
-    save_output: false  # this will overwrite the overall `save_output`
-    max_generated_conformers: 8
-    min_conformer_rmsd: 1.5
-    minimize_conformer_geometries: true
-    keep_original_resp_geometry: false
-    conformer_options:
-      optimize_geometry: true
-      n_reorientations: 8  # creates 8 rigid-body-reorientations automatically
-      rotations:  # creates 2 rigid-body-rotations as specified
-        - [1, 5, 6]
-        - [6, 5, 1]
+# molecule options
+molfile: dmso_opt_c1.xyz
+charge: 0
+multiplicity: 1
+max_generated_conformers: 8
+min_conformer_rmsd: 1.5
+minimize_conformer_geometries: true
+keep_original_resp_geometry: false
+
+conformer_options:
+  optimize_geometry: true
+  n_reorientations: 8 # creates 8 rigid-body-reorientations automatically
+  rotations: # creates 2 rigid-body-rotations as specified
+    - [1, 5, 6]
+    - [6, 5, 1]

@@ -1,12 +1,14 @@
 
 from typing import Optional, Dict, List, Any
 import pathlib
+import yaml
 
 import numpy as np
+import psi4
 from pydantic import PrivateAttr
 
 from .conformer import Conformer
-from .utils import psi4utils, rdutils
+from .utils import psi4utils, rdutils, utils
 from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .utils.io import datafile
 
@@ -17,6 +19,20 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
     parent: Optional[Any] = None  # TODO: troubleshoot MultiResp typing
     _conformers: List[Conformer] = PrivateAttr(default_factory=list)
     _conformer_coordinates = PrivateAttr(default=np.array([]))
+
+    @classmethod
+    def from_yaml(cls, filename):
+        with open(filename, "r") as f:
+            options = yaml.full_load(f)
+        try:
+            molfile = options.pop("molfile")
+        except KeyError:
+            raise TypeError("a `molfile` must be given "
+                            "containing the molecule specification. "
+                            "Accepted formats include PDB, XYZ, MOL2.")
+        else:
+            molfile = molfile.format(**options)
+        return Resp.from_molfile(molfile, **options)
 
     @classmethod
     def from_molfile(cls, molfile: str, **kwargs) -> "Resp":
@@ -38,12 +54,32 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
         -------
         Resp
         """
-        mols = psi4utils.psi4mols_from_file(molfile)
+        psi4mols = psi4utils.psi4mols_from_file(molfile)
+        return cls.from_psi4mols(psi4mols, **kwargs)
 
-        obj = cls(psi4mol=mols[0], **kwargs)
-        if len(mols) > 1:
-            obj.keep_original_resp_geometry = False
-            for mol in mols:
+    @classmethod
+    def from_psi4mols(cls, psi4mols: List[psi4.core.Molecule], **kwargs):
+        """Create class from one or more Psi4 molecules
+
+        Parameters
+        ----------
+        psi4mols: List[psi4.core.Molecule]
+            List of Psi4 molecules. At least one must be provided.
+        **kwargs:
+            Further arguments for initialization of the class
+            (see class docstring)
+
+        Returns
+        -------
+        Resp
+        """
+        psi4mols = utils.as_iterable(psi4mols)
+        if not len(psi4mols):
+            raise ValueError("At least one molecule must be provided")
+
+        obj = cls(psi4mol=psi4mols[0], **kwargs)
+        if len(psi4mols) > 1:
+            for mol in psi4mols:
                 obj.add_conformer(mol)
         return obj
 

@@ -24,3 +24,4 @@ dependencies:
       - duecredit
       - pytest-xdist
       - mdanalysis==2.0.0b0
+      - pyyaml

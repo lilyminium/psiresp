@@ -204,15 +204,81 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
             conformer.generate_orientations()
 
     def run(self,
-            executor: Optional[concurrent.futures.Executor] = None,
+            nprocs: int = 1,
+            nthreads: int = 1,
+            memory: str = "500MB",
             timeout: Optional[float] = None,
             geometry_command_log: str = "finalize_geometry_commands.log",
-            esp_command_log: str = "finalize_geometry_commands.log",
+            esp_command_log: str = "compute_esp_commands.log",
             ) -> np.ndarray:
         """Run RESP job.
 
         This is the recommended way to use this class, after
         setting up all configuration options.
+
+        The geometry optimizations and ESP computations can be
+        expensive. Psi4 jobs can be run in parallel if multiple processes
+        are used (``nprocs > 1``). Within a Psi4 job, computation
+        can be done in parallel with multiple threads (``nthreads > 1``).
+        The memory used in a single Psi4 job is specified with ``memory``.
+
+        If ``execute_qm`` is False, this function will have to be
+        executed multiple times:
+
+            * (if ``optimize_geometry=True``) to run the Psi4 jobs as laid out in ``geometry_command_log``
+            * to run the Psi4 jobs as laid out in ``esp_command_log``
+            * to fit the RESP charges
+
+        The computed charges will be stored at:
+            * :attr:`psiresp.Resp.stage_1_charges`
+            * :attr:`psiresp.Resp.stage_2_charges` (if applicable)
+
+        These will be :class:`psiresp.charges.RespCharges` objects, which
+        will contain both restrained and unrestrained charges.
+
+        The overall desired charges will be returned by :attr:`psiresp.Resp.charges`.
+
+        Parameters
+        ----------
+        nprocs: int
+            Number of processes to use
+        nthreads: int
+            Number of threads to use
+        memory: str
+            Memory to use *per process* for a single Psi4 job.
+            If units are not specified, they are taken to be bytes.
+        timeout: float or int (optional)
+            Timeout to wait before stopping the executor
+        geometry_command_log: str (optional)
+            Filename to write geometry optimization commands to
+        esp_command_log: str (optional)
+            Filename to write ESP computation commands to
+
+        Returns
+        -------
+        numpy.ndarray of float
+            The final resulting charges
+
+        Raises
+        ------
+        SystemExit
+            If ``execute_qm`` is False
+        """
+        executor = concurrent.futures.ProcessPoolExecutor(nprocs)
+        # TODO: should this change be permanent?
+        self._n_threads = nthreads
+        self._memory = memory
+        return self.run_with_executor(executor, timeout=timeout,
+                                      geometry_command_log=geometry_command_log,
+                                      esp_command_log=esp_command_log)
+
+    def run_with_executor(self,
+                          executor: Optional[concurrent.futures.Executor] = None,
+                          timeout: Optional[float] = None,
+                          geometry_command_log: str = "finalize_geometry_commands.log",
+                          esp_command_log: str = "compute_esp_commands.log",
+                          ) -> np.ndarray:
+        """Run RESP job with an executor.
 
         The geometry optimizations and ESP computations can be
         expensive. A way to parallelize operations is provided if

@@ -1,5 +1,10 @@
-from typing import Optional
-from pydantic import Field
+"""
+Pre-configured classes --- :mod:`psiresp.configs`
+================================================
+
+This module provides pre-configured Resp and MultiResp classes
+that correspond to commonly used settings.
+"""
 
 from .mixins import RespOptions
 from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
@@ -9,12 +14,20 @@ from .multiresp import MultiResp
 from .utils.due import due, Doi
 
 
+# class BaseRespConfig(RespOptions):
+#     qm_method: QMMethod = Field("hf", const=True)
+#     solvent: QMSolvent = Field(None, const=True)
+#     use_radii: VdwRadiiSet = Field("msk", const=True)
+#     ihfree: bool = Field(True, const=True)
+#     hyp_b: float = Field(0.1, const=True)
+
+# Let users override for now
 class BaseRespConfig(RespOptions):
-    qm_method: QMMethod = Field("hf", const=True)
-    solvent: QMSolvent = Field(None, const=True)
-    use_radii: VdwRadiiSet = Field("msk", const=True)
-    ihfree: bool = Field(True, const=True)
-    hyp_b: float = Field(0.1, const=True)
+    qm_method: QMMethod = "hf"
+    solvent: QMSolvent = None
+    use_radii: VdwRadiiSet = "msk"
+    ihfree: bool = True
+    hyp_b: float = 0.1
 
 
 @due.dcite(

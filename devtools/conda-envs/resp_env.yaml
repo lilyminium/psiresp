@@ -13,5 +13,6 @@ dependencies:
   - rdkit
   # Pip-only installs
   - pip:
-    - duecredit
-    - mdanalysis==2.0.0b0
+      - duecredit
+      - mdanalysis==2.0.0b0
+      - pyyaml

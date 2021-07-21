@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from typing_extensions import Literal
 import psi4
-from pydantic import Field, validator
+from pydantic import Field, PrivateAttr, validator
 
 from .. import base, utils
 
@@ -130,6 +130,9 @@ class QMMixin(base.Model):
                      "in parallel yourself."
                      ),
     )
+
+    _n_threads: int = PrivateAttr(default=0)
+    _memory: str = PrivateAttr(default="500MB")
 
     @validator("qm_method")
     def validate_method(cls, v):
@@ -287,15 +290,19 @@ class QMMixin(base.Model):
         NoQMExecutionError
             if QM is not run
         """
-        command = f"{psi4.executable} -i {infile}"
+        cmds = [psi4.executable, "-i", infile]
+
         if outfile is not None:
-            command += f"-o {outfile}"
+            cmds.extend(["-o", outfile])
+        cmds.extend(["--memory", self._memory, "--nthread", self._n_threads])
 
         if not self.execute_qm:
+            command = " ".join(cmds)
             command_stream.write(command + "\n")
             logger.info(command)
             raise utils.NoQMExecutionError("Not running qm")
 
-        proc = subprocess.run(command, shell=True,
+        # TODO: not sure why my jobs don't work with the python API
+        proc = subprocess.run(cmds, shell=True,
                               cwd=cwd, stderr=subprocess.PIPE)
         return proc
