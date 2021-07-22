@@ -21,55 +21,55 @@ with the following keywords:
 
 If paths are created automatically, they are nested. For example, if you
 are running a MultiResp job with molecules named "nme2ala2" and "methylammonium",
-the directory tree will look like:
+the directory tree will look like::
 
-  .
-  └── multiresp
-      ├── methylammonium
-      │   └── methylammonium_c001
-      │       ├── methylammonium_c001_o001
-      │       │   ├── methylammonium_c001_o001_grid.dat
-      │       │   ├── methylammonium_c001_o001_grid_esp.dat
-      │       │   └── methylammonium_c1_o1_grid_esp.log
-      │       └── methylammonium_c001_o002
-      │           ├── methylammonium_c001_o002_grid.dat
-      │           ├── methylammonium_c001_o002_grid_esp.dat
-      │           └── methylammonium_c1_o2_grid_esp.log
-      └── nme2ala2
-          ├── nme2ala2_c001
-          │   ├── nme2ala2_c001_o001
-          │   │   ├── nme2ala2_c001_o001_grid.dat
-          │   │   ├── nme2ala2_c001_o001_grid_esp.dat
-          │   │   └── nme2ala2_c001_o001_grid_esp.log
-          │   ├── nme2ala2_c001_o002
-          │   │   ├── nme2ala2_c001_o002_grid.dat
-          │   │   ├── nme2ala2_c001_o002_grid_esp.dat
-          │   │   └── nme2ala2_c001_o002_grid_esp.log
-          │   ├── nme2ala2_c001_o003
-          │   │   ├── nme2ala2_c001_o003_grid.dat
-          │   │   ├── nme2ala2_c001_o003_grid_esp.dat
-          │   │   └── nme2ala2_c001_o003_grid_esp.log
-          │   └── nme2ala2_c001_o004
-          │       ├── nme2ala2_c001_o004_grid.dat
-          │       ├── nme2ala2_c001_o004_grid_esp.dat
-          │       └── nme2ala2_c001_o004_grid_esp.log
-          └── nme2ala2_c002
-              ├── nme2ala2_c002_o001
-              │   ├── nme2ala2_c002_o001_grid.dat
-              │   ├── nme2ala2_c002_o001_grid_esp.dat
-              │   └── nme2ala2_c002_o001_grid_esp.log
-              ├── nme2ala2_c002_o002
-              │   ├── nme2ala2_c002_o002_grid.dat
-              │   ├── nme2ala2_c002_o002_grid_esp.dat
-              │   └── nme2ala2_c002_o002_grid_esp.log
-              ├── nme2ala2_c002_o003
-              │   ├── nme2ala2_c002_o003_grid.dat
-              │   ├── nme2ala2_c002_o003_grid_esp.dat
-              │   └── nme2ala2_c002_o003_grid_esp.log
-              └── nme2ala2_c002_o004
-                  ├── nme2ala2_c002_o004_grid.dat
-                  ├── nme2ala2_c002_o004_grid_esp.dat
-                  └── nme2ala2_c002_o004_grid_esp.log
+    .
+    └── multiresp
+        ├── methylammonium
+        │   └── methylammonium_c001
+        │       ├── methylammonium_c001_o001
+        │       │   ├── methylammonium_c001_o001_grid.dat
+        │       │   ├── methylammonium_c001_o001_grid_esp.dat
+        │       │   └── methylammonium_c1_o1_grid_esp.log
+        │       └── methylammonium_c001_o002
+        │           ├── methylammonium_c001_o002_grid.dat
+        │           ├── methylammonium_c001_o002_grid_esp.dat
+        │           └── methylammonium_c1_o2_grid_esp.log
+        └── nme2ala2
+            ├── nme2ala2_c001
+            │   ├── nme2ala2_c001_o001
+            │   │   ├── nme2ala2_c001_o001_grid.dat
+            │   │   ├── nme2ala2_c001_o001_grid_esp.dat
+            │   │   └── nme2ala2_c001_o001_grid_esp.log
+            │   ├── nme2ala2_c001_o002
+            │   │   ├── nme2ala2_c001_o002_grid.dat
+            │   │   ├── nme2ala2_c001_o002_grid_esp.dat
+            │   │   └── nme2ala2_c001_o002_grid_esp.log
+            │   ├── nme2ala2_c001_o003
+            │   │   ├── nme2ala2_c001_o003_grid.dat
+            │   │   ├── nme2ala2_c001_o003_grid_esp.dat
+            │   │   └── nme2ala2_c001_o003_grid_esp.log
+            │   └── nme2ala2_c001_o004
+            │       ├── nme2ala2_c001_o004_grid.dat
+            │       ├── nme2ala2_c001_o004_grid_esp.dat
+            │       └── nme2ala2_c001_o004_grid_esp.log
+            └── nme2ala2_c002
+                ├── nme2ala2_c002_o001
+                │   ├── nme2ala2_c002_o001_grid.dat
+                │   ├── nme2ala2_c002_o001_grid_esp.dat
+                │   └── nme2ala2_c002_o001_grid_esp.log
+                ├── nme2ala2_c002_o002
+                │   ├── nme2ala2_c002_o002_grid.dat
+                │   ├── nme2ala2_c002_o002_grid_esp.dat
+                │   └── nme2ala2_c002_o002_grid_esp.log
+                ├── nme2ala2_c002_o003
+                │   ├── nme2ala2_c002_o003_grid.dat
+                │   ├── nme2ala2_c002_o003_grid_esp.dat
+                │   └── nme2ala2_c002_o003_grid_esp.log
+                └── nme2ala2_c002_o004
+                    ├── nme2ala2_c002_o004_grid.dat
+                    ├── nme2ala2_c002_o004_grid_esp.dat
+                    └── nme2ala2_c002_o004_grid_esp.log
 
 .. note::
 
