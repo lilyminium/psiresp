@@ -9,7 +9,7 @@ from .resp_base import BaseRespOptions, RespStage, ContainsQMandGridMixin
 
 from .charge_constraints import ChargeConstraintOptions
 from .conformer import ConformerOptions, OrientationOptions
-from ..utils.execution import run_with_executor
+# from ..utils.execution import run_with_executor
 
 
 class RespOptions(BaseRespOptions):
@@ -172,8 +172,8 @@ class RespMixin(ContainsQMandGridMixin, RespOptions):
         """
 
         functions = [conf.finalize_geometry for conf in self.conformers]
-        run_with_executor(functions, executor=executor, timeout=timeout,
-                          command_log=command_log)
+        self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
+                                          command_log=command_log)
 
     def compute_esps(self,
                      executor: Optional[concurrent.futures.Executor] = None,
@@ -204,8 +204,8 @@ class RespMixin(ContainsQMandGridMixin, RespOptions):
         """
         self.finalize_geometries(executor=executor, timeout=timeout)
         functions = [orient.compute_esp for orient in self.orientations]
-        run_with_executor(functions, executor=executor, timeout=timeout,
-                          command_log=command_log)
+        self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
+                                          command_log=command_log)
 
     def get_clean_charge_options(self):
         return self.charge_constraint_options.copy(deep=True)
@@ -350,6 +350,7 @@ class RespMixin(ContainsQMandGridMixin, RespOptions):
                 self.finalize_geometries(executor=executor, timeout=timeout,
                                          command_log=geometry_command_log)
                 self.generate_orientations()
+                print("COMPUTING ESPS")
                 self.compute_esps(executor=executor, timeout=timeout,
                                   command_log=esp_command_log)
 

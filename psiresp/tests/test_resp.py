@@ -32,7 +32,43 @@ def test_init_options_as_kwargs():
     assert resp.grid_options.grid_rmax == 3.14
 
 
-class TestNoOrient:
+@pytest.mark.parametrize("opt, filename, n_lines, match", [
+    (True, "finalize_geometry_commands.log", 1, "default_c001_opt.in"),
+    (False, "compute_esp_commands.log", 2, "default_c001_o002_esp.in"),
+])
+def test_no_execute_qm_executor(tmpdir, opt, filename, n_lines, match):
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, execute_qm=False,
+                                     conformer_options=dict(optimize_geometry=opt,
+                                                            n_reorientations=2))
+    with tmpdir.as_cwd():
+        err = f"Exiting to allow you to run QM jobs. Check {filename}"
+        with pytest.raises(SystemExit, match=err):
+            resp.run(nprocs=2)
+        with open(filename, "r") as f:
+            content = f.readlines()
+        assert len(content) == n_lines
+        for pattern in ("psi4", "-i ", "--nthread"):
+            assert all(pattern in line for line in content)
+        assert match in content[-1]
+
+
+@pytest.mark.parametrize("opt, match", [
+    (True, "default_c001_opt.in"),
+    (False, "default_c001_o001_esp.in"),
+])
+def test_no_execute_qm_serial(tmpdir, opt, match):
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, execute_qm=False,
+                                     conformer_options=dict(optimize_geometry=opt,
+                                                            n_reorientations=2))
+    with tmpdir.as_cwd():
+        err = "Exiting to allow you to run QM jobs"
+        with pytest.raises(psiresp.NoQMExecutionError, match=err) as excinfo:
+            resp.run()
+        for pattern in ("psi4", "-i ", "--nthread", match):
+            assert pattern in excinfo.value.args[1]
+
+
+class TestNoQM:
 
     esp_1 = [-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
              -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]
@@ -168,6 +204,7 @@ class TestNoOrient:
         charges = nme2ala2_opt_resp.run()
         reference = charges_from_red_file(charge_file)
         assert_almost_equal(charges, reference, decimal=3)
+
 
 # def test_resp_from_file()...
 

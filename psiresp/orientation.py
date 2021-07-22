@@ -84,7 +84,8 @@ class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.qm_options.write_esp_file(self.psi4mol)
+            infile = self.qm_options.write_esp_file(self.psi4mol,
+                                                    name=self.name)
             self.qm_options.try_run_qm(infile, cwd=tmpdir)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp

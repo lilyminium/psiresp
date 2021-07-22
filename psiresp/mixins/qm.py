@@ -1,3 +1,5 @@
+from typing import List, Callable, Optional
+import concurrent.futures
 import os
 import io
 import re
@@ -16,7 +18,6 @@ from ..utils import psi4utils
 
 logger = logging.getLogger(__name__)
 
-command_stream = io.StringIO()
 
 QM_METHODS = [
     # TODO: can I get this dynamically from Psi4?
@@ -79,6 +80,10 @@ def get_cased_value(value, allowed_values=[]):
             return allowed
 
 
+class NoQMExecutionError(RuntimeError):
+    """Special error to tell job to quit if there are QM jobs to run"""
+
+
 class QMMixin(base.Model):
     """Mixin for QM jobs in Psi4"""
 
@@ -133,6 +138,7 @@ class QMMixin(base.Model):
                      ),
     )
 
+    # _COMMAND_STREAM = io.StringIO()
     _n_threads: int = PrivateAttr(default=1)
     _memory: str = PrivateAttr(default="500 MB")
     # _executor: Optional[concurrent.futures.Executor] = PrivateAttr(default=None)
@@ -182,7 +188,10 @@ class QMMixin(base.Model):
         mol = re.sub(pattern, "", mol)
         return f"molecule {molecule.name()} {{\n{mol}\n}}\n\n"
 
-    def write_opt_file(self, psi4mol: psi4.core.Molecule) -> Tuple[str, str]:
+    def write_opt_file(self,
+                       psi4mol: psi4.core.Molecule,
+                       name: Optional[str] = None,
+                       ) -> Tuple[str, str]:
         """Write psi4 optimization input to file
         and return expected input and output paths.
 
@@ -201,7 +210,7 @@ class QMMixin(base.Model):
         opt_file += textwrap.dedent(f"""
         set {{
             basis {self.qm_basis_set}
-            geom_maxiter {self.geom_maxiter}
+            geom_maxiter {self.geom_max_iter}
             full_hess_every {self.full_hess_every}
             g_convergence {self.g_convergence}
         }}
@@ -209,9 +218,12 @@ class QMMixin(base.Model):
         optimize('{self.qm_method}')
         """)
 
-        infile = self.opt_infile.format(name=psi4mol.name())
+        if name is None:
+            name = psi4mol.name()
+
+        infile = self.opt_infile.format(name=name)
         infile = os.path.abspath(infile)
-        outfile = self.opt_outfile.format(name=psi4mol.name())
+        outfile = self.opt_outfile.format(name=name)
         outfile = os.path.abspath(outfile)
 
         with open(infile, "w") as f:
@@ -220,7 +232,9 @@ class QMMixin(base.Model):
 
         return infile, outfile
 
-    def write_esp_file(self, psi4mol: psi4.core.Molecule) -> str:
+    def write_esp_file(self, psi4mol: psi4.core.Molecule,
+                       name: Optional[str] = None,
+                       ) -> str:
         """Write psi4 esp input to file and return input filename
 
         Parameters
@@ -267,7 +281,10 @@ class QMMixin(base.Model):
         esp = wfn.oeprop.Vvals()
             """)
 
-        filename = self.esp_infile.format(name=psi4mol.name())
+        if name is None:
+            name = psi4mol.name()
+
+        filename = self.esp_infile.format(name=name)
 
         with open(filename, "w") as f:
             f.write(esp_file)
@@ -306,12 +323,71 @@ class QMMixin(base.Model):
         command = " ".join(cmds)
 
         if not self.execute_qm:
-            command_stream.write(command + "\n")
-            logger.info(command)
-            raise utils.NoQMExecutionError("Not running qm")
+            raise NoQMExecutionError("Exiting to allow you to run QM jobs", command)
 
         # TODO: not sure why my jobs don't work with the python API
 
         proc = subprocess.run(command, shell=True,
                               cwd=cwd, stderr=subprocess.PIPE)
         return proc
+
+    def run_with_executor(self, functions: List[Callable] = [],
+                          executor: Optional[concurrent.futures.Executor] = None,
+                          timeout: Optional[float] = None,
+                          command_log: str = "commands.log"):
+        """Submit ``functions`` to potential ``executor``, or run in serial
+
+        Parameters
+        ----------
+        functions: list of functions
+            List of functions to run
+        executor: concurrent.futures.Executor (optional)
+            If given, the functions will be submitted to this executor.
+            If not, the functions will run in serial.
+        timeout: float
+            Timeout for waiting for the executor to complete
+        command_log: str
+            File to write commands to, if there are QM jobs to run
+        """
+        futures = []
+        for func in functions:
+            try:
+                future = executor.submit(func)
+            except AttributeError:
+                func()
+            else:
+                futures.append(future)
+        self.wait_or_quit(futures, timeout=timeout, command_log=command_log)
+
+    def wait_or_quit(self,
+                     futures: List[concurrent.futures.Future] = [],
+                     timeout: Optional[float] = None,
+                     command_log: str = "commands.log"):
+        """Either wait for futures to complete, or quit
+
+        Parameters
+        ----------
+        futures: list of futures
+            Futures to complete
+        timeout: float
+            Timeout for waiting for the executor to complete
+        command_log: str
+            File to write commands to, if there are QM jobs to run
+
+        Raises
+        ------
+        SystemExit
+            if there are QM jobs to run
+        """
+        concurrent.futures.wait(futures, timeout=timeout)
+        commands = []
+        for future in futures:
+            try:
+                future.result()
+            except NoQMExecutionError as e:
+                commands.append(e.args[1])
+        if commands:
+            with open(command_log, "w") as f:
+                f.write("\n".join(commands))
+            raise SystemExit("Exiting to allow you to run QM jobs. "
+                             f"Check {command_log} for required commands")

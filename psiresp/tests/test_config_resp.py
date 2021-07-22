@@ -65,10 +65,8 @@ def test_dmso_resp_config(config_class, charge_file, dmso_o1_psi4mol, dmso_o2_ps
                         charge_constraint_options=charge_options)
     resp.generate_conformers()
     conformer = resp.conformers[0]
-    print("confs", len(resp.conformers))
     conformer.add_orientation(dmso_o1_psi4mol)
     conformer.add_orientation(dmso_o2_psi4mol)
-    print("ori", conformer.n_orientations)
     charges = resp.run()
 
     reference = charges_from_red_file(charge_file)
