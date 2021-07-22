@@ -60,8 +60,6 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
 
     @datafile(filename="optimized_geometry.xyz")
     def compute_optimized_geometry(self):
-        if not self.optimize_geometry:
-            return psi4utils.psi4mol_to_xyz_string(self.psi4mol)
         with self.directory() as tmpdir:
             infile, outfile = self.qm_options.write_opt_file(self.psi4mol,
                                                              name=self.name)
@@ -133,9 +131,10 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         # print("in conf", self.psi4mol)
         if self._finalized and not force:
             return
-        xyz = self.compute_optimized_geometry()
-        mol = psi4utils.psi4mol_from_xyz_string(xyz)
-        self.psi4mol.set_geometry(mol.geometry())
+        if self.optimize_geometry:
+            xyz = self.compute_optimized_geometry()
+            mol = psi4utils.psi4mol_from_xyz_string(xyz)
+            self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True
         self._empty_init()
         self.generate_orientations()

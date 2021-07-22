@@ -26,7 +26,9 @@ and the Automated Topology Builder.
    :caption: Contents:
 
    getting_started
-   api
+   parallelization
+   configs
+   hpc
    
 
 
