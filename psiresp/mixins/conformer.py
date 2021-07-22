@@ -1,10 +1,14 @@
 from typing import List, Tuple
+import pathlib
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 from .io import IOOptions
+from .grid import GridMixin
+from .qm import QMMixin
 
 
 class OrientationOptions(IOOptions):
+    """Options for Orientations"""
     pass
 
 

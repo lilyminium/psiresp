@@ -3,6 +3,8 @@ import numpy as np
 from pydantic import Field
 
 from .. import base
+from .qm import QMMixin
+from .grid import GridMixin
 from .conformer import ConformerOptions
 
 
@@ -88,3 +90,28 @@ class RespStage(BaseRespOptions):
         if self.ihfree:
             mask[np.where(symbols == "H")[0]] = False
         return mask
+
+
+class ContainsQMandGridMixin(base.Model):
+    grid_options: GridMixin = Field(
+        default_factory=GridMixin,
+        description="Options for generating a grid for ESP computation"
+    )
+
+    qm_options: QMMixin = Field(
+        default_factory=QMMixin,
+        description="Options for running QM jobs"
+    )
+
+    def __getattr__(self, attrname):
+        for options in (self.qm_options, self.grid_options):
+            if hasattr(options, attrname):
+                return getattr(options, attrname)
+        print(type(self))
+        return super(ContainsQMandGridMixin, self).__getattr__(attrname)
+
+    def __setattr__(self, attrname, value):
+        for options in (self.qm_options, self.grid_options):
+            if hasattr(options, attrname):
+                return setattr(options, attrname, value)
+        return super().__setattr__(attrname, value)

@@ -5,9 +5,8 @@ import numpy as np
 from pydantic import PrivateAttr, Field
 
 from .charges import RespCharges
-from .resp_base import BaseRespOptions, RespStage
-from .qm import QMMixin
-from .grid import GridMixin
+from .resp_base import BaseRespOptions, RespStage, ContainsQMandGridMixin
+
 from .charge_constraints import ChargeConstraintOptions
 from .conformer import ConformerOptions, OrientationOptions
 from ..utils.execution import run_with_executor
@@ -27,11 +26,8 @@ class RespOptions(BaseRespOptions):
     )
 
 
-class RespMixin(RespOptions, GridMixin, QMMixin):
+class RespMixin(ContainsQMandGridMixin, RespOptions):
     """Resp mixin for actually running the job"""
-
-    _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
-    _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
     charge_constraint_options: ChargeConstraintOptions = Field(
         default_factory=ChargeConstraintOptions,
         description="Charge constraints and charge equivalence constraints",
@@ -44,6 +40,9 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
         default_factory=ConformerOptions,
         description="Default arguments for creating a conformer for this object"
     )
+
+    _stage_1_charges: Optional[RespCharges] = PrivateAttr(default=None)
+    _stage_2_charges: Optional[RespCharges] = PrivateAttr(default=None)
 
     @property
     def orientations(self):
@@ -58,6 +57,18 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
     @property
     def stage_2_charges(self):
         return self._stage_2_charges
+
+    @stage_1_charges.setter
+    def stage_1_charges(self, charges):
+        self._set_charges(charges, stage=1)
+
+    @stage_2_charges.setter
+    def stage_2_charges(self, charges):
+        self._set_charges(charges, stage=2)
+
+    def _set_charges(self, charges, stage=1):
+        attrname = f"_stage_{stage}_charges"
+        setattr(self, attrname, charges)
 
     @property
     def n_conformers(self):
@@ -159,6 +170,7 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
         SystemExit
             If ``execute_qm`` is False
         """
+
         functions = [conf.finalize_geometry for conf in self.conformers]
         run_with_executor(functions, executor=executor, timeout=timeout,
                           command_log=command_log)
@@ -200,7 +212,7 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
 
     def generate_orientations(self):
         """Generate Orientations for all conformers"""
-        for conformer in self.conformers:
+        for i, conformer in enumerate(self.conformers):
             conformer.generate_orientations()
 
     def run(self,
@@ -264,73 +276,82 @@ class RespMixin(RespOptions, GridMixin, QMMixin):
         SystemExit
             If ``execute_qm`` is False
         """
-        executor = concurrent.futures.ProcessPoolExecutor(nprocs)
+        # executor = concurrent.futures.ProcessPoolExecutor(nprocs)
         # TODO: should this change be permanent?
         self._n_threads = nthreads
         self._memory = memory
-        return self.run_with_executor(executor, timeout=timeout,
-                                      geometry_command_log=geometry_command_log,
-                                      esp_command_log=esp_command_log)
+    #     return self.run_with_executor(executor, timeout=timeout,
+    #                                   geometry_command_log=geometry_command_log,
+    #                                   esp_command_log=esp_command_log)
 
-    def run_with_executor(self,
-                          executor: Optional[concurrent.futures.Executor] = None,
-                          timeout: Optional[float] = None,
-                          geometry_command_log: str = "finalize_geometry_commands.log",
-                          esp_command_log: str = "compute_esp_commands.log",
-                          ) -> np.ndarray:
-        """Run RESP job with an executor.
+    # def run_with_executor(self,
+    #                       executor: Optional[concurrent.futures.Executor] = None,
+    #                       timeout: Optional[float] = None,
+    #                       geometry_command_log: str = "finalize_geometry_commands.log",
+    #                       esp_command_log: str = "compute_esp_commands.log",
+    #                       ) -> np.ndarray:
+        # """Run RESP job with an executor.
 
-        The geometry optimizations and ESP computations can be
-        expensive. A way to parallelize operations is provided if
-        ``executor`` is a concurrent.futures.ProcessPoolExecutor.
-        If an executor is not provided, computations are run in serial.
-        If ``execute_qm`` is False, this function will have to be
-        executed multiple times:
+        # The geometry optimizations and ESP computations can be
+        # expensive. A way to parallelize operations is provided if
+        # ``executor`` is a concurrent.futures.ProcessPoolExecutor.
+        # If an executor is not provided, computations are run in serial.
+        # If ``execute_qm`` is False, this function will have to be
+        # executed multiple times:
 
-            * (if ``optimize_geometry=True``) to run the Psi4 jobs as laid out in ``geometry_command_log``
-            * to run the Psi4 jobs as laid out in ``esp_command_log``
-            * to fit the RESP charges
+        #     * (if ``optimize_geometry=True``) to run the Psi4 jobs as laid out in ``geometry_command_log``
+        #     * to run the Psi4 jobs as laid out in ``esp_command_log``
+        #     * to fit the RESP charges
 
-        The computed charges will be stored at:
-            * :attr:`psiresp.Resp.stage_1_charges`
-            * :attr:`psiresp.Resp.stage_2_charges` (if applicable)
+        # The computed charges will be stored at:
+        #     * :attr:`psiresp.Resp.stage_1_charges`
+        #     * :attr:`psiresp.Resp.stage_2_charges` (if applicable)
 
-        These will be :class:`psiresp.charges.RespCharges` objects, which
-        will contain both restrained and unrestrained charges.
+        # These will be :class:`psiresp.charges.RespCharges` objects, which
+        # will contain both restrained and unrestrained charges.
 
-        The overall desired charges will be returned by :attr:`psiresp.Resp.charges`.
+        # The overall desired charges will be returned by :attr:`psiresp.Resp.charges`.
 
-        Parameters
-        ----------
-        executor: concurrent.futures.Executor (optional)
-            Executor for running jobs
-        timeout: float or int (optional)
-            Timeout to wait before stopping the executor
-        geometry_command_log: str (optional)
-            Filename to write geometry optimization commands to
-        esp_command_log: str (optional)
-            Filename to write ESP computation commands to
+        # Parameters
+        # ----------
+        # executor: concurrent.futures.Executor (optional)
+        #     Executor for running jobs
+        # timeout: float or int (optional)
+        #     Timeout to wait before stopping the executor
+        # geometry_command_log: str (optional)
+        #     Filename to write geometry optimization commands to
+        # esp_command_log: str (optional)
+        #     Filename to write ESP computation commands to
 
-        Returns
-        -------
-        numpy.ndarray of float
-            The final resulting charges
+        # Returns
+        # -------
+        # numpy.ndarray of float
+        #     The final resulting charges
 
-        Raises
-        ------
-        SystemExit
-            If ``execute_qm`` is False
-        """
+        # Raises
+        # ------
+        # SystemExit
+        #     If ``execute_qm`` is False
+        # """
 
         self._stage_1_charges = None
         self._stage_2_charges = None
 
-        self.generate_conformers()
-        self.finalize_geometries(executor=executor, timeout=timeout,
-                                 command_log=geometry_command_log)
-        self.generate_orientations()
-        self.compute_esps(executor=executor, timeout=timeout,
-                          command_log=esp_command_log)
+        if nprocs == 1 and nthreads == 1:
+            self.generate_conformers()
+            self.finalize_geometries(timeout=timeout,
+                                     command_log=geometry_command_log)
+            self.generate_orientations()
+            self.compute_esps(timeout=timeout,
+                              command_log=esp_command_log)
+        else:
+            with concurrent.futures.ProcessPoolExecutor(nprocs) as executor:
+                self.generate_conformers()
+                self.finalize_geometries(executor=executor, timeout=timeout,
+                                         command_log=geometry_command_log)
+                self.generate_orientations()
+                self.compute_esps(executor=executor, timeout=timeout,
+                                  command_log=esp_command_log)
 
         initial_charge_options = self.get_clean_charge_options()
         stage_1 = RespStage.from_model(self, hyp_a=self.hyp_a1)

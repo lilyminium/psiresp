@@ -2,7 +2,7 @@ import warnings
 from typing import Optional, List
 
 import numpy as np
-from pydantic import PrivateAttr, Field
+from pydantic import PrivateAttr, Field, validator
 
 
 from .charge_constraints import ChargeConstraintOptions
@@ -29,6 +29,13 @@ class RespCharges(RespStage, ChargeConstraintOptions):
                                                    "per RESP molecule"))
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
+
+    @validator("n_orientations")
+    def validate_n_orientations(cls, v, values):
+        if isinstance(v, int):
+            v = [v] * len(values["symbols"])
+        assert isinstance(v, list) and all(isinstance(x, int) for x in v)
+        return v
 
     @property
     def n_atoms(self):

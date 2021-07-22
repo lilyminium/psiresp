@@ -4,6 +4,7 @@ import re
 import logging
 import textwrap
 import subprocess
+import concurrent
 from typing import Optional, Tuple
 
 from typing_extensions import Literal
@@ -11,6 +12,7 @@ import psi4
 from pydantic import Field, PrivateAttr, validator
 
 from .. import base, utils
+from ..utils import psi4utils
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +133,10 @@ class QMMixin(base.Model):
                      ),
     )
 
-    _n_threads: int = PrivateAttr(default=0)
-    _memory: str = PrivateAttr(default="500MB")
+    _n_threads: int = PrivateAttr(default=1)
+    _memory: str = PrivateAttr(default="500 MB")
+    # _executor: Optional[concurrent.futures.Executor] = PrivateAttr(default=None)
+    # _futures: List[concurrent.futures.Future] = PrivateAttr(default_factory=list)
 
     @validator("qm_method")
     def validate_method(cls, v):
@@ -192,7 +196,8 @@ class QMMixin(base.Model):
         infile, outfile: tuple[str, str]
             Input and output paths
         """
-        opt_file = self.get_mol_spec(psi4mol)
+        opt_file = f"memory {self._memory}\n"
+        opt_file += self.get_mol_spec(psi4mol)
         opt_file += textwrap.dedent(f"""
         set {{
             basis {self.qm_basis_set}
@@ -228,8 +233,8 @@ class QMMixin(base.Model):
         filename: str
             Input filename
         """
-        esp_file = self.get_mol_spec(psi4mol)
-
+        esp_file = f"memory {self._memory}\n"
+        esp_file += self.get_mol_spec(psi4mol)
         esp_file += f"set basis {self.qm_basis_set}\n"
 
         if self.solvent:
@@ -294,15 +299,19 @@ class QMMixin(base.Model):
 
         if outfile is not None:
             cmds.extend(["-o", outfile])
-        cmds.extend(["--memory", self._memory, "--nthread", self._n_threads])
+        if self._n_threads:
+            cmds.extend(["--nthread", self._n_threads])
+
+        cmds = list(map(str, cmds))
+        command = " ".join(cmds)
 
         if not self.execute_qm:
-            command = " ".join(cmds)
             command_stream.write(command + "\n")
             logger.info(command)
             raise utils.NoQMExecutionError("Not running qm")
 
         # TODO: not sure why my jobs don't work with the python API
-        proc = subprocess.run(cmds, shell=True,
+
+        proc = subprocess.run(command, shell=True,
                               cwd=cwd, stderr=subprocess.PIPE)
         return proc

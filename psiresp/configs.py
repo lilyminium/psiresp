@@ -4,9 +4,11 @@ Pre-configured classes --- :mod:`psiresp.configs`
 
 This module provides pre-configured Resp and MultiResp classes
 that correspond to commonly used settings.
+
+
 """
 
-from .mixins import RespOptions
+from .mixins import RespOptions, GridMixin, QMMixin
 from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
 from .vdwradii import VdwRadiiSet
 from .resp import Resp
@@ -20,6 +22,34 @@ from .utils.due import due, Doi
 #     use_radii: VdwRadiiSet = Field("msk", const=True)
 #     ihfree: bool = Field(True, const=True)
 #     hyp_b: float = Field(0.1, const=True)
+
+# def configure(**kwargs):
+#     def wrapper(cls):
+#         new_defaults = [dict(QMMixin.__dict__),
+#                         dict(GridMixin.__dict__)]
+#         for name, field in cls.__fields__.items():
+#             for optcls, defaults in new_defaults.items():
+#                 if name in defaults["__fields__"]:
+#                     defaults["__fields__"][name] = field
+
+#         SubQMMixin = type("QMMixin", (QMMixin,), new_defaults[0])
+#         SubGridMixin = type("GridMixin", (GridMixin,), new_defaults[1])
+
+#         basecls = cls.__bases__[0]
+
+#         class Wrapper(basecls):
+#             __doc__ = cls.__doc__
+
+#             grid_options: GridMixin = Field(
+#                 default_factory=SubGridMixin,
+#                 description=basecls.__fields__["grid_options"].description,
+#             )
+
+#             qm_options: QMMixin = Field(
+#                 default_factory=SubQMMixin,
+#                 description=basecls.__fields__["qm_options"].description,
+#             )
+
 
 # Let users override for now
 class BaseRespConfig(RespOptions):

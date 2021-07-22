@@ -24,6 +24,14 @@ def test_resp_from_file():
     assert len(list(resp.orientations)) == 2
 
 
+def test_init_options_as_kwargs():
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, grid_rmax=3.14)
+    assert resp.grid_rmax == 3.14
+    assert "grid_rmax" not in resp.__fields__
+    assert "grid_rmax" not in resp.__dict__
+    assert resp.grid_options.grid_rmax == 3.14
+
+
 class TestNoOrient:
 
     esp_1 = [-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,

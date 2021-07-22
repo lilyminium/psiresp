@@ -44,8 +44,10 @@ class Model(BaseModel, metaclass=ModelMeta):
         arbitrary_types_allowed = True
         underscore_attrs_are_private = False
         validate_assignment = True
+        # extra = "allow"
 
     def __init__(self, *args, **kwargs):
+        extra = {k: v for k, v in kwargs.items() if k not in self.__fields__}
         super().__init__(*args, **kwargs)
         self_fields = set(self.__fields__)
         for name, field in self.__fields__.items():
@@ -59,6 +61,26 @@ class Model(BaseModel, metaclass=ModelMeta):
                 values = {k: getattr(self, k) for k in keywords}
                 value = fieldcls(**values)
                 setattr(self, name, value)
+        for k, v in extra.items():
+            self.__setattr__(k, v)
+
+    def __getattr__(self, attr):
+        return object.__getattribute__(self, attr)
+        # try:
+        #     return object.__getattribute__(self, attr)
+        # except AttributeError:
+        # clsname = self.__class__.__name__
+        # raise AttributeError(f"{clsname} has no attribute {attr}")
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        for k, v in self.__fields__.items():
+            # validate
+            setattr(self, k, getattr(self, k))
+        self._init_private_attributes()
+
+    # def _fields_from_kwargs(self, **kwargs):
+    #     return {k: v for k, v in kwargs.items() if k in self.__fields__}
 
     @classmethod
     def from_model(cls, obj, **kwargs) -> "Model":

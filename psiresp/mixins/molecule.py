@@ -3,7 +3,7 @@ import pathlib
 
 import numpy as np
 import psi4
-from pydantic import Field
+from pydantic import Field, validator
 
 from .. import utils
 from ..utils import psi4utils
@@ -64,6 +64,13 @@ class MoleculeMixin(IOMixin):
                              f"Given: {len(mols)}")
         return cls(psi4mol=mols[0], **kwargs)
 
+    @validator("psi4mol")
+    def validate_psi4mol(cls, v):
+        if isinstance(v, str):
+            v = psi4.core.Molecule.from_string(v, dtype="psi4")
+        assert isinstance(v, psi4.core.Molecule)
+        return v
+
     def __init__(self, *args, **kwargs):
         if args and len(args) == 1 and "psi4mol" not in kwargs:
             kwargs["psi4mol"] = args[0]
@@ -76,21 +83,23 @@ class MoleculeMixin(IOMixin):
 
     def __getstate__(self):
         psi4mol = self.psi4mol.to_string(dtype="psi4")
-        dict_ = dict(self.__dict__)
-        dict_["psi4mol"] = psi4mol
-
-        return {'__dict__': dict_, '__fields_set__': self.__fields_set__}
+        state = super().__getstate__()
+        state_dict = dict(state["__dict__"])
+        state_dict["psi4mol"] = psi4mol
+        state["__dict__"] = state_dict
+        return state
 
     def __setstate__(self, state):
         state_dict = state["__dict__"]
+        state = {k: v for k, v in state.items() if k != "__dict__"}
         try:
             molstring = state_dict.pop("psi4mol")
         except KeyError:
             raise TypeError("State must have a `psi4mol` defined")
         psi4mol = psi4.core.Molecule.from_string(molstring, dtype="psi4")
         state_dict["psi4mol"] = psi4mol
-        object.__setattr__(self, '__dict__', state_dict)
-        object.__setattr__(self, '__fields_set__', state['__fields_set__'])
+        state["__dict__"] = state_dict
+        super().__setstate__(state)
 
     # TODO: confuzzle with pydantic's aliasing
     # @property

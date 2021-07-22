@@ -1,13 +1,22 @@
 from typing import Optional
+import pathlib
 
 import numpy as np
-from pydantic import PrivateAttr, Field
+from pydantic import PrivateAttr, Field, validator
 
 from . import mixins, utils
 from .utils.io import datafile
 
 
-class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
+class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridMixin):
+    _parent_path: pathlib.Path = PrivateAttr(default=".")
+
+    @property
+    def default_path(self):
+        return pathlib.Path(self._parent_path) / self.name
+
+
+class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
@@ -25,18 +34,10 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
         atomic units.
     """
 
-    conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
+    # conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
     _grid: Optional[np.ndarray] = PrivateAttr(default=None)
     _esp: Optional[np.ndarray] = PrivateAttr(default=None)
     _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
-
-    @property
-    def default_path(self):
-        return self.conformer.path / self.name
-
-    @property
-    def resp(self):
-        return self.conformer.resp
 
     @property
     def grid(self):
@@ -73,7 +74,7 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
 
     @datafile(filename="{self.name}_grid.dat")
     def compute_grid(self):
-        return self.resp.generate_vdw_grid(self.symbols, self.coordinates)
+        return self.grid_options.generate_vdw_grid(self.symbols, self.coordinates)
 
     @datafile(filename="{self.name}_grid_esp.dat")
     def compute_esp(self):
@@ -83,8 +84,8 @@ class Orientation(mixins.OrientationOptions, mixins.MoleculeMixin):
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.resp.write_esp_file(self.psi4mol)
-            self.resp.try_run_qm(infile, cwd=tmpdir)
+            infile = self.qm_options.write_esp_file(self.psi4mol)
+            self.qm_options.try_run_qm(infile, cwd=tmpdir)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         return esp

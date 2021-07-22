@@ -13,7 +13,7 @@ from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .utils.io import datafile
 
 
-class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
+class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
     """Class to manage one Resp job"""
 
     parent: Optional[Any] = None  # TODO: troubleshoot MultiResp typing
@@ -170,7 +170,9 @@ class Resp(RespMoleculeOptions, RespMixin, MoleculeMixin):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.conformer_options.to_kwargs(**kwargs)
-        conf = Conformer(resp=self.resp, psi4mol=mol, name=name, **default_kwargs)
+        conf = Conformer(qm_options=self.qm_options, grid_options=self.grid_options,
+                         psi4mol=mol, name=name, **default_kwargs)
+        conf._parent_path = self.path
         self._conformers.append(conf)
         self._conformer_coordinates = np.array(list(self._conformer_coordinates) + [conf.coordinates])
         return conf
