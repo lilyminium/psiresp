@@ -2,7 +2,7 @@ from typing import Optional
 import pathlib
 
 import numpy as np
-from pydantic import PrivateAttr, Field, validator
+from pydantic import PrivateAttr
 
 from . import mixins, utils
 from .utils.io import datafile

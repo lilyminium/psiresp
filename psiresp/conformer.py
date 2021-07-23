@@ -1,9 +1,9 @@
 
 import logging
-from typing import Optional, List, Any
+from typing import Optional, List
 
 import numpy as np
-from pydantic import PrivateAttr, Field
+from pydantic import PrivateAttr
 
 from . import mixins
 from .utils import orientation as orutils

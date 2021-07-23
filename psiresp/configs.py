@@ -8,7 +8,7 @@ that correspond to commonly used settings.
 
 """
 
-from .mixins import RespOptions, GridOptions, QMOptions
+from .mixins import RespOptions
 from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
 from .vdwradii import VdwRadiiSet
 from .resp import Resp

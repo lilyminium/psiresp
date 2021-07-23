@@ -1,7 +1,6 @@
 from typing import List, Callable, Optional
 import concurrent.futures
 import os
-import io
 import re
 import logging
 import textwrap
@@ -13,8 +12,7 @@ from typing_extensions import Literal
 import psi4
 from pydantic import Field, PrivateAttr, validator
 
-from .. import base, utils
-from ..utils import psi4utils
+from .. import base
 
 logger = logging.getLogger(__name__)
 
