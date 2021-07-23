@@ -1,23 +1,87 @@
 
 from typing import Optional, Dict, List, Any
 import pathlib
+import yaml
 
 import numpy as np
+import psi4
 from pydantic import PrivateAttr
 
 from .conformer import Conformer
-from .utils import psi4utils, rdutils
+from .utils import psi4utils, rdutils, utils
 from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .utils.io import datafile
 
 
 class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
-    """Class to manage one Resp job
-    """
+    """Class to manage one Resp job"""
 
     parent: Optional[Any] = None  # TODO: troubleshoot MultiResp typing
     _conformers: List[Conformer] = PrivateAttr(default_factory=list)
     _conformer_coordinates = PrivateAttr(default=np.array([]))
+
+    @classmethod
+    def from_yaml(cls, filename):
+        with open(filename, "r") as f:
+            options = yaml.full_load(f)
+        try:
+            molfile = options.pop("molfile")
+        except KeyError:
+            raise TypeError("a `molfile` must be given "
+                            "containing the molecule specification. "
+                            "Accepted formats include PDB, XYZ, MOL2.")
+        else:
+            molfile = molfile.format(**options)
+        return Resp.from_molfile(molfile, **options)
+
+    @classmethod
+    def from_molfile(cls, molfile: str, **kwargs) -> "Resp":
+        """Create class from molecule file
+
+        Parameters
+        ----------
+        molfile: str
+            filename containing the molecule specification. This will
+            get automatically parsed if it is a valid PDB, XYZ, MOL, or MOL2
+            file, or has a suffix that can get parsed by MDAnalysis.
+            If multiple molecules are present in the file, they are added
+            as conformers.
+        **kwargs:
+            Further arguments for initialization of the class
+            (see class docstring)
+
+        Returns
+        -------
+        Resp
+        """
+        psi4mols = psi4utils.psi4mols_from_file(molfile)
+        return cls.from_psi4mols(psi4mols, **kwargs)
+
+    @classmethod
+    def from_psi4mols(cls, psi4mols: List[psi4.core.Molecule], **kwargs):
+        """Create class from one or more Psi4 molecules
+
+        Parameters
+        ----------
+        psi4mols: List[psi4.core.Molecule]
+            List of Psi4 molecules. At least one must be provided.
+        **kwargs:
+            Further arguments for initialization of the class
+            (see class docstring)
+
+        Returns
+        -------
+        Resp
+        """
+        psi4mols = utils.as_iterable(psi4mols)
+        if not len(psi4mols):
+            raise ValueError("At least one molecule must be provided")
+
+        obj = cls(psi4mol=psi4mols[0], **kwargs)
+        if len(psi4mols) > 1:
+            for mol in psi4mols:
+                obj.add_conformer(mol)
+        return obj
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -106,7 +170,9 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.conformer_options.to_kwargs(**kwargs)
-        conf = Conformer(resp=self.resp, psi4mol=mol, name=name, **default_kwargs)
+        conf = Conformer(qm_options=self.qm_options, grid_options=self.grid_options,
+                         psi4mol=mol, name=name, **default_kwargs)
+        conf._parent_path = self.path
         self._conformers.append(conf)
         self._conformer_coordinates = np.array(list(self._conformer_coordinates) + [conf.coordinates])
         return conf
@@ -135,11 +201,21 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
         """
         return psi4utils.get_sp3_ch_ids(self.psi4mol)
 
+    def get_conformer_coordinates(self):
+        coordinates = np.empty((len(self.conformers), self.n_atoms, 3))
+        for i, conformer in enumerate(self.conformers):
+            coordinates[i] = conformer.coordinates
+        return coordinates
+
     @datafile(filename="conformer_coordinates.npy")
     def generate_conformer_coordinates(self):
-        rdmol = rdutils.rdmol_from_psi4mol(self.psi4mol)
+        rdmol = psi4utils.psi4mol_to_rdmol(self.psi4mol)
         if not self.keep_original_resp_geometry:
             rdmol.RemoveAllConformers()
+
+        existing = self.get_conformer_coordinates()
+        for conf in existing:
+            rdutils.add_conformer_from_coordinates(rdmol, conf)
 
         rdutils.generate_conformers(rdmol,
                                     n_conformers=self.max_generated_conformers,

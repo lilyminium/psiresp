@@ -1,6 +1,6 @@
 
 import logging
-from typing import Optional, List, Any
+from typing import Optional, List
 
 import numpy as np
 from pydantic import PrivateAttr
@@ -9,15 +9,13 @@ from . import mixins
 from .utils import orientation as orutils
 from .utils import psi4utils
 from .utils.io import datafile
-from .orientation import Orientation
+from .orientation import Orientation, BaseMoleculeChild
 
 logger = logging.getLogger(__name__)
 
 
-class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
-    """Class to manage one conformer
-    """
-    resp: Any  # TODO: resp typing
+class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
+    """Class to manage one conformer"""
 
     _orientations: List[Orientation] = PrivateAttr(default_factory=list)
     _finalized: bool = PrivateAttr(default=False)
@@ -35,10 +33,6 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
     def _empty_init(self):
         self._unweighted_a_matrix = None
         self._unweighted_b_matrix = None
-
-    @property
-    def default_path(self):
-        return self.resp.path / self.name
 
     @property
     def unweighted_a_matrix(self):
@@ -66,11 +60,10 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
 
     @datafile(filename="optimized_geometry.xyz")
     def compute_optimized_geometry(self):
-        if not self.optimize_geometry:
-            return psi4utils.psi4mol_to_xyz_string(self.psi4mol)
         with self.directory() as tmpdir:
-            infile, outfile = self.resp.resp.write_opt_file(self.psi4mol)
-            self.resp.resp.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
+            infile, outfile = self.qm_options.write_opt_file(self.psi4mol,
+                                                             name=self.name)
+            self.qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
             xyz = psi4utils.opt_logfile_to_xyz_string(outfile)
         return xyz
 
@@ -106,8 +99,11 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.orientation_options.to_kwargs(**kwargs)
-        orientation = Orientation(conformer=self, psi4mol=mol, name=name,
+        orientation = Orientation(psi4mol=mol, name=name,
+                                  qm_options=self.qm_options,
+                                  grid_options=self.grid_options,
                                   **default_kwargs)
+        orientation._parent_path = self.path
         self.orientations.append(orientation)
         return orientation
 
@@ -122,7 +118,7 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
             if not self.orientations:
                 self.add_orientation(self.psi4mol)
 
-    def finalize_geometry(self):
+    def finalize_geometry(self, force=False):
         """Finalize geometry of psi4mol
 
         If :attr:`psiresp.conformer.Conformer.optimize_geometry` is ``True``,
@@ -132,9 +128,13 @@ class Conformer(mixins.MoleculeMixin, mixins.ConformerOptions):
         final geometry will get written to an xyz file to bypass this check
         next time.
         """
-        xyz = self.compute_optimized_geometry()
-        mol = psi4utils.psi4mol_from_xyz_string(xyz)
-        self.psi4mol.set_geometry(mol.geometry())
+        # print("in conf", self.psi4mol)
+        if self._finalized and not force:
+            return
+        if self.optimize_geometry:
+            xyz = self.compute_optimized_geometry()
+            mol = psi4utils.psi4mol_from_xyz_string(xyz)
+            self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True
         self._empty_init()
         self.generate_orientations()

@@ -2,6 +2,7 @@
 
 import pathlib
 from typing import List, Dict, Optional, Union
+import yaml
 
 import numpy as np
 import scipy
@@ -19,12 +20,6 @@ class MultiResp(RespMixin, IOMixin):
 
     Parameters
     ----------
-    name: str
-        Name for the job. This affects which directory to save files to.
-    resp_options: RespOptions
-        Options for creating new Resp instances
-    resps: list of Resp
-        Molecules for multi-molecule fit, set up in Resp classes.
     charge_constraint_options: psiresp.ChargeConstraintOptions (optional)
         Charge constraints and charge equivalence constraints.
         When running a fit, both these *and* the constraints supplied
@@ -34,8 +29,6 @@ class MultiResp(RespMixin, IOMixin):
 
     Attributes
     ----------
-    molecules: list of Resp
-        Molecules for multi-molecule fit, set up in Resp classes.
     n_molecules: int
         number of molecule Resp classes
     n_structures: int
@@ -49,9 +42,51 @@ class MultiResp(RespMixin, IOMixin):
         partial atomic charges for each molecule
         (only exists after calling run)
     """
-    name: str = "multiresp"
-    resps: List[Resp] = []
-    resp_options: RespMoleculeOptions = Field(default_factory=RespMoleculeOptions)
+    name: str = Field(
+        default="multiresp",
+        description=("Name for the job. "
+                     "This affects which directory to save files to."),
+    )
+    resps: List[Resp] = Field(
+        default_factory=list,
+        description="Resp classes for multi-molecule fit",
+    )
+    molecule_options: RespMoleculeOptions = Field(
+        default_factory=RespMoleculeOptions,
+        description="Options for creating new Resp instances",
+    )
+
+    @classmethod
+    def from_yaml(cls, filename):
+        with open(filename, "r") as f:
+            content = yaml.full_load(f)
+
+        molecules = content.pop("molecules", {})
+        obj = cls(**content)
+        global_mol_options = obj.molecule_options.to_kwargs()
+
+        if not molecules:
+            molecules[obj.name] = {}
+            obj.name = "multiresp"
+
+        for name, local_mol_options in molecules.items():
+            options = dict(**global_mol_options)
+            options["name"] = name
+            options.update(local_mol_options)
+            name = options["name"]
+            try:
+                molfile = options.pop("molfile")
+            except KeyError:
+                raise TypeError("a `molfile` must be given for each molecule "
+                                "containing the molecule specification. "
+                                "A `molfile` was not given for the molecule "
+                                f"named '{name}'. "
+                                "Accepted formats include PDB, XYZ, MOL2.")
+            else:
+                molfile = molfile.format(**options)
+            resp = Resp.from_molfile(molfile, **options)
+            obj.add_resp(resp)
+        return obj
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -118,9 +153,11 @@ class MultiResp(RespMixin, IOMixin):
             mol = psi4mol_or_resp.clone()
             if name is None:
                 name = f"Mol_{len(self.resps) + 1:03d}"
-            default_kwargs = self.resp_options.to_kwargs(**kwargs)
+            default_kwargs = self.molecule_options.to_kwargs()
             # TODO: this is a bad hack
+            # TODO: automatically set molecule number at this part?
             default_kwargs["charge_constraint_options"] = {}
+            default_kwargs.update(kwargs)
             psi4mol_or_resp = Resp.from_model(self, psi4mol=mol, name=name, **default_kwargs)
 
         psi4mol_or_resp.parent = self

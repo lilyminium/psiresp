@@ -65,10 +65,8 @@ def test_dmso_resp_config(config_class, charge_file, dmso_o1_psi4mol, dmso_o2_ps
                         charge_constraint_options=charge_options)
     resp.generate_conformers()
     conformer = resp.conformers[0]
-    print("confs", len(resp.conformers))
     conformer.add_orientation(dmso_o1_psi4mol)
     conformer.add_orientation(dmso_o2_psi4mol)
-    print("ori", conformer.n_orientations)
     charges = resp.run()
 
     reference = charges_from_red_file(charge_file)
@@ -101,7 +99,7 @@ def test_multiresp_config(config_class, charge_file,
                                         ],
                    symmetric_methyls=False)
     multiresp = config_class(charge_constraint_options=overall,
-                             resp_options=dict(conformer_options=dict(orientation_options=dict(load_input=True))),
+                             molecule_options=dict(conformer_options=dict(orientation_options=dict(load_input=True))),
                              directory_path=data_dir("data/test_multiresp"))
 
     methylammonium = multiresp.add_resp(methylammonium_psi4mol, charge=1, name="methylammonium")

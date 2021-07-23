@@ -1,4 +1,5 @@
 from typing import Optional
+import pathlib
 
 import numpy as np
 from pydantic import PrivateAttr
@@ -7,22 +8,23 @@ from . import mixins, utils
 from .utils.io import datafile
 
 
-class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
+class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridOptions):
+    _parent_path: pathlib.Path = PrivateAttr(default=".")
+
+    @property
+    def default_path(self):
+        return pathlib.Path(self._parent_path) / self.name
+
+
+class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
     users are expected to work primarily with
     :class:`psiresp.conformer.Conformer` or :class:`psiresp.resp.Resp`.
 
-    Parameters
-    ----------
-    conformer: psiresp.Conformer
-        The conformer that owns this orientation
-
     Attributes
     ----------
-    conformer: psiresp.Conformer
-        The conformer that owns this orientation
     grid: numpy.ndarray
         The grid of points on which to compute the ESP
     esp: numpy.ndarray
@@ -32,18 +34,10 @@ class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
         atomic units.
     """
 
-    conformer: mixins.ConformerOptions
+    # conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
     _grid: Optional[np.ndarray] = PrivateAttr(default=None)
     _esp: Optional[np.ndarray] = PrivateAttr(default=None)
     _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
-
-    @property
-    def default_path(self):
-        return self.conformer.path / self.name
-
-    @property
-    def resp(self):
-        return self.conformer.resp
 
     @property
     def grid(self):
@@ -80,7 +74,7 @@ class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
 
     @datafile(filename="{self.name}_grid.dat")
     def compute_grid(self):
-        return self.resp.generate_vdw_grid(self.symbols, self.coordinates)
+        return self.grid_options.generate_vdw_grid(self.symbols, self.coordinates)
 
     @datafile(filename="{self.name}_grid_esp.dat")
     def compute_esp(self):
@@ -90,8 +84,9 @@ class Orientation(mixins.MoleculeMixin, mixins.OrientationOptions):
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.resp.write_esp_file(self.psi4mol)
-            self.resp.try_run_qm(infile, cwd=tmpdir)
+            infile = self.qm_options.write_esp_file(self.psi4mol,
+                                                    name=self.name)
+            self.qm_options.try_run_qm(infile, cwd=tmpdir)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         return esp

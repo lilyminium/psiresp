@@ -73,3 +73,22 @@ def test_opt_logfile_to_xyz_string():
         ref = f.read()
     xyz = psi4utils.opt_logfile_to_xyz_string(OPT_LOGFILE)
     assert xyz == ref
+
+
+def test_psi4mols_from_rdmol(dmso_rdmol, dmso_orientation_psi4mols):
+    psi4mols = psi4utils.psi4mols_from_rdmol(dmso_rdmol, name="dmso")
+    assert len(psi4mols) == 4
+    for i, (actual, ref) in enumerate(zip(psi4mols, dmso_orientation_psi4mols), 1):
+        assert_coordinates_almost_equal(actual.geometry().np, ref.geometry().np, decimal=4)
+        assert actual.name() == f"dmso_c00{i}"
+        assert actual.molecular_charge() == 0
+        assert actual.multiplicity() == 1
+
+
+def test_psi4mol_to_rdmol(dmso_psi4mol, dmso_coordinates):
+    rdmol = psi4utils.psi4mol_to_rdmol(dmso_psi4mol)
+    assert rdmol.GetNumAtoms() == 10
+    assert rdmol.GetNumConformers() == 1
+    conf = rdmol.GetConformer(0)
+    coordinates = np.asarray(conf.GetPositions())
+    assert_coordinates_almost_equal(coordinates, dmso_coordinates)

@@ -9,13 +9,66 @@ from .datafiles import (DMSO_QMRA,
                         DMSO_QMRA_RESPA2_CHARGES, DMSO_QMRA_RESPA1_CHARGES, DMSO_QMRA_ESPA1_CHARGES,
                         ETHANOL_C1, ETHANOL_C2,
                         ETHANOL_RESPA2_CHARGES, ETHANOL_RESPA1_CHARGES, ETHANOL_ESPA1_CHARGES,
-                        NME2ALA2_OPT_RESPA2_CHARGES, NME2ALA2_OPT_RESPA1_CHARGES, NME2ALA2_OPT_ESPA1_CHARGES
+                        NME2ALA2_OPT_RESPA2_CHARGES, NME2ALA2_OPT_RESPA1_CHARGES, NME2ALA2_OPT_ESPA1_CHARGES,
                         )
 
 # from .datafiles import DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4
 
 
-class TestNoOrient:
+def test_resp_from_file():
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA,
+                                     conformer_options=dict(n_reorientations=2))
+    resp.generate_conformers()
+    resp.generate_orientations()
+    assert len(resp.conformers) == 1
+    assert len(list(resp.orientations)) == 2
+
+
+def test_init_options_as_kwargs():
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, grid_rmax=3.14)
+    assert resp.grid_rmax == 3.14
+    assert "grid_rmax" not in resp.__fields__
+    assert "grid_rmax" not in resp.__dict__
+    assert resp.grid_options.grid_rmax == 3.14
+
+
+@pytest.mark.parametrize("opt, filename, n_lines, match", [
+    (True, "finalize_geometry_commands.log", 1, "default_c001_opt.in"),
+    (False, "compute_esp_commands.log", 2, "default_c001_o002_esp.in"),
+])
+def test_no_execute_qm_executor(tmpdir, opt, filename, n_lines, match):
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, execute_qm=False,
+                                     conformer_options=dict(optimize_geometry=opt,
+                                                            n_reorientations=2))
+    with tmpdir.as_cwd():
+        err = f"Exiting to allow you to run QM jobs. Check {filename}"
+        with pytest.raises(SystemExit, match=err):
+            resp.run(nprocs=2)
+        with open(filename, "r") as f:
+            content = f.readlines()
+        assert len(content) == n_lines
+        for pattern in ("psi4", "-i ", "--nthread"):
+            assert all(pattern in line for line in content)
+        assert match in content[-1]
+
+
+@pytest.mark.parametrize("opt, match", [
+    (True, "default_c001_opt.in"),
+    (False, "default_c001_o001_esp.in"),
+])
+def test_no_execute_qm_serial(tmpdir, opt, match):
+    resp = psiresp.Resp.from_molfile(DMSO_QMRA, execute_qm=False,
+                                     conformer_options=dict(optimize_geometry=opt,
+                                                            n_reorientations=2))
+    with tmpdir.as_cwd():
+        err = "Exiting to allow you to run QM jobs"
+        with pytest.raises(psiresp.NoQMExecutionError, match=err) as excinfo:
+            resp.run()
+        for pattern in ("psi4", "-i ", "--nthread", match):
+            assert pattern in excinfo.value.args[1]
+
+
+class TestNoQM:
 
     esp_1 = [-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
              -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]
@@ -151,6 +204,9 @@ class TestNoOrient:
         charges = nme2ala2_opt_resp.run()
         reference = charges_from_red_file(charge_file)
         assert_almost_equal(charges, reference, decimal=3)
+
+
+# def test_resp_from_file()...
 
 
 # class TestRespNoOptimization:

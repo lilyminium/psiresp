@@ -5,6 +5,7 @@ import tempfile
 import contextlib
 from typing import Union, Optional
 
+from pydantic import Field
 
 from .. import base
 from ..utils.io import Data, Path, save_data, load_data
@@ -13,21 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class IOOptions(base.Model):
-    """I/O options
-
-    Parameters
-    ----------
-    save_output: bool
-        Whether to save output QM or intermediate files.
-    load_input: bool
-        Whether to read QM and intermediate files in, where available.
-    directory_path: str
-        Directory path for saving files. If not given, defaults
-        to the name of the instance.
-    """
-    save_output: bool = False
-    load_input: bool = False
-    directory_path: Optional[Union[pathlib.Path, str]] = None
+    """I/O options"""
+    save_output: bool = Field(
+        default=False,
+        description="Whether to save output QM or intermediate files."
+    )
+    load_input: bool = Field(
+        default=False,
+        description="Whether to read available QM and intermediate files in."
+    )
+    directory_path: Optional[Union[pathlib.Path, str]] = Field(
+        default=None,
+        description=("Directory path for saving files. "
+                     "If not given, defaults to the name of the instance.")
+    )
 
 
 class IOMixin(IOOptions):
@@ -81,7 +81,7 @@ class IOMixin(IOOptions):
             try:
                 data = load_data(path)
             except Exception as e:
-                logger.error(e)
+                logger.warning(e)
                 logger.info(f"Could not load data from {path}.")
                 if ".dat" in path:
                     raise e
@@ -125,9 +125,6 @@ class IOMixin(IOOptions):
         import numpy as np
         path = str(self.path / path.format(self=self))
         data = self.try_load_data(path)
-        # if ".dat" in path:
-        #     print(data)
-        #     raise ValueError(np.loadtxt(path))
         if data is not None:
             return data
         data = func(*args, **kwargs)

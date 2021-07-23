@@ -5,7 +5,6 @@ import numpy as np
 import rdkit
 from rdkit import Chem
 
-from . import psi4utils
 
 ACCEPTED_FILE_FORMATS = {
     "pdb": Chem.MolFromPDBFile,
@@ -20,34 +19,10 @@ ACCEPTED_STRING_PARSERS = (
     Chem.MolFromRDKitSVG,
 )
 
-
-def rdmol_to_psi4mols(rdmol: rdkit.Chem.Mol,
-                      name: str = "mol",
-                      conformer_name_template: str = "{name}_c{i:03d}",
-                      ) -> List[psi4.core.Molecule]:
-    """Convert all conformers of an RDKit molecule to Psi4 molecules
-
-    Parameters
-    ----------
-    rdmol: rdkit.Chem.Mol
-        RDKit Molecule
-    name: str
-        Name of the overall molecule
-    conformer_name_template: str
-        Template used to format the conformer name
-
-    Returns
-    -------
-    list of psi4.core.Molecules
-    """
-    mols = []
-    for i in range(rdmol.GetNumConformers()):
-        xyz = Chem.MolToXYZBlock(rdmol, confId=i)
-        mol = psi4utils.psi4mol_from_xyz_string(xyz)
-        mol.set_name(conformer_name_template.format(name=name, i=i+1))
-        mol.activate_all_fragments()
-        mols.append(mol)
-    return mols
+ACCEPTED_STRING_OUTPUT = {
+    "pdb": Chem.MolToPDBBlock,
+    "xyz": Chem.MolToXYZBlock,
+}
 
 
 def generate_conformers(rdmol: rdkit.Chem.Mol,
@@ -110,7 +85,7 @@ def generate_conformer_coordinates(psi4mol: psi4.core.Molecule,
     coordinates: numpy.ndarray
         This has shape (n_conformers, n_atoms, 3)
     """
-    rdmol = rdmol_from_psi4mol(psi4mol)
+    rdmol = psi4mol_to_rdmol(psi4mol)
     generate_conformers(rdmol)
     return get_conformer_coordinates(rdmol)
 
@@ -158,27 +133,6 @@ def add_conformer_from_coordinates(rdmol: rdkit.Chem.Mol,
     rdmol.AddConformer(conformer)
 
 
-def rdmol_from_psi4mol(psi4mol: psi4.core.Molecule) -> rdkit.Chem.Mol:
-    """"Create RDKit molecule from Psi4 molecule
-
-    Parameters
-    ----------
-    psi4mol: psi4.core.Molecule
-        Psi4 molecule
-
-    Returns
-    -------
-    rdmol: rdkit.Chem.Mol
-        RDKit Molecule
-    """
-    molstr = psi4utils.psi4mol_to_mol2_string(psi4mol)
-    rdmol = Chem.MolFromMolBlock(molstr, removeHs=False)
-    coordinates = psi4utils.get_psi4mol_coordinates(psi4mol)
-    rdmol.RemoveAllConformers()
-    add_conformer_from_coordinates(rdmol, coordinates)
-    return rdmol
-
-
 def rdmol_from_file_or_string(string: str) -> rdkit.Chem.Mol:
     """Create an RDKit molecule from string or file
 
@@ -195,11 +149,23 @@ def rdmol_from_file_or_string(string: str) -> rdkit.Chem.Mol:
     rdmol: rdkit.Chem.Mol
         RDKit Molecule
     """
-    suffix = string.split(".")[-1]
+    try:
+        return rdmol_from_file(string)
+    except ValueError:
+        return rdmol_from_string(string)
+
+
+def rdmol_from_file(filename: str) -> rdkit.Chem.Mol:
+    suffix = filename.split(".")[-1]
     if suffix in ACCEPTED_FILE_FORMATS:
         parser = ACCEPTED_FILE_FORMATS[suffix]
-        return parser(string, removeHs=False, sanitize=True)
+        return parser(filename, removeHs=False, sanitize=True)
+    file_formats = "'." + "', '".join(ACCEPTED_FILE_FORMATS) + "'"
+    raise ValueError("File type cannot be read by RDKit. "
+                     f"Please provide one of {file_formats}")
 
+
+def rdmol_from_string(string: str) -> rdkit.Chem.Mol:
     for parser in ACCEPTED_STRING_PARSERS:
         try:
             rdmol = parser(string, removeHs=False, sanitize=True)
@@ -215,3 +181,7 @@ def rdmol_from_file_or_string(string: str) -> rdkit.Chem.Mol:
         elements = [guess_atom_element(atom.type) for atom in u.atoms]
         u.add_TopologyAttr("elements", elements)
     return u.atoms.convert_to("RDKIT")
+
+
+def rdmol_to_string(rdmol: rdkit.Chem.Mol, dtype="xyz", conf_id=0):
+    return ACCEPTED_STRING_OUTPUT[dtype](rdmol, confId=conf_id)

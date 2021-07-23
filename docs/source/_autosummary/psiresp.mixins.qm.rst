@@ -17,7 +17,7 @@
 
    .. autosummary::
    
-      QMMixin
+      QMOptions
    
    
 

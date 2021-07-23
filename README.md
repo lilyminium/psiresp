@@ -10,47 +10,50 @@
 [![PyPI version](https://badge.fury.io/py/psiresp.svg)](https://badge.fury.io/py/psiresp)
       
 
-A RESP plugin for Psi4.
 
-**Things that probably work:**
+PsiRESP is a package for calculating atomic partial charges from
+restrained and unrestrained electrostatic potential fits using Psi4.
+It is highly flexible, configurable, easy to use, and totally written in Python.
+It supports fitting to multiple orientations and conformers,
+as well as both intra-molecular and inter-molecular charge constraints for
+multi-molecule fits.
+It is written to correspond closely with existing tools such as the
+[RESP ESP charge Derive (R.E.D.)](https://upjv.q4md-forcefieldtools.org/RED/) tools.
 
-* standard 2-stage RESP, gas phase HF/6-31G* with MSK radii (convenience class: psiresp.Multi/RespA1)
-* intermolecular charge constraints (use the MultiResp classes for this)
-* intramolecular charge constraints (use the Resp classes for this)
+As of now, the following implementations are well-tested:
 
-**Things that maybe work?**
+* standard 2-stage RESP (convenience class: psiresp.Multi/RespA1)
+* standard 1-stage RESP (convenience class: psiresp.Multi/RespA2)
+* standard unrestrained ESP (convenience class: psiresp.Multi/EspA1)
 
-* 1-stage ESP, B3LYP/6-31G* in implicit solvent with MSK radii. Unknown point density? (convenience class: psiresp.Multi/ATBResp)
-* RESP2: PW6B95/aug-cc-pV(D+d)Z in vacuum and solvent with Bondi radii, density=2.5 (convenience class: psiresp.Multi/Resp2)
+These implementations are not as well-tested:
+* ESP using HF/STO-3G (convenience class: psiresp.Multi/EspA2) -- Psi4 seems to minimize to a relatively different geometry than GAMESS with STO-3G.
+* ATBResp, mimicking the method used by the [Automated Topology Builder](https://atb.uq.edu.au/) is not tested at all. The published methods do not indicate the point density, moreover, the results generated seem to have changed since the original paper. **Use at your own risk.**
+
 
 ### Installation
 
-The package is on Pypi, so you can install with `pip`. Note that you will need to install `psi4` separately with `conda`.
-
-```
-conda install -c psi4 psi4
-pip install psiresp
-```
-
-To build from source, clone this repository:
-
-```
-git clone https://github.com/lilyminium/psiresp.git
-cd psiresp
-```
-
-Create a new conda environment with dependencies:
+Create a new conda environment with dependencies. In general, installing the dependencies required will be difficult without `conda`, as both Psi4 and RDKit are most easily distributed through conda.
 
 ```
 conda env create -f devtools/conda-envs/resp_env.yaml
 conda activate psiresp
 ```
 
-And build the package.
+The package is on Pypi, so you can install with `pip`.
 
 ```
-python setup.py install
+pip install psiresp
 ```
+
+To build from source, clone this repository and install the package.
+
+```
+git clone https://github.com/lilyminium/psiresp.git
+cd psiresp
+python setup.py
+```
+
 
 ### Example
 
@@ -116,20 +119,6 @@ Alternatively, use the preconfigured RespA1 class in ``psiresp.configs``.
 
    charges = r.run()
 ```
-
-### Pre-configured models
-
-Each of these comes with a MultiResp counterpart.
-
-**Probably work:**
-
-* RespA1
-* RespA2
-* EspA1
-
-**Hard to test, maybe work:**
-
-* EspA2 (Psi4 minimises to quite a different geometry with HF/STO-3G compared to GAMESS)
 
 ### Copyright
 

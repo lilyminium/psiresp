@@ -1,8 +1,11 @@
 import pytest
 
+from pydantic import BaseModel, Field
+
+from psiresp.base import Model
 from psiresp.utils import meta as mtutils
 
-DOCSTRING = """Class that contains a Psi4 molecule and a name
+WRITTEN_DOCSTRING = """Class that contains a Psi4 molecule and a name
 
     .. note::
 
@@ -10,10 +13,14 @@ DOCSTRING = """Class that contains a Psi4 molecule and a name
 
     Parameters
     ----------
+    name: str
+        My multiline
+        description of
+        a
+        name
+        with trailing spaces   
     psi4mol: psi4.core.Molecule
         Psi4 molecule
-    name: str
-        Name
 
     Attributes
     ----------
@@ -26,38 +33,48 @@ DOCSTRING = """Class that contains a Psi4 molecule and a name
     --------
     ::
         mol = MoleculeMixin()
+    
     .. versionchanged:: 1.0.0
 
 """
 
 
-def test_split_docstring_into_parts():
-    parts = mtutils.split_docstring_into_parts(DOCSTRING)
-    # assert parts[""] == "Class that contains a Psi4 molecule and a name\n\n"
-    assert len(parts) == 4
-    assert len(parts["Parameters"]) == 6
-    assert len(parts["Attributes"]) == 6
-    assert len(parts["Examples"]) == 5
+@pytest.fixture()
+def written_sections():
+    return mtutils.split_docstring_into_parts(WRITTEN_DOCSTRING)
 
 
-def test_join_split_docstring():
-    parts = mtutils.split_docstring_into_parts(DOCSTRING)
-    joined = mtutils.join_split_docstring(parts)
-    assert joined == DOCSTRING
+def test_split_docstring_into_parts(written_sections):
+    assert len(written_sections) == 3
+    assert "Parameters" in written_sections
+    assert "Attributes" in written_sections
+    assert "Examples" in written_sections
+
+    # merged sections should be dict
+    parameters = written_sections["Parameters"]
+    assert list(parameters.keys()) == ["name", "psi4mol"]
+    assert parameters["psi4mol"] == ["psi4mol : psi4.core.Molecule",
+                                     "    Psi4 molecule"]
+    assert parameters["name"] == ["name : str",
+                                  "    My multiline",
+                                  "    description of",
+                                  "    a",
+                                  "    name",
+                                  "    with trailing spaces"]
+
+    # examples should be string
+    examples = written_sections["Examples"]
+    assert isinstance(examples, str)
 
 
-class Base:
+class Base(BaseModel):
     """
     Blahdiblah
 
     Parameters
     ----------
-    test: str
-        whatever
-
-    Attributes
-    ----------
-    myval: int
+    repeated: int
+        this should show up
 
     Examples
     --------
@@ -65,8 +82,41 @@ class Base:
 
     """
 
+    test: str = Field(description="whatever")
+    repeated: int = Field(description="this should be overwritten")
 
-EXTENDED = """Class that contains a Psi4 molecule and a name
+
+def test_schema_to_docstring_sections():
+    sections = mtutils.schema_to_docstring_sections(Base.__fields__)
+    assert len(sections) == 2
+    assert "Parameters" in sections
+    assert "Attributes" in sections
+
+    parameters = sections["Parameters"]
+    assert len(parameters) == 2
+    assert parameters["repeated"][1].strip() == "this should be overwritten"
+    assert parameters["test"][1] == "    whatever"
+
+    attributes = sections["Attributes"]
+    assert attributes == parameters
+
+
+def test_get_cls_docstring_sections_priority():
+    sections = mtutils.get_cls_docstring_sections(Base)
+    assert len(sections) == 3
+    assert list(sections.keys()) == ["Parameters", "Attributes", "Examples"]
+
+    parameters = sections["Parameters"]
+    assert len(parameters) == 2
+    assert parameters["repeated"][1] == "    this should show up"
+    assert parameters["test"][1] == "    whatever"
+
+    attributes = sections["Attributes"]
+    assert len(attributes) == 2
+    assert attributes["repeated"][1] == "    this should be overwritten"
+
+
+EXTENDED_DOCSTRING = """Class that contains a Psi4 molecule and a name
 
     .. note::
 
@@ -74,30 +124,43 @@ EXTENDED = """Class that contains a Psi4 molecule and a name
 
     Parameters
     ----------
-    psi4mol: psi4.core.Molecule
+    psi4mol : psi4.core.Molecule
         Psi4 molecule
-    name: str
-        Name
-    test: str
+    test : str
         whatever
+    repeated : int
+        this should show up
+    name : str
+        My multiline
+        description of
+        a
+        name
+        with trailing spaces
 
     Attributes
     ----------
-    psi4mol: psi4.core.Molecule
+    psi4mol : psi4.core.Molecule
         Psi4 molecule
-    name: str
+    test : str
+        whatever
+    repeated : int
+        this should be overwritten
+    name : str
         Name
-    myval: int
 
     Examples
     --------
     ::
         mol = MoleculeMixin()
+    
     .. versionchanged:: 1.0.0
 
 """
 
 
-def test_extend_docstring_with_base():
-    docstring = mtutils.extend_docstring_with_base(DOCSTRING, Base)
-    assert docstring == EXTENDED
+def test_model_meta():
+    class Subclass(Model, Base):
+        __doc__ = WRITTEN_DOCSTRING
+
+    generated = Subclass.__doc__
+    assert generated == EXTENDED_DOCSTRING

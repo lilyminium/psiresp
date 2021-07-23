@@ -41,9 +41,9 @@ def get_angstrom_coordinates(psi4mol):
     return psi4mol.geometry().np.astype('float') * BOHR_TO_ANGSTROM
 
 
-def conformer_from_psi4mol(psi4mol):
+def conformer_from_psi4mol(psi4mol, **kwargs):
     resp = Resp(psi4mol=psi4mol)
-    resp.add_conformer(psi4mol)
+    resp.add_conformer(psi4mol, **kwargs)
     return resp.conformers[-1]
 
 

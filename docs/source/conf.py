@@ -19,9 +19,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
-
 import psiresp
-
 
 # -- Project information -----------------------------------------------------
 
@@ -56,15 +54,18 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx_sitemap',
     'sphinx_rtd_theme',
+    'myst_parser',
+    'IPython.sphinxext.ipython_console_highlighting',
+    'IPython.sphinxext.ipython_directive',
 ]
 
 mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
 
 autosummary_generate = True
 napoleon_google_docstring = False
-napoleon_use_param = False
-napoleon_use_ivar = True
-
+# napoleon_use_param = False
+# napoleon_use_ivar = True
+autodoc_typehints = "description"
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -192,3 +193,8 @@ intersphinx_mapping = {'https://docs.python.org/': None,
                        'https://docs.mdanalysis.org/stable/': None,
                        'https://www.psicode.org/psi4manual/master/': None,
                        }
+
+ipython_warning_is_error = False
+ipython_execlines = [
+    'import numpy as np',
+]

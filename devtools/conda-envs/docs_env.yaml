@@ -5,6 +5,8 @@ channels:
   # - conda-forge
 
 dependencies:
+  - ipython
+  - jupyter
   - pip
   - psi4
   - python
@@ -13,6 +15,7 @@ dependencies:
   - pip:
       - duecredit
       - mdanalysis==2.0.0b0
+      - myst-parser
       - numpy>=1.20.0
       - pandas
       - qcelemental
