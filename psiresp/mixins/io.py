@@ -34,7 +34,7 @@ class IOMixin(IOOptions):
 
     @property
     def path(self):
-        return self.directory_path
+        return pathlib.Path(self.directory_path or ".")
 
     @contextlib.contextmanager
     def directory(self):
@@ -83,8 +83,6 @@ class IOMixin(IOOptions):
             except Exception as e:
                 logger.warning(e)
                 logger.info(f"Could not load data from {path}.")
-                if ".dat" in path:
-                    raise e
             else:
                 logger.info(f"Loaded from {path}.")
                 return data

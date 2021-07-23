@@ -22,6 +22,8 @@ def datafile(func: Optional[Callable] = None,
 
     if func is None:
         return functools.partial(datafile, filename=filename)
+    elif isinstance(func, str):
+        return functools.partial(datafile, filename=func)
 
     if filename is None:
         fname = func.__name__
@@ -54,7 +56,7 @@ def load_data(path: Path) -> Data:
         numpy.ndarray or pd.DataFrame
     """
     path = str(path)
-    suffix = pathlib.Path(path).suffix[1:]
+    suffix = pathlib.Path(path).suffix.strip(".")
 
     if suffix == "csv":
         loader = pd.read_csv
@@ -78,7 +80,7 @@ def save_data(data: Data, path: Path):
     path: pathlib.Path or str
         Filename
     """
-    suffix = pathlib.Path(path).suffix
+    suffix = pathlib.Path(path).suffix.strip(".")
 
     if suffix == "csv":
         data.to_csv(path, index=False)
