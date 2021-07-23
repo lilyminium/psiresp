@@ -14,3 +14,5 @@ comment:
   paths: null
 ignore:
   - "psiresp/utils/due.py"
+  - "psiresp/tests"
+  - "psiresp/_version.py"
