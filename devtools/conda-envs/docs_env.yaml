@@ -5,6 +5,8 @@ channels:
   # - conda-forge
 
 dependencies:
+  - ipython
+  - jupyter
   - pip
   - psi4
   - python

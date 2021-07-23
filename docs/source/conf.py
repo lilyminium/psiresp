@@ -15,12 +15,11 @@
 # Incase the project was not installed
 
 
-import psiresp
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
-
+import psiresp
 
 # -- Project information -----------------------------------------------------
 

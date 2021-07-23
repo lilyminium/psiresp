@@ -28,8 +28,9 @@ and the Automated Topology Builder.
    getting_started
    parallelization
    hpc
-   io
    api
+   io
+   options/index
    
 
 
