@@ -13,6 +13,7 @@ dependencies:
   - pip:
       - duecredit
       - mdanalysis==2.0.0b0
+      - myst-parser
       - numpy>=1.20.0
       - pandas
       - qcelemental

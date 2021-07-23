@@ -1,12 +1,39 @@
 Getting Started
 ===============
 
+------------
+Installation
+------------
+
+The easiest approach to install the latest release is to use pip::
+
+  # pip
+  pip install psiresp
+
+
+If you need the latest development environment, build from source::
+
+  git clone https://github.com/lilyminium/psiresp
+  cd psiresp
+  # create new environment with dependencies
+  conda env create -f devtools/conda-envs/resp_env.yaml
+  conda activate psiresp
+  # build the package
+  python setup.py install
+
+
+To run tests::
+
+  cd psiresp/tests/
+  pytest . --disable-pytest-warnings
+
+
 --------------------
 Single molecule RESP
 --------------------
 
 In general, you can jump straight in with PsiRESP once you have a molecule.
-Several example molecule files are provided in the tests. For example, this XYZ file of DMSO:
+Several example molecule files are provided in the tests. For example, this XYZ file of DMSO::
 
     10
     ! from R.E.D. examples/2-Dimethylsulfoxide
@@ -55,10 +82,10 @@ into the categories below, and in fact are managed in the mixin parent classes i
 * RESP fitting options (:class:`~psiresp.mixins.resp.RespOptions`) : these control the fitting.
   Options include whether to run a two-stage job, whether the fit is restrained, and the
   scale factors of the hyperbola penalty.
-* ESP grid generation options (:class:`~psiresp.mixins.grid.GridMixin`) : these pertain to the
+* ESP grid generation options (:class:`~psiresp.mixins.grid.GridOptions`) : these pertain to the
   ESP grid generation -- for example, the vdW radii used to generate the grid, the vdW scale
   factors, and the point density.
-* QM job options (:class:`~psiresp.mixins.qm.QMMixin`) : these control the QM jobs used to
+* QM job options (:class:`~psiresp.mixins.qm.QMOptions`) : these control the QM jobs used to
   optimize the geometry and compute the electrostatic potential. Options include the
   `qm_method`, `qm_basis_set`, and the `solvent`.
 * Input/output options (:class:`~psiresp.mixins.io.IOMixin`) : these options specify whether

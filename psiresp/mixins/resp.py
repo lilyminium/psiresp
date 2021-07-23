@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import PrivateAttr, Field
 
 from .charges import RespCharges
-from .resp_base import BaseRespOptions, RespStage, ContainsQMandGridMixin
+from .resp_base import BaseRespOptions, RespStage, ContainsQMandGridOptions
 
 from .charge_constraints import ChargeConstraintOptions
 from .conformer import ConformerOptions, OrientationOptions
@@ -26,7 +26,7 @@ class RespOptions(BaseRespOptions):
     )
 
 
-class RespMixin(ContainsQMandGridMixin, RespOptions):
+class RespMixin(ContainsQMandGridOptions, RespOptions):
     """Resp mixin for actually running the job"""
     charge_constraint_options: ChargeConstraintOptions = Field(
         default_factory=ChargeConstraintOptions,

@@ -7,7 +7,7 @@ from pydantic import Field
 from .. import vdwradii, base
 
 
-class GridMixin(base.Model):
+class GridOptions(base.Model):
     """Options for setting up the grid for ESP computation"""
 
     grid_rmin: float = Field(

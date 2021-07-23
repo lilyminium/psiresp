@@ -84,7 +84,7 @@ class NoQMExecutionError(RuntimeError):
     """Special error to tell job to quit if there are QM jobs to run"""
 
 
-class QMMixin(base.Model):
+class QMOptions(base.Model):
     """Mixin for QM jobs in Psi4"""
 
     qm_method: QMMethod = Field(

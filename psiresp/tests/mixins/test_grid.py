@@ -12,7 +12,7 @@ from ..datafiles import UNIT_SPHERE_3, UNIT_SPHERE_64, DMSO_SHELL_D1, DMSO_SHELL
     (64, UNIT_SPHERE_64)
 ])
 def test_generate_unit_sphere(n_points, ref_file):
-    points = mixins.GridMixin.generate_unit_sphere(n_points)
+    points = mixins.GridOptions.generate_unit_sphere(n_points)
     reference = np.loadtxt(ref_file, comments="!")
     assert_almost_equal(points, reference, decimal=5)
 
@@ -24,7 +24,7 @@ def test_generate_unit_sphere(n_points, ref_file):
     ([2.4, 3., 2.8], 3.4, [246, 384, 334]),
 ])
 def test_generate_connolly_spheres(radii, density, n_points):
-    grid = mixins.GridMixin(vdw_point_density=density)
+    grid = mixins.GridOptions(vdw_point_density=density)
     points = grid.generate_connolly_spheres(radii)
     mask = np.all(np.isnan(points), axis=(0, 2))
     assert points.shape == ((3, n_points[1], 3))

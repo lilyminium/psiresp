@@ -3,8 +3,8 @@ import numpy as np
 from pydantic import Field
 
 from .. import base
-from .qm import QMMixin
-from .grid import GridMixin
+from .qm import QMOptions
+from .grid import GridOptions
 from .conformer import ConformerOptions
 
 
@@ -13,7 +13,7 @@ class BaseRespOptions(base.Model):
     restrained: bool = Field(default=True,
                              description="Perform a restrained fit")
     hyp_b: float = Field(default=0.1,
-                         description="Tightness of hyperbola at its minimum")
+                         description="Tightness of hyperbolic penalty at its minimum")
     ihfree: bool = Field(
         default=True,
         description="if True, exclude hydrogens from restraint",
@@ -92,14 +92,14 @@ class RespStage(BaseRespOptions):
         return mask
 
 
-class ContainsQMandGridMixin(base.Model):
-    grid_options: GridMixin = Field(
-        default_factory=GridMixin,
+class ContainsQMandGridOptions(base.Model):
+    grid_options: GridOptions = Field(
+        default_factory=GridOptions,
         description="Options for generating a grid for ESP computation"
     )
 
-    qm_options: QMMixin = Field(
-        default_factory=QMMixin,
+    qm_options: QMOptions = Field(
+        default_factory=QMOptions,
         description="Options for running QM jobs"
     )
 
@@ -108,7 +108,7 @@ class ContainsQMandGridMixin(base.Model):
             if hasattr(options, attrname):
                 return getattr(options, attrname)
         print(type(self))
-        return super(ContainsQMandGridMixin, self).__getattr__(attrname)
+        return super(ContainsQMandGridOptions, self).__getattr__(attrname)
 
     def __setattr__(self, attrname, value):
         for options in (self.qm_options, self.grid_options):

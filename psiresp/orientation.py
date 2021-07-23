@@ -8,7 +8,7 @@ from . import mixins, utils
 from .utils.io import datafile
 
 
-class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridMixin):
+class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridOptions):
     _parent_path: pathlib.Path = PrivateAttr(default=".")
 
     @property

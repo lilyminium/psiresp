@@ -3,8 +3,8 @@ import pathlib
 
 from pydantic import Field, PrivateAttr
 from .io import IOOptions
-from .grid import GridMixin
-from .qm import QMMixin
+from .grid import GridOptions
+from .qm import QMOptions
 
 
 class OrientationOptions(IOOptions):

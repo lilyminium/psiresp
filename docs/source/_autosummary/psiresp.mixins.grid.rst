@@ -17,7 +17,7 @@
 
    .. autosummary::
    
-      GridMixin
+      GridOptions
    
    
 

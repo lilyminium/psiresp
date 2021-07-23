@@ -8,7 +8,7 @@ that correspond to commonly used settings.
 
 """
 
-from .mixins import RespOptions, GridMixin, QMMixin
+from .mixins import RespOptions, GridOptions, QMOptions
 from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
 from .vdwradii import VdwRadiiSet
 from .resp import Resp
@@ -25,28 +25,28 @@ from .utils.due import due, Doi
 
 # def configure(**kwargs):
 #     def wrapper(cls):
-#         new_defaults = [dict(QMMixin.__dict__),
-#                         dict(GridMixin.__dict__)]
+#         new_defaults = [dict(QMOptions.__dict__),
+#                         dict(GridOptions.__dict__)]
 #         for name, field in cls.__fields__.items():
 #             for optcls, defaults in new_defaults.items():
 #                 if name in defaults["__fields__"]:
 #                     defaults["__fields__"][name] = field
 
-#         SubQMMixin = type("QMMixin", (QMMixin,), new_defaults[0])
-#         SubGridMixin = type("GridMixin", (GridMixin,), new_defaults[1])
+#         SubQMOptions = type("QMOptions", (QMOptions,), new_defaults[0])
+#         SubGridOptions = type("GridOptions", (GridOptions,), new_defaults[1])
 
 #         basecls = cls.__bases__[0]
 
 #         class Wrapper(basecls):
 #             __doc__ = cls.__doc__
 
-#             grid_options: GridMixin = Field(
-#                 default_factory=SubGridMixin,
+#             grid_options: GridOptions = Field(
+#                 default_factory=SubGridOptions,
 #                 description=basecls.__fields__["grid_options"].description,
 #             )
 
-#             qm_options: QMMixin = Field(
-#                 default_factory=SubQMMixin,
+#             qm_options: QMOptions = Field(
+#                 default_factory=SubQMOptions,
 #                 description=basecls.__fields__["qm_options"].description,
 #             )
 
