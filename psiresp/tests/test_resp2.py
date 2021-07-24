@@ -16,6 +16,7 @@ from .datafiles import (ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
 @pytest.fixture()
 def etoh_resp2():
     resp2 = psiresp.Resp2.from_molfile(ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
+                                       fix_geometry=True,
                                        name="resp2_ethanol",
                                        load_input=True,
                                        directory_path=TEST_RESP2_DATA,
@@ -50,6 +51,10 @@ def test_resp2_construction(etoh_resp2):
     expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
     assert_allclose(orientation.grid, expected_grid)
 
+    assert np.allclose(orientation.coordinates[0, 0], 1.059)
+    assert np.allclose(orientation.grid[0, 0], 1.7023625732724663)
+    assert np.allclose(orientation.r_inv[0, 0], 0.22234337)
+
 
 def test_resp2_gas_conformer(etoh_resp2):
     a = etoh_resp2.gas.conformers[0].unweighted_a_matrix
@@ -75,16 +80,18 @@ def test_resp2_gas(etoh_resp2):
     assert_allclose(b, B)
 
 
-# def test_resp2_run(etoh_resp2):
-#     etoh_resp2.run()
-#     SOLV = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
-#                      0.0649, -0.0111, -0.0111,  0.4045])
-#     GAS = np.array([-0.2300,  0.3063, -0.5658,  0.0621,  0.0621,
-#                     0.0621, -0.0153, -0.0153,  0.3339])
-#     REF = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
-#                     0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
+def test_resp2_run(etoh_resp2):
+    etoh_resp2.run()
+    SOLV = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
+                     0.0649, -0.0111, -0.0111,  0.4045])
+    GAS = np.array([-0.2300,  0.3063, -0.5658,  0.0621,  0.0621,
+                    0.0621, -0.0153, -0.0153,  0.3339])
+    REF = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
+                    0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
 
-#     assert etoh_resp2.gas._stage_2_charges is not etoh_resp2.solvated._stage_2_charges
-#     assert_allclose(etoh_resp2.solvated.charges, SOLV)
-#     assert_allclose(etoh_resp2.gas.charges, GAS)
-#     assert_allclose(etoh_resp2.charges, REF)
+    assert etoh_resp2.gas._stage_2_charges is not etoh_resp2.solvated._stage_2_charges
+
+    # not quite sure when rounding happens with original RESP2 implementation
+    assert_allclose(etoh_resp2.solvated.charges, SOLV, atol=5e-03)
+    assert_allclose(etoh_resp2.gas.charges, GAS, atol=5e-03)
+    assert_allclose(etoh_resp2.charges, REF, atol=5e-03)

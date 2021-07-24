@@ -236,14 +236,17 @@ def psi4mols_from_rdmol(rdmol: rdkit.Chem.Mol,
     return mols
 
 
-def psi4mols_from_file(filename: str, **kwargs):
+def psi4mols_from_file(filename: str, fix_geometry: bool = False,
+                       **kwargs):
     DTYPES = ["xyz", "xyz+", "psi4", "psi4+"]
     with open(filename, "r") as f:
         content = f.read()
 
     for dtype in DTYPES:
         try:
-            return [psi4.core.Molecule.from_string(content, dtype=dtype)]
+            return [psi4.core.Molecule.from_string(content, dtype=dtype,
+                                                   fix_com=fix_geometry,
+                                                   fix_orientation=fix_geometry)]
         except MoleculeFormatError:
             pass
 

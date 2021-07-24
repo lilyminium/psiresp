@@ -35,7 +35,8 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
         return Resp.from_molfile(molfile, **options)
 
     @classmethod
-    def from_molfile(cls, *molfile: str, **kwargs) -> "Resp":
+    def from_molfile(cls, *molfile: str, fix_geometry: bool = False,
+                     **kwargs) -> "Resp":
         """Create class from molecule file
 
         Parameters
@@ -56,7 +57,7 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
         """
         psi4mols = []
         for file in molfile:
-            psi4mols.extend(psi4utils.psi4mols_from_file(file))
+            psi4mols.extend(psi4utils.psi4mols_from_file(file, fix_geometry=fix_geometry))
         return cls.from_psi4mols(psi4mols, **kwargs)
 
     @classmethod
