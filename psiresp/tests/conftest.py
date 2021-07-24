@@ -86,10 +86,10 @@ def nme2ala2_opt_resp(nme2ala2_opt_c1_psi4mol, nme2ala2_opt_c2_psi4mol):
     reorientations = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
     conformer_options = dict(reorientations=reorientations,
                              keep_original_conformer_geometry=False,
-                             load_input=True)
+                             load_input=True, save_output=True,)
     resp = psiresp.Resp(nme2ala2_opt_c1_psi4mol,
                         conformer_options=conformer_options,
-                        name="nme2ala2", load_input=True,
+                        name="nme2ala2", load_input=True, save_output=True,
                         directory_path=TEST_RESP_DATA,
                         )
     resp.add_conformer(nme2ala2_opt_c1_psi4mol)
@@ -108,10 +108,10 @@ def methylammonium_resp(methylammonium_psi4mol):
     reorientations = [(1, 5, 7), (7, 5, 1)]
     conformer_options = dict(reorientations=reorientations,
                              keep_original_conformer_geometry=False,
-                             load_input=True)
+                             load_input=True, save_output=True)
     resp = psiresp.Resp(methylammonium_psi4mol, charge=1,
                         conformer_options=conformer_options,
-                        name="methylammonium", load_input=True,
+                        name="methylammonium", load_input=True, save_output=True,
                         directory_path=TEST_MULTIRESP_DATA,
                         )
     resp.add_conformer(methylammonium_psi4mol)

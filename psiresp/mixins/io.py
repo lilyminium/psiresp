@@ -59,8 +59,13 @@ class IOMixin(IOOptions):
             path = tempfile.TemporaryDirectory()
 
         try:
-            os.chdir(path.name)
-            yield path.name
+            abspath = str(path.resolve())
+            os.chdir(abspath)
+            yield abspath
+        except FileNotFoundError:
+            path.mkdir(parents=True, exist_ok=True)
+            os.chdir(abspath)
+            yield abspath
         finally:
             os.chdir(cwd)
             if not self.save_output:

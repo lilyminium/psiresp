@@ -89,6 +89,7 @@ ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES = resource_filename(__name__,
 TEST_RESP_DATA = resource_filename(__name__, "data/test_resp")
 TEST_MULTIRESP_DATA = resource_filename(__name__, "data/test_multiresp")
 TEST_RESP2_DATA = resource_filename(__name__, "data/test_resp2")
+TEST_MULTIRESP2_DATA = resource_filename(__name__, "data/test_multiresp2")
 
 # ETOH_PDB = datafile("ethanol.pdb")
 # ETOH_MOL2 = datafile("ethanol.mol2")

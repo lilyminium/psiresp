@@ -1,0 +1,43 @@
+memory 500MB
+molecule methylammonium_solvated_c001_o001 {
+    units Angstrom
+    no_com
+    no_reorient
+    1 1
+        C                0.000000000000000     0.000000000000000     0.000000000000000
+    H               -0.335678171281038     0.512209813386147     0.887177024734546
+    H               -0.335678540626895     0.512212882319290    -0.887175089601728
+    H               -0.335678404245902    -1.024422653106122    -0.000001628279159
+    N                1.507371819702760    -0.000000000000000    -0.000000000000000
+    H                1.879525082711328    -0.470269353887220    -0.814529724098511
+    H                1.879524596912604     0.940538015597912     0.000000000000000
+    H                1.879524373353430    -0.470268968437522     0.814530434530888
+
+
+}
+
+set basis aug-cc-pV(D+d)Z
+
+set {
+    pcm true
+    pcm_scf_type total
+}
+
+pcm = {
+    Units = Angstrom
+    Medium {
+        SolverType = CPCM
+        Solvent = water
+    }
+
+    Cavity {
+        RadiiSet = bondi # Bondi | UFF | Allinger
+        Type = GePol
+        Scaling = True # radii for spheres scaled by 1.2
+        Area = 0.3
+        Mode = Implicit
+    }
+}
+
+E, wfn = prop('pw6b95', properties=['GRID_ESP'], return_wfn=True)
+esp = wfn.oeprop.Vvals()

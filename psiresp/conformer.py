@@ -119,7 +119,7 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
             if not self.orientations:
                 self.add_orientation(self.psi4mol)
 
-    def finalize_geometry(self, force=False):
+    def finalize_geometry(self, force=False, qm_options=None):
         """Finalize geometry of psi4mol
 
         If :attr:`psiresp.conformer.Conformer.optimize_geometry` is ``True``,
@@ -133,7 +133,7 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         if self._finalized and not force:
             return
         if self.optimize_geometry:
-            xyz = self.compute_optimized_geometry()
+            xyz = self.compute_optimized_geometry(qm_options=qm_options)
             mol = psi4utils.psi4mol_from_xyz_string(xyz)
             self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True

@@ -1,16 +1,20 @@
 import pytest
+import itertools
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_almost_equal
+
 
 import psiresp
 
+from .base import charges_from_red_file
 from .datafiles import (ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
-                        TEST_RESP2_DATA,
+                        TEST_RESP2_DATA, TEST_MULTIRESP2_DATA,
                         ETHANOL_RESP2_GAS_STAGE1_MATRICES,
                         ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES,
                         ETHANOL_RESP2_GAS_C1_O1_GRID_ESP,
                         ETHANOL_RESP2_GAS_C1_O1_GRID,
-                        AMM_NME_OPT_RESPA1_CHARGES
+                        AMM_NME_OPT_RESPA1_CHARGES,
+                        
                         )
 
 ETOH_SOLV_CHARGES = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
@@ -53,9 +57,13 @@ class TestResp2:
                 "resp2_ethanol_gas_c001_o001")
         assert str(orientation.path) == path
 
-        assert gas_phase.grid_rmin == 1.3
+        # assert gas_phase.grid_rmin == 1.3
         assert gas_phase.solvent == "water"
 
+        assert np.allclose(etoh_resp2.gas.conformer_coordinates[0, 0, 0], 1.059)
+
+    def test_grid_generation(self, etoh_resp2):
+        orientation = etoh_resp2.gas.conformers[0].orientations[0]
         expected_esp = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID_ESP)
         assert_allclose(orientation.esp, expected_esp)
         expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
@@ -65,7 +73,10 @@ class TestResp2:
         assert np.allclose(orientation.grid[0, 0], 1.7023625732724663)
         assert np.allclose(orientation.r_inv[0, 0], 0.22234337)
 
-        assert np.allclose(etoh_resp2.gas.conformer_coordinates[0, 0, 0], 1.059)
+        gen_grid = etoh_resp2.grid_options.generate_vdw_grid(orientation.symbols,
+                                                             orientation.coordinates)
+        assert_allclose(gen_grid, expected_grid)
+
 
     def test_resp2_gas_conformer(self, etoh_resp2):
         a = etoh_resp2.gas.conformers[0].unweighted_a_matrix
@@ -137,7 +148,7 @@ class TestMultiResp2Ethanol:
         assert_allclose(etoh_multiresp2.charges, ETOH_REF_CHARGES, atol=5e-03)
 
 
-def test_combined_constraints(nme2ala2_opt_resp,
+def test_multiple_multiresp2(nme2ala2_opt_resp,
                               methylammonium_resp):
 
     overall = dict(charge_constraints=[(0, [(1, 1), (1, 2), (1, 3), (1, 4),
@@ -157,7 +168,20 @@ def test_combined_constraints(nme2ala2_opt_resp,
                    symmetric_methyls=False)
 
     multiresp = psiresp.MultiResp2(resps=[methylammonium_resp, nme2ala2_opt_resp],
-                                   charge_constraint_options=overall, delta=0.0)
+                                   charge_constraint_options=overall, delta=0.0,
+                                   load_input=True, save_output=True,
+                                   directory_path=TEST_MULTIRESP2_DATA)
+    assert multiresp.qm_options.solvent == "water"
+    assert multiresp.gas.qm_options.solvent == "water"
+    assert multiresp.gas.resps[0].resp.qm_options.solvent == "water"
+    assert multiresp.gas.resps[0].resp.grid_options is multiresp.gas.grid_options
+
+    multiresp.generate_orientations()
+    assert len(list(multiresp.conformers)) == 6
+    assert len(list(multiresp.orientations)) == 20
+
+    for orientation in multiresp.orientations:
+        assert "gas" in orientation.name or "solvated" in orientation.name
 
     charges = multiresp.run()
     assert_almost_equal(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0)
@@ -166,6 +190,13 @@ def test_combined_constraints(nme2ala2_opt_resp,
     assert_almost_equal(charges[26], -0.5722)
     assert_almost_equal(charges[18], charges[22])
 
-    charge_file = AMM_NME_OPT_RESPA1_CHARGES
-    reference = np.concatenate(charges_from_red_file(charge_file))
-    assert_almost_equal(charges, reference, decimal=3)
+    assert not np.allclose(multiresp.gas.charges, multiresp.solvated.charges)
+
+    # can't really compare these to the 6-31g* ones
+    # check constraints worked instead
+    assert_allclose(charges[17], charges[21])
+    for a, b in itertools.combinations([5, 6, 7], 2):
+        assert_allclose(charges[a], charges[b])
+    
+    for a, b in itertools.combinations([18, 19, 20, 22, 23, 24], 2):
+        assert_allclose(charges[a], charges[b])

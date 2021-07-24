@@ -203,6 +203,8 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
             If ``execute_qm`` is False
         """
         self.finalize_geometries(executor=executor, timeout=timeout)
+        for orient in self.orientations:
+            orient.compute_grid(grid_options=self.grid_options)
         functions = [orient.compute_esp for orient in self.orientations]
         self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
                                           command_log=command_log)
@@ -277,6 +279,7 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
         SystemExit
             If ``execute_qm`` is False
         """
+        
         self._prepare_molecules_for_resp(nprocs=nprocs,
                                          nthreads=nthreads,
                                          memory=memory,
@@ -295,9 +298,9 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
         geometry_command_log: str = "finalize_geometry_commands.log",
         esp_command_log: str = "compute_esp_commands.log",
     ):
-
         self._n_threads = nthreads
         self._memory = memory
+
 
         if nprocs == 1 and nthreads == 1:
             self.generate_conformers()

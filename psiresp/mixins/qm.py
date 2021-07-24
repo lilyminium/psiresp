@@ -364,9 +364,9 @@ class QMOptions(base.Model):
         futures = []
         for func in functions:
             try:
-                future = executor.submit(func)
+                future = executor.submit(func, qm_options=self)
             except AttributeError:
-                func()
+                func(qm_options=self)
             else:
                 futures.append(future)
         self.wait_or_quit(futures, timeout=timeout, command_log=command_log)

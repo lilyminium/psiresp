@@ -73,20 +73,32 @@ class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
         return np.einsum("i, ij->j", self.esp, self.r_inv)
 
     @datafile(filename="{self.name}_grid.dat")
-    def compute_grid(self):
-        return self.grid_options.generate_vdw_grid(self.symbols, self.coordinates)
+    def compute_grid(self, grid_options=None):
+        if grid_options is None:
+            grid_options = self.grid_options
+        print("--> comp grid", self.name)
+        print("GRID OPTIONS", grid_options)
+        grid = grid_options.generate_vdw_grid(self.symbols, self.coordinates)
+        print("GRIDDY BOI", grid)
+        self._grid = grid
+        print("SELF GRID", self._grid)
+        return grid
 
     @datafile(filename="{self.name}_grid_esp.dat")
-    def compute_esp(self):
+    def compute_esp(self, qm_options=None):
+        if qm_options is None:
+            qm_options = self.qm_options
         grid = self.grid
         if self.psi4mol_geometry_in_bohr:
             grid = grid * utils.ANGSTROM_TO_BOHR
         with self.directory() as tmpdir:
             # ... this dies unless you write out grid.dat
             np.savetxt("grid.dat", grid)
-            infile = self.qm_options.write_esp_file(self.psi4mol,
-                                                    name=self.name)
-            proc = self.qm_options.try_run_qm(infile, cwd=tmpdir)
+            infile = qm_options.write_esp_file(self.psi4mol,
+                                               name=self.name)
+            proc = qm_options.try_run_qm(infile, cwd=tmpdir)
+            print("PROC", proc)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
+        # assert len(self._esp)
         return esp

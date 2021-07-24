@@ -123,7 +123,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         from scipy.sparse.linalg import spsolve, lsmr
         try:
             return spsolve(a, b)
-        except RuntimeError:  # TODO: this could be slow?
+        except RuntimeError as e:  # TODO: this could be slow?
             return lsmr(a, b)[0]
 
     def fit(self,
@@ -141,6 +141,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         -------
         numpy.ndarray
         """
+        
 
         a, b = self.get_constraint_matrix(a_matrix, b_matrix)
         q1 = self._solve_a_b(a, b)

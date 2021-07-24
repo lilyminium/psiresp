@@ -79,7 +79,7 @@ def save_data(data: Data, path: Path):
         Filename
     """
     path_obj = pathlib.Path(path)
-    suffix = path_obj.suffix
+    suffix = path_obj.suffix.strip(".")
 
     if suffix == "csv":
         def save(): return data.to_csv(path, index=False)

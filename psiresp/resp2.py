@@ -1,6 +1,7 @@
 
 from typing import Optional, Union
 from pydantic import PrivateAttr, Field
+import concurrent.futures
 
 import psi4
 
@@ -57,8 +58,8 @@ class Resp2Mixin:
     path="psiresp.resp2",
 )
 class Resp2(Resp2Mixin, Resp):
-    grid_rmin: float = 1.3
-    grid_rmax: float = 2.1
+    # grid_rmin: float = 1.3
+    # grid_rmax: float = 2.1
     solvent: str = "water"
     qm_method: str = "pw6b95"
     qm_basis_set: str = "aug-cc-pV(D+d)Z"
@@ -129,8 +130,8 @@ class Resp2(Resp2Mixin, Resp):
 )
 class MultiResp2(Resp2Mixin, MultiResp):
     name: str = "multiresp2"
-    grid_rmin: float = 1.3
-    grid_rmax: float = 2.1
+    # grid_rmin: float = 1.3
+    # grid_rmax: float = 2.1
     solvent: str = "water"
     qm_method: str = "pw6b95"
     qm_basis_set: str = "aug-cc-pV(D+d)Z"
@@ -194,19 +195,41 @@ class MultiResp2(Resp2Mixin, MultiResp):
         super().add_resp(psi4mol_or_resp, name=name, **kwargs)
         resp = self.resps[-1]
         gas_phase = Resp.from_model(resp, name=f"{resp.name}_gas")
-        gas_phase._conformer_coordinates = resp._conformer_coordinates
         self.gas.add_resp(gas_phase)
 
         solv_phase = Resp.from_model(resp, name=f"{resp.name}_solvated")
-        solv_phase._conformer_coordinates = resp._conformer_coordinates
         self.solvated.add_resp(solv_phase)
+
+        for phase in self.phases:
+            last_resp = phase.resps[-1]
+            last_resp.conformers = []
+            for conf in resp.conformers:
+                last_resp.add_conformer(conf.psi4mol)
+                last_conf = last_resp.conformers[-1]
+                last_conf.qm_options = self.qm_options
+                last_conf.grid_options = self.grid_options
+                for orientation in conf.orientations:
+                    last_conf.add_orientation(orientation.psi4mol)
+                    last_orientation = last_conf.orientations[-1]
+                    last_orientation.grid_options = self.grid_options
+                    last_orientation.qm_options = self.qm_options
+            # phase.resps[-1]._conformer_coordinates = resp._conformer_coordinates
+            
+            # for conformer in phase.resps[-1].conformers:
+            #     conformer.qm_options = self.qm_options
+            #     conformer.grid_options = self.grid_options
+            #     for orientation in conformer.orientations:
+            #         orientation.qm_options = self.qm_options
+            #         orientation.grid_options = self.grid_options
 
     def generate_conformers(self):
         for i, resp in enumerate(self.resps):
             resp.generate_conformers()
             for phase in self.phases:
-                phase.resps[i]._conformer_coordinates = resp._conformer_coordinates
-                phase.generate_conformers()
+                phase_resp = phase.resps[i]
+                phase_resp._conformer_coordinates = resp._conformer_coordinates
+                phase_resp.conformers = []
+                phase_resp.generate_conformers()
 
     @property
     def conformers(self):
@@ -214,3 +237,39 @@ class MultiResp2(Resp2Mixin, MultiResp):
             for resp in phase.resps:
                 for conformer in resp.conformers:
                     yield conformer
+
+    def compute_esps(self,
+                     executor: Optional[concurrent.futures.Executor] = None,
+                     timeout: Optional[float] = None,
+                     command_log: str = "compute_esp_commands.log"):
+        """Finalize geometries for all conformers.
+
+        This is provided as a convenience function for computing all
+        electrostatic potentials at once with multiple processes, using a
+        concurrent.futures.ProcessPoolExecutor. If an executor is not
+        provided, computations are run in serial. If ``execute_qm`` is
+        False, all Psi4 input job files will be written out and
+        commands for running Psi4 will be saved to ``command_log``.
+
+        Parameters
+        ----------
+        executor: concurrent.futures.Executor (optional)
+            Executor for running jobs
+        timeout: float or int (optional)
+            Timeout to wait before stopping the executor
+        command_log: str (optional)
+            Filename to write commands to
+
+        Raises
+        ------
+        SystemExit
+            If ``execute_qm`` is False
+        """
+        self.finalize_geometries(executor=executor, timeout=timeout)
+        for conformer in self.conformers:
+        for orient in self.orientations:
+            grid = orient.compute_grid(grid_options=self.grid_options)
+            assert len(orient.grid)
+        functions = [orient.compute_esp for orient in self.orientations]
+        self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
+                                          command_log=command_log)
