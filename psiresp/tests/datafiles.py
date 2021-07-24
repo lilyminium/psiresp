@@ -71,6 +71,20 @@ AMM_NME_OPT_ESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimeth
 
 ETHANOL_RESP2_C1 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c1.xyz")
 ETHANOL_RESP2_C2 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c2.xyz")
+ETHANOL_RESP2_GAS_C1_O1_GRID_ESP = resource_filename(__name__,
+                                                     "data/test_resp2/resp2_ethanol_gas/"
+                                                     "resp2_ethanol_gas_c001/"
+                                                     "resp2_ethanol_gas_c001_o001/"
+                                                     "resp2_ethanol_gas_c001_o001_grid_esp.dat")
+ETHANOL_RESP2_GAS_C1_O1_GRID = resource_filename(__name__,
+                                                 "data/test_resp2/resp2_ethanol_gas/"
+                                                 "resp2_ethanol_gas_c001/"
+                                                 "resp2_ethanol_gas_c001_o001/"
+                                                 "resp2_ethanol_gas_c001_o001_grid.dat")
+ETHANOL_RESP2_GAS_STAGE1_MATRICES = resource_filename(__name__,
+                                                      "data/test_resp2/resp2_ethanol_c2_gas_stg1_abmat.dat")
+ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES = resource_filename(__name__,
+                                                         "data/test_resp2/resp2_ethanol_c2_gas_c1_abmat.dat")
 
 TEST_RESP_DATA = resource_filename(__name__, "data/test_resp")
 TEST_MULTIRESP_DATA = resource_filename(__name__, "data/test_multiresp")

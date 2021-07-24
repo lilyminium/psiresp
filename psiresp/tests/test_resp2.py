@@ -4,7 +4,13 @@ from numpy.testing import assert_allclose
 
 import psiresp
 
-from .datafiles import ETHANOL_RESP2_C1, ETHANOL_RESP2_C2, TEST_RESP2_DATA
+from .datafiles import (ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
+                        TEST_RESP2_DATA,
+                        ETHANOL_RESP2_GAS_STAGE1_MATRICES,
+                        ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES,
+                        ETHANOL_RESP2_GAS_C1_O1_GRID_ESP,
+                        ETHANOL_RESP2_GAS_C1_O1_GRID,
+                        )
 
 
 @pytest.fixture()
@@ -14,6 +20,7 @@ def etoh_resp2():
                                        load_input=True,
                                        directory_path=TEST_RESP2_DATA,
                                        delta=0.5)
+    resp2.generate_orientations()
     return resp2
 
 
@@ -24,19 +31,48 @@ def test_resp2_construction(etoh_resp2):
     assert str(etoh_resp2.path) == TEST_RESP2_DATA
 
     gas_path = f"{TEST_RESP2_DATA}/resp2_ethanol_gas"
-    assert str(etoh_resp2.gas.path) == gas_path
-    assert str(etoh_resp2.gas.conformers[0].path) == f"{gas_path}/resp2_ethanol_gas_c001"
+    gas_phase = etoh_resp2.gas
+    assert str(gas_phase.path) == gas_path
+    assert str(gas_phase.conformers[0].path) == f"{gas_path}/resp2_ethanol_gas_c001"
 
-    etoh_resp2.generate_orientations()
     assert all(len(conf.orientations) == 1 for conf in etoh_resp2.conformers)
-    orientation = etoh_resp2.solvated.conformers[1].orientations[0]
-    path = (f"{TEST_RESP2_DATA}/resp2_ethanol_solvated/"
-            "resp2_ethanol_solvated_c002/"
-            "resp2_ethanol_solvated_c002_o001")
+    orientation = etoh_resp2.gas.conformers[0].orientations[0]
+    path = (f"{TEST_RESP2_DATA}/resp2_ethanol_gas/"
+            "resp2_ethanol_gas_c001/"
+            "resp2_ethanol_gas_c001_o001")
     assert str(orientation.path) == path
 
-    assert etoh_resp2.gas.grid_rmin == 1.3
-    assert etoh_resp2.gas.solvent == "water"
+    assert gas_phase.grid_rmin == 1.3
+    assert gas_phase.solvent == "water"
+
+    expected_esp = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID_ESP)
+    assert_allclose(orientation.esp, expected_esp)
+    expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
+    assert_allclose(orientation.grid, expected_grid)
+
+
+def test_resp2_gas_conformer(etoh_resp2):
+    a = etoh_resp2.gas.conformers[0].unweighted_a_matrix
+    b = etoh_resp2.gas.conformers[0].unweighted_b_matrix
+
+    expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES)
+    A = expected_ab[:-1]
+    B = expected_ab[-1]
+
+    assert_allclose(a, A)
+    assert_allclose(b, B)
+
+
+def test_resp2_gas(etoh_resp2):
+    a = etoh_resp2.gas.get_a_matrix()
+    b = etoh_resp2.gas.get_b_matrix()
+
+    expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_STAGE1_MATRICES)
+    A = expected_ab[:-1]
+    B = expected_ab[-1]
+
+    assert_allclose(a, A)
+    assert_allclose(b, B)
 
 
 # def test_resp2_run(etoh_resp2):

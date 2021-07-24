@@ -107,7 +107,6 @@ class ContainsQMandGridOptions(base.Model):
         for options in (self.qm_options, self.grid_options):
             if hasattr(options, attrname):
                 return getattr(options, attrname)
-        print(type(self))
         return super(ContainsQMandGridOptions, self).__getattr__(attrname)
 
     def __setattr__(self, attrname, value):
