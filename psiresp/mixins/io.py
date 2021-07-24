@@ -34,7 +34,7 @@ class IOMixin(IOOptions):
 
     @property
     def path(self):
-        return self.directory_path
+        return pathlib.Path(self.directory_path or ".")
 
     @classmethod
     def from_model(cls, obj, **kwargs) -> "Model":
