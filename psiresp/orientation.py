@@ -76,12 +76,8 @@ class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
     def compute_grid(self, grid_options=None):
         if grid_options is None:
             grid_options = self.grid_options
-        print("--> comp grid", self.name)
-        print("GRID OPTIONS", grid_options)
         grid = grid_options.generate_vdw_grid(self.symbols, self.coordinates)
-        print("GRIDDY BOI", grid)
         self._grid = grid
-        print("SELF GRID", self._grid)
         return grid
 
     @datafile(filename="{self.name}_grid_esp.dat")
@@ -97,7 +93,6 @@ class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
             infile = qm_options.write_esp_file(self.psi4mol,
                                                name=self.name)
             proc = qm_options.try_run_qm(infile, cwd=tmpdir)
-            print("PROC", proc)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         # assert len(self._esp)

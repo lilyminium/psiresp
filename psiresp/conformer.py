@@ -129,7 +129,6 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         final geometry will get written to an xyz file to bypass this check
         next time.
         """
-        # print("in conf", self.psi4mol)
         if self._finalized and not force:
             return
         if self.optimize_geometry:
