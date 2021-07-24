@@ -91,8 +91,6 @@ class IOMixin(IOOptions):
             except Exception as e:
                 logger.warning(e)
                 logger.info(f"Could not load data from {path}.")
-                if ".dat" in path:
-                    raise e
             else:
                 logger.info(f"Loaded from {path}.")
                 return data

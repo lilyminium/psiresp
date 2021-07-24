@@ -212,6 +212,7 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
 
     def generate_orientations(self):
         """Generate Orientations for all conformers"""
+        self.generate_conformers()
         for i, conformer in enumerate(self.conformers):
             conformer.generate_orientations()
 

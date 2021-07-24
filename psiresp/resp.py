@@ -110,6 +110,10 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
             self._conformer_coordinates = self.generate_conformer_coordinates()
         return self._conformer_coordinates
 
+    # @conformer_coordinates.setter
+    # def conformer_coordinates(self, values):
+    #     self._conformer_coordinates = values
+
     @property
     def resp(self):
         if self.parent is None:

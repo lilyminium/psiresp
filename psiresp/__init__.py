@@ -16,7 +16,7 @@ from .orientation import Orientation
 from .conformer import Conformer
 from .resp import Resp
 from .multiresp import MultiResp
-from .resp2 import Resp2#, MultiResp2
+from .resp2 import Resp2, MultiResp2
 from .configs import (
     RespA1,
     RespA2,

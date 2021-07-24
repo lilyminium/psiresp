@@ -49,7 +49,10 @@ def split_docstring_into_parts(docstring: str) -> Dict[str, Dict[str, List[str]]
 def get_cls_docstring_sections(cls) -> Dict[str, dict]:
     """Create docstring from instantiated class"""
     base_parts = split_docstring_into_parts(cls.__doc__)
-    schema_parts = schema_to_docstring_sections(cls.__fields__)
+    if hasattr(cls, "__fields__"):
+        schema_parts = schema_to_docstring_sections(cls.__fields__)
+    else:
+        schema_parts = {}
     return merge_sections(base_parts, schema_parts)
 
 

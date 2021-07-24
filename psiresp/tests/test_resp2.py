@@ -10,7 +10,15 @@ from .datafiles import (ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
                         ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES,
                         ETHANOL_RESP2_GAS_C1_O1_GRID_ESP,
                         ETHANOL_RESP2_GAS_C1_O1_GRID,
+                        AMM_NME_OPT_RESPA1_CHARGES
                         )
+
+ETOH_SOLV_CHARGES = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
+                              0.0649, -0.0111, -0.0111,  0.4045])
+ETOH_GAS_CHARGES = np.array([-0.2300,  0.3063, -0.5658,  0.0621,  0.0621,
+                             0.0621, -0.0153, -0.0153,  0.3339])
+ETOH_REF_CHARGES = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
+                             0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
 
 
 @pytest.fixture()
@@ -25,73 +33,139 @@ def etoh_resp2():
     return resp2
 
 
-def test_resp2_construction(etoh_resp2):
-    assert len(etoh_resp2.gas.conformers) == 2
-    assert len(etoh_resp2.solvated.conformers) == 2
-    assert etoh_resp2.name == "resp2_ethanol"
-    assert str(etoh_resp2.path) == TEST_RESP2_DATA
+class TestResp2:
 
-    gas_path = f"{TEST_RESP2_DATA}/resp2_ethanol_gas"
-    gas_phase = etoh_resp2.gas
-    assert str(gas_phase.path) == gas_path
-    assert str(gas_phase.conformers[0].path) == f"{gas_path}/resp2_ethanol_gas_c001"
+    def test_resp2_construction(self, etoh_resp2):
+        assert len(etoh_resp2.gas.conformers) == 2
+        assert len(etoh_resp2.solvated.conformers) == 2
+        assert etoh_resp2.name == "resp2_ethanol"
+        assert str(etoh_resp2.path) == TEST_RESP2_DATA
 
-    assert all(len(conf.orientations) == 1 for conf in etoh_resp2.conformers)
-    orientation = etoh_resp2.gas.conformers[0].orientations[0]
-    path = (f"{TEST_RESP2_DATA}/resp2_ethanol_gas/"
-            "resp2_ethanol_gas_c001/"
-            "resp2_ethanol_gas_c001_o001")
-    assert str(orientation.path) == path
+        gas_path = f"{TEST_RESP2_DATA}/resp2_ethanol_gas"
+        gas_phase = etoh_resp2.gas
+        assert str(gas_phase.path) == gas_path
+        assert str(gas_phase.conformers[0].path) == f"{gas_path}/resp2_ethanol_gas_c001"
 
-    assert gas_phase.grid_rmin == 1.3
-    assert gas_phase.solvent == "water"
+        assert all(len(conf.orientations) == 1 for conf in etoh_resp2.conformers)
+        orientation = etoh_resp2.gas.conformers[0].orientations[0]
+        path = (f"{TEST_RESP2_DATA}/resp2_ethanol_gas/"
+                "resp2_ethanol_gas_c001/"
+                "resp2_ethanol_gas_c001_o001")
+        assert str(orientation.path) == path
 
-    expected_esp = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID_ESP)
-    assert_allclose(orientation.esp, expected_esp)
-    expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
-    assert_allclose(orientation.grid, expected_grid)
+        assert gas_phase.grid_rmin == 1.3
+        assert gas_phase.solvent == "water"
 
-    assert np.allclose(orientation.coordinates[0, 0], 1.059)
-    assert np.allclose(orientation.grid[0, 0], 1.7023625732724663)
-    assert np.allclose(orientation.r_inv[0, 0], 0.22234337)
+        expected_esp = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID_ESP)
+        assert_allclose(orientation.esp, expected_esp)
+        expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
+        assert_allclose(orientation.grid, expected_grid)
+
+        assert np.allclose(orientation.coordinates[0, 0], 1.059)
+        assert np.allclose(orientation.grid[0, 0], 1.7023625732724663)
+        assert np.allclose(orientation.r_inv[0, 0], 0.22234337)
+
+        assert np.allclose(etoh_resp2.gas.conformer_coordinates[0, 0, 0], 1.059)
+
+    def test_resp2_gas_conformer(self, etoh_resp2):
+        a = etoh_resp2.gas.conformers[0].unweighted_a_matrix
+        b = etoh_resp2.gas.conformers[0].unweighted_b_matrix
+
+        expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES)
+        A = expected_ab[:-1]
+        B = expected_ab[-1]
+
+        assert_allclose(a, A)
+        assert_allclose(b, B)
+
+    def test_resp2_gas(self, etoh_resp2):
+        a = etoh_resp2.gas.get_a_matrix()
+        b = etoh_resp2.gas.get_b_matrix()
+
+        expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_STAGE1_MATRICES)
+        A = expected_ab[:-1]
+        B = expected_ab[-1]
+
+        assert_allclose(a, A)
+        assert_allclose(b, B)
+
+    def test_resp2_run(self, etoh_resp2):
+        etoh_resp2.run()
+
+        assert etoh_resp2.gas._stage_2_charges is not etoh_resp2.solvated._stage_2_charges
+
+        # not quite sure when rounding happens with original RESP2 implementation
+        assert_allclose(etoh_resp2.solvated.charges, ETOH_SOLV_CHARGES, atol=5e-03)
+        assert_allclose(etoh_resp2.gas.charges, ETOH_GAS_CHARGES, atol=5e-03)
+        assert_allclose(etoh_resp2.charges, ETOH_REF_CHARGES, atol=5e-03)
 
 
-def test_resp2_gas_conformer(etoh_resp2):
-    a = etoh_resp2.gas.conformers[0].unweighted_a_matrix
-    b = etoh_resp2.gas.conformers[0].unweighted_b_matrix
+class TestMultiResp2Ethanol:
 
-    expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_C1_STAGE1_MATRICES)
-    A = expected_ab[:-1]
-    B = expected_ab[-1]
+    @pytest.fixture()
+    def etoh_multiresp2(self, etoh_resp2):
+        multiresp = psiresp.MultiResp2([etoh_resp2], delta=0.5, directory_path=TEST_RESP2_DATA,
+                                       name="")
+        multiresp.generate_orientations()
+        return multiresp
 
-    assert_allclose(a, A)
-    assert_allclose(b, B)
+    def test_multiresp_construction(self, etoh_multiresp2):
+        assert len(etoh_multiresp2.resps) == 1
+        assert len(etoh_multiresp2.gas.resps) == 1
+        assert len(etoh_multiresp2.gas.resps[0].conformers) == 2
+        assert len(etoh_multiresp2.gas.resps[0].conformers[0].orientations) == 1
+
+        orientation = etoh_multiresp2.gas.resps[0].conformers[0].orientations[0]
+        path = (f"{TEST_RESP2_DATA}/resp2_ethanol_gas/"
+                "resp2_ethanol_gas_c001/"
+                "resp2_ethanol_gas_c001_o001")
+        assert str(orientation.path) == path
+
+        expected_esp = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID_ESP)
+        assert_allclose(orientation.esp, expected_esp)
+        expected_grid = np.loadtxt(ETHANOL_RESP2_GAS_C1_O1_GRID)
+        assert_allclose(orientation.grid, expected_grid)
+
+        assert np.allclose(orientation.coordinates[0, 0], 1.059)
+        assert np.allclose(orientation.grid[0, 0], 1.7023625732724663)
+        assert np.allclose(orientation.r_inv[0, 0], 0.22234337)
+
+    def test_multiresp_run(self, etoh_multiresp2):
+        etoh_multiresp2.run()
+        assert_allclose(etoh_multiresp2.solvated.charges, ETOH_SOLV_CHARGES, atol=5e-03)
+        assert_allclose(etoh_multiresp2.gas.charges, ETOH_GAS_CHARGES, atol=5e-03)
+        assert_allclose(etoh_multiresp2.charges, ETOH_REF_CHARGES, atol=5e-03)
 
 
-def test_resp2_gas(etoh_resp2):
-    a = etoh_resp2.gas.get_a_matrix()
-    b = etoh_resp2.gas.get_b_matrix()
+def test_combined_constraints(nme2ala2_opt_resp,
+                              methylammonium_resp):
 
-    expected_ab = np.loadtxt(ETHANOL_RESP2_GAS_STAGE1_MATRICES)
-    A = expected_ab[:-1]
-    B = expected_ab[-1]
+    overall = dict(charge_constraints=[(0, [(1, 1), (1, 2), (1, 3), (1, 4),
+                                            (2, 1), (2, 2), (2, 3), (2, 4),
+                                            (2, 5), (2, 6), (2, 7), (2, 8)]),
 
-    assert_allclose(a, A)
-    assert_allclose(b, B)
+                                       (0, [(2, 20), (2, 21), (2, 22),
+                                            (2, 23), (2, 24), (2, 25)]),
+                                       (0.6163, [(2, 18)]),
+                                       (-0.5722, [(2, 19)]),
+                                       ],
+                   charge_equivalences=[[(2, 10), (2, 14)],
+                                        [(2, 11), (2, 12), (2, 13),
+                                         (2, 15), (2, 16), (2, 17)],
+                                        [(1, 6), (1, 7), (1, 8)],
+                                        ],
+                   symmetric_methyls=False)
 
+    multiresp = psiresp.MultiResp2(resps=[methylammonium_resp, nme2ala2_opt_resp],
+                                   charge_constraint_options=overall, delta=0.0)
 
-def test_resp2_run(etoh_resp2):
-    etoh_resp2.run()
-    SOLV = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
-                     0.0649, -0.0111, -0.0111,  0.4045])
-    GAS = np.array([-0.2300,  0.3063, -0.5658,  0.0621,  0.0621,
-                    0.0621, -0.0153, -0.0153,  0.3339])
-    REF = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
-                    0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
+    charges = multiresp.run()
+    assert_almost_equal(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0)
+    assert_almost_equal(charges[[27, 28, 29, 30, 31, 32]].sum(), 0)
+    assert_almost_equal(charges[25], 0.6163)
+    assert_almost_equal(charges[26], -0.5722)
+    assert_almost_equal(charges[18], charges[22])
 
-    assert etoh_resp2.gas._stage_2_charges is not etoh_resp2.solvated._stage_2_charges
-
-    # not quite sure when rounding happens with original RESP2 implementation
-    assert_allclose(etoh_resp2.solvated.charges, SOLV, atol=5e-03)
-    assert_allclose(etoh_resp2.gas.charges, GAS, atol=5e-03)
-    assert_allclose(etoh_resp2.charges, REF, atol=5e-03)
+    charge_file = AMM_NME_OPT_RESPA1_CHARGES
+    reference = np.concatenate(charges_from_red_file(charge_file))
+    assert_almost_equal(charges, reference, decimal=3)

@@ -268,7 +268,7 @@ class QMOptions(base.Model):
         text = f"memory {self._memory}\n"
         text += self.get_mol_spec(psi4mol)
         text += f"set basis {self.qm_basis_set}\n"
-        if self._is_gas_phase(name):
+        if not self._is_gas_phase(name):
             text += self._get_solvent_section()
         return text
 
