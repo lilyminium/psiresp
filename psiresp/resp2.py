@@ -266,10 +266,8 @@ class MultiResp2(Resp2Mixin, MultiResp):
             If ``execute_qm`` is False
         """
         self.finalize_geometries(executor=executor, timeout=timeout)
-        for conformer in self.conformers:
         for orient in self.orientations:
             grid = orient.compute_grid(grid_options=self.grid_options)
-            assert len(orient.grid)
         functions = [orient.compute_esp for orient in self.orientations]
         self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
                                           command_log=command_log)
