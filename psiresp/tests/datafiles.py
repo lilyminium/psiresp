@@ -69,6 +69,13 @@ AMM_NME_OPT_RESPA2_CHARGES = resource_filename(__name__, "data/charges/amm_dimet
 AMM_NME_OPT_RESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_respA1.dat")
 AMM_NME_OPT_ESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_espA1.dat")
 
+ETHANOL_RESP2_C1 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c1.xyz")
+ETHANOL_RESP2_C2 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c2.xyz")
+
+TEST_RESP_DATA = resource_filename(__name__, "data/test_resp")
+TEST_MULTIRESP_DATA = resource_filename(__name__, "data/test_multiresp")
+TEST_RESP2_DATA = resource_filename(__name__, "data/test_resp2")
+
 # ETOH_PDB = datafile("ethanol.pdb")
 # ETOH_MOL2 = datafile("ethanol.mol2")
 # ETOH_GRO = datafile("ethanol.gro")

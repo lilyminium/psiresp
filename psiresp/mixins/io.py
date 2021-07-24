@@ -36,6 +36,14 @@ class IOMixin(IOOptions):
     def path(self):
         return self.directory_path
 
+    @classmethod
+    def from_model(cls, obj, **kwargs) -> "Model":
+        """Construct an instance from compatible attributes of
+        ``object`` and ``kwargs``"""
+        new_kwargs = dict(**kwargs)
+        new_kwargs["directory_path"] = None
+        return super().from_model(obj, **new_kwargs)
+
     @contextlib.contextmanager
     def directory(self):
         """Return associated directory.

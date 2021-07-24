@@ -35,7 +35,7 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
         return Resp.from_molfile(molfile, **options)
 
     @classmethod
-    def from_molfile(cls, molfile: str, **kwargs) -> "Resp":
+    def from_molfile(cls, *molfile: str, **kwargs) -> "Resp":
         """Create class from molecule file
 
         Parameters
@@ -54,7 +54,9 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
         -------
         Resp
         """
-        psi4mols = psi4utils.psi4mols_from_file(molfile)
+        psi4mols = []
+        for file in molfile:
+            psi4mols.extend(psi4utils.psi4mols_from_file(file))
         return cls.from_psi4mols(psi4mols, **kwargs)
 
     @classmethod
@@ -141,7 +143,7 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
     def add_conformer(self,
                       coordinates_or_psi4mol: psi4utils.CoordinateInputs,
                       name: Optional[str] = None,
-                      **kwargs) -> Conformer:
+                      **kwargs):
         """Create Conformer from Psi4 molecule or coordinates and add
 
         Parameters
@@ -170,12 +172,12 @@ class Resp(MoleculeMixin, RespMoleculeOptions, RespMixin):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.conformer_options.to_kwargs(**kwargs)
+        default_kwargs["directory_path"] = kwargs.get("directory_path")
         conf = Conformer(qm_options=self.qm_options, grid_options=self.grid_options,
                          psi4mol=mol, name=name, **default_kwargs)
         conf._parent_path = self.path
         self._conformers.append(conf)
         self._conformer_coordinates = np.array(list(self._conformer_coordinates) + [conf.coordinates])
-        return conf
 
     def to_mda(self):
         """Create a MDAnalysis.Universe with charges

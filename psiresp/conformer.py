@@ -99,6 +99,7 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.orientation_options.to_kwargs(**kwargs)
+        default_kwargs["directory_path"] = kwargs.get("directory_path")
         orientation = Orientation(psi4mol=mol, name=name,
                                   qm_options=self.qm_options,
                                   grid_options=self.grid_options,

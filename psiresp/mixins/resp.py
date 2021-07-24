@@ -276,66 +276,27 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
         SystemExit
             If ``execute_qm`` is False
         """
-        # executor = concurrent.futures.ProcessPoolExecutor(nprocs)
-        # TODO: should this change be permanent?
+        self._prepare_molecules_for_resp(nprocs=nprocs,
+                                         nthreads=nthreads,
+                                         memory=memory,
+                                         timeout=timeout,
+                                         geometry_command_log=geometry_command_log,
+                                         esp_command_log=esp_command_log)
+        self._fit_resp_charges()
+        return self.charges
+
+    def _prepare_molecules_for_resp(
+        self,
+        nprocs: int = 1,
+        nthreads: int = 1,
+        memory: str = "500MB",
+        timeout: Optional[float] = None,
+        geometry_command_log: str = "finalize_geometry_commands.log",
+        esp_command_log: str = "compute_esp_commands.log",
+    ):
+
         self._n_threads = nthreads
         self._memory = memory
-    #     return self.run_with_executor(executor, timeout=timeout,
-    #                                   geometry_command_log=geometry_command_log,
-    #                                   esp_command_log=esp_command_log)
-
-    # def run_with_executor(self,
-    #                       executor: Optional[concurrent.futures.Executor] = None,
-    #                       timeout: Optional[float] = None,
-    #                       geometry_command_log: str = "finalize_geometry_commands.log",
-    #                       esp_command_log: str = "compute_esp_commands.log",
-    #                       ) -> np.ndarray:
-        # """Run RESP job with an executor.
-
-        # The geometry optimizations and ESP computations can be
-        # expensive. A way to parallelize operations is provided if
-        # ``executor`` is a concurrent.futures.ProcessPoolExecutor.
-        # If an executor is not provided, computations are run in serial.
-        # If ``execute_qm`` is False, this function will have to be
-        # executed multiple times:
-
-        #     * (if ``optimize_geometry=True``) to run the Psi4 jobs as laid out in ``geometry_command_log``
-        #     * to run the Psi4 jobs as laid out in ``esp_command_log``
-        #     * to fit the RESP charges
-
-        # The computed charges will be stored at:
-        #     * :attr:`psiresp.Resp.stage_1_charges`
-        #     * :attr:`psiresp.Resp.stage_2_charges` (if applicable)
-
-        # These will be :class:`psiresp.charges.RespCharges` objects, which
-        # will contain both restrained and unrestrained charges.
-
-        # The overall desired charges will be returned by :attr:`psiresp.Resp.charges`.
-
-        # Parameters
-        # ----------
-        # executor: concurrent.futures.Executor (optional)
-        #     Executor for running jobs
-        # timeout: float or int (optional)
-        #     Timeout to wait before stopping the executor
-        # geometry_command_log: str (optional)
-        #     Filename to write geometry optimization commands to
-        # esp_command_log: str (optional)
-        #     Filename to write ESP computation commands to
-
-        # Returns
-        # -------
-        # numpy.ndarray of float
-        #     The final resulting charges
-
-        # Raises
-        # ------
-        # SystemExit
-        #     If ``execute_qm`` is False
-        # """
-
-        self._stage_1_charges = None
-        self._stage_2_charges = None
 
         if nprocs == 1 and nthreads == 1:
             self.generate_conformers()
@@ -350,9 +311,12 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
                 self.finalize_geometries(executor=executor, timeout=timeout,
                                          command_log=geometry_command_log)
                 self.generate_orientations()
-                print("COMPUTING ESPS")
                 self.compute_esps(executor=executor, timeout=timeout,
                                   command_log=esp_command_log)
+
+    def _fit_resp_charges(self):
+        self._stage_1_charges = None
+        self._stage_2_charges = None
 
         initial_charge_options = self.get_clean_charge_options()
         stage_1 = RespStage.from_model(self, hyp_a=self.hyp_a1)
@@ -368,17 +332,15 @@ class RespMixin(ContainsQMandGridOptions, RespOptions):
         a_matrix = self.get_a_matrix()
         b_matrix = self.get_b_matrix()
 
-        self._stage_1_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
-                                            **initial_charge_options.to_kwargs(),
-                                            **stage_1.to_kwargs())
-        q1 = self._stage_1_charges.fit(a_matrix, b_matrix)
+        self.stage_1_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
+                                           **initial_charge_options.to_kwargs(),
+                                           **stage_1.to_kwargs())
+        q1 = self.stage_1_charges.fit(a_matrix, b_matrix)
 
         if self.stage_2:
             final_charge_options.add_stage_2_constraints(q1)
             stage_2 = RespStage.from_model(self, hyp_a=self.hyp_a2)
-            self._stage_2_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
-                                                **final_charge_options.to_kwargs(),
-                                                **stage_2.to_kwargs())
-            self._stage_2_charges.fit(a_matrix, b_matrix)
-
-        return self.charges
+            self.stage_2_charges = RespCharges(symbols=self.symbols, n_orientations=self.n_orientation_array,
+                                               **final_charge_options.to_kwargs(),
+                                               **stage_2.to_kwargs())
+            self.stage_2_charges.fit(a_matrix, b_matrix)

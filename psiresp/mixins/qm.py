@@ -139,6 +139,8 @@ class QMOptions(base.Model):
     # _COMMAND_STREAM = io.StringIO()
     _n_threads: int = PrivateAttr(default=1)
     _memory: str = PrivateAttr(default="500 MB")
+    _gas_phase_by_name: bool = PrivateAttr(default=False)
+    _gas_phase_name: str = PrivateAttr(default="_gas")
     # _executor: Optional[concurrent.futures.Executor] = PrivateAttr(default=None)
     # _futures: List[concurrent.futures.Future] = PrivateAttr(default_factory=list)
 
@@ -203,11 +205,9 @@ class QMOptions(base.Model):
         infile, outfile: tuple[str, str]
             Input and output paths
         """
-        opt_file = f"memory {self._memory}\n"
-        opt_file += self.get_mol_spec(psi4mol)
+        opt_file = self._get_base_psi4_file(psi4mol, name=name)
         opt_file += textwrap.dedent(f"""
         set {{
-            basis {self.qm_basis_set}
             geom_maxiter {self.geom_max_iter}
             full_hess_every {self.full_hess_every}
             g_convergence {self.g_convergence}
@@ -230,27 +230,8 @@ class QMOptions(base.Model):
 
         return infile, outfile
 
-    def write_esp_file(self, psi4mol: psi4.core.Molecule,
-                       name: Optional[str] = None,
-                       ) -> str:
-        """Write psi4 esp input to file and return input filename
-
-        Parameters
-        ----------
-        psi4mol: psi4.core.Molecule
-            Psi4 molecule
-
-        Returns
-        -------
-        filename: str
-            Input filename
-        """
-        esp_file = f"memory {self._memory}\n"
-        esp_file += self.get_mol_spec(psi4mol)
-        esp_file += f"set basis {self.qm_basis_set}\n"
-
-        if self.solvent:
-            esp_file += textwrap.dedent(f"""
+    def _get_solvent_section(self) -> str:
+        return textwrap.dedent(f"""
             set {{
                 pcm true
                 pcm_scf_type total
@@ -274,6 +255,39 @@ class QMOptions(base.Model):
 
             """)
 
+    def _is_gas_phase(self, name):
+        if self.solvent:
+            if name:
+                if self._gas_phase_by_name and self._gas_phase_name in name:
+                    return True
+            return False
+        return True
+
+    def _get_base_psi4_file(self, psi4mol: psi4.core.Molecule,
+                            name: Optional[str] = None) -> str:
+        text = f"memory {self._memory}\n"
+        text += self.get_mol_spec(psi4mol)
+        text += f"set basis {self.qm_basis_set}\n"
+        if self._is_gas_phase(name):
+            text += self._get_solvent_section()
+        return text
+
+    def write_esp_file(self, psi4mol: psi4.core.Molecule,
+                       name: Optional[str] = None,
+                       ) -> str:
+        """Write psi4 esp input to file and return input filename
+
+        Parameters
+        ----------
+        psi4mol: psi4.core.Molecule
+            Psi4 molecule
+
+        Returns
+        -------
+        filename: str
+            Input filename
+        """
+        esp_file = self._get_base_psi4_file(psi4mol, name=name)
         esp_file += textwrap.dedent(f"""\
         E, wfn = prop('{self.qm_method}', properties=['GRID_ESP'], return_wfn=True)
         esp = wfn.oeprop.Vvals()
