@@ -61,7 +61,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
           channel-priority: flexible
-          channels: conda-forge, psi4
+          channels: conda-forge, psi4/label/dev
           add-pip-as-python-dependency: true
           architecture: x64
           environment-file: devtools/conda-envs/test_${{ matrix.os }}.yaml
