@@ -1,3 +1,106 @@
+"""
+Charge constraint options --- :mod:`psiresp.mixins.charge_constraints`
+======================================================================
+
+This module contains the classes for generating and containing charge
+constraint options.
+
+------------------
+Charge constraints
+------------------
+
+PsiRESP offers two forms of constraints:
+a :class:`~psiresp.mixins.charge_constraints.ChargeConstraint` and
+a :class:`~psiresp.mixins.charge_constraints.ChargeEquivalenceConstraint`.
+
+A :class:`~psiresp.mixins.charge_constraints.ChargeConstraint` constrains
+one or a group of atoms to a *single* charge. For example, this is very helpful
+if you are parametrizing a residue in a large molecule, and you need
+the cap atoms to sum to 0.
+
+A :class:`~psiresp.mixins.charge_constraints.ChargeEquivalenceConstraint`
+constrains every atom specified to the *same charge*. For example, you could
+manually constrain all hydrogens around a single carbon to the same charge.
+For this reason, a :class:`~psiresp.mixins.charge_constraints.ChargeEquivalenceConstraint`
+must contain at least two atoms.
+
+Atoms are identified in a constraint with a
+:class:`~psiresp.mixins.charge_constraints.AtomId`. This contains the
+atom number, the molecule number, and the atom increment. The last
+two values are only important for MultiResp fits. However, with
+both Resp and MultiResp fits, it is generally expected that users
+create charge constraints by using integers only; the AtomId conversion happens
+under the hood.
+
+.. note::
+
+    Atom and molecule numbers **both start from 1**. ``atom_ids=[1, 2]``
+    selects the first and second atom.
+
+Intramolecular constraints do not need to specify a molecule number or
+an atom number. For example:
+
+.. ipython::
+    from psiresp import ChargeConstraint
+
+    intra_constraint = ChargeConstraint(charge=0, atom_ids=[1, 2, 3])
+    #  or the charge is presumed to be first if keywords aren't given
+    intra_constraint = ChargeConstraint(0, [1, 2, 3])
+
+Intermolecular constraints do, however.
+
+.. ipython::
+    # select the first atom of the first and second molecules
+    inter_constraint = ChargeConstraint(charge=0, atom_ids=[(1, 1), (2, 1)])
+
+    # can also create AtomIds manually
+    atom_ids = [AtomId(molecule_id=1, atom_id=1), AtomId(molecule_id=2, atom_id=1)]
+    inter_constraint = ChargeConstraint(0, atom_ids)
+
+All of these are contained in
+:class:`~psiresp.mixins.charge_constraints.ChargeConstraintOptions`.
+ChargeConstraintOptions can be passed to both :class:`~psiresp.resp.Resp`
+objects to create intra-molecular constraints,
+and :class:`~psiresp.resp.MultiResp` for either intra- or inter-molecular
+constraints.
+
+.. ipython::
+
+    from psiresp import ChargeConstraintOptions
+
+    options = ChargeConstraintOptions(
+        charge_constraints=[
+            dict(charge=0, atom_ids=[1, 2, 3]),
+            dict(charge=0.6163, atom_ids=[9])  # 9th atom has charge of 0.6163
+        ],
+        charge_equivalence_constraints=[
+            # first atom of first, second, third molecules have same charge
+            [(1, 1), (2, 1), (3, 1)],
+        ]
+    )
+
+Any intramolecular charge constraints defined in Resp jobs get added to the overall
+charge constraints in MultiResp jobs.
+
+-------
+Classes
+-------
+
+.. autoclass:: psiresp.mixins.charge_constraints.ChargeConstraintOptions
+    :members:
+
+.. autoclass:: psiresp.mixins.charge_constraints.ChargeConstraint
+    :members:
+
+.. autoclass:: psiresp.mixins.charge_constraints.ChargeEquivalenceConstraint
+    :members:
+
+.. autoclass:: psiresp.mixins.charge_constraints.AtomId
+    :members:
+
+
+"""
+
 from typing import Optional, Union, Tuple, Dict, List
 import functools
 from collections import defaultdict
@@ -559,7 +662,7 @@ class ChargeConstraintOptions(base.Model):
     def add_charge_constraint(self, atom_ids=[], charge=0):
         constraint = ChargeConstraint(charge=charge, atom_ids=atom_ids)
         self.charge_constraints.append(constraint)
-    
+
     def add_charge_equivalence(self, atom_ids=[]):
         constraint = ChargeEquivalence(atom_ids)
         self.charge_equivalences.append(constraint)

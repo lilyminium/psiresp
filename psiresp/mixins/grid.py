@@ -1,3 +1,16 @@
+"""
+VdW grid options --- :mod:`psiresp.mixins.grid`
+===============================================
+
+This module contains options and code for generating van der Waals'
+Connolly shells around the molecule. Users should not typically
+interact with the methods on this class themselves, but instead simply
+set the options and call :meth:`psiresp.resp.Resp.run`.
+
+.. autoclass:: piresp.mixins.grid.GridOptions
+    :members:
+"""
+
 from typing import Dict, List
 
 import numpy as np
