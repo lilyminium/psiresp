@@ -5,7 +5,9 @@ from rdkit import Chem
 from .base import coordinates_from_xyzfile, psi4mol_from_xyzfile, data_dir
 from .datafiles import (DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4, DMSO_TPL,
                         NME2ALA2_C1, NME2ALA2_OPT_C1, NME2ALA2_OPT_C2,
-                        METHYLAMMONIUM_OPT)
+                        METHYLAMMONIUM_OPT,
+                        TEST_RESP_DATA, TEST_MULTIRESP_DATA,
+                        )
 
 
 @pytest.fixture()
@@ -84,11 +86,11 @@ def nme2ala2_opt_resp(nme2ala2_opt_c1_psi4mol, nme2ala2_opt_c2_psi4mol):
     reorientations = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
     conformer_options = dict(reorientations=reorientations,
                              keep_original_conformer_geometry=False,
-                             load_input=True)
+                             load_input=True,)
     resp = psiresp.Resp(nme2ala2_opt_c1_psi4mol,
                         conformer_options=conformer_options,
                         name="nme2ala2", load_input=True,
-                        directory_path=data_dir("data/test_resp"),
+                        directory_path=TEST_RESP_DATA,
                         )
     resp.add_conformer(nme2ala2_opt_c1_psi4mol)
     resp.add_conformer(nme2ala2_opt_c2_psi4mol)
@@ -110,7 +112,7 @@ def methylammonium_resp(methylammonium_psi4mol):
     resp = psiresp.Resp(methylammonium_psi4mol, charge=1,
                         conformer_options=conformer_options,
                         name="methylammonium", load_input=True,
-                        directory_path=data_dir("data/test_multiresp"),
+                        directory_path=TEST_MULTIRESP_DATA,
                         )
     resp.add_conformer(methylammonium_psi4mol)
     resp.compute_esps()

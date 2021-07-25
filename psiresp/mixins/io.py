@@ -36,6 +36,14 @@ class IOMixin(IOOptions):
     def path(self):
         return pathlib.Path(self.directory_path or ".")
 
+    @classmethod
+    def from_model(cls, obj, **kwargs) -> "Model":
+        """Construct an instance from compatible attributes of
+        ``object`` and ``kwargs``"""
+        new_kwargs = dict(**kwargs)
+        new_kwargs["directory_path"] = None
+        return super().from_model(obj, **new_kwargs)
+
     @contextlib.contextmanager
     def directory(self):
         """Return associated directory.
@@ -45,14 +53,16 @@ class IOMixin(IOOptions):
         """
         cwd = pathlib.Path.cwd()
         if self.save_output:
-            path = self.path
+            path = self.path.resolve()
             path.mkdir(parents=True, exist_ok=True)
+            abspath = path.resolve()
         else:
             path = tempfile.TemporaryDirectory()
+            abspath = os.path.abspath(path.name)
 
         try:
-            os.chdir(path.name)
-            yield path.name
+            os.chdir(abspath)
+            yield abspath
         finally:
             os.chdir(cwd)
             if not self.save_output:

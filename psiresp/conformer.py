@@ -59,11 +59,13 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         return len(self.orientations)
 
     @datafile(filename="optimized_geometry.xyz")
-    def compute_optimized_geometry(self):
+    def compute_optimized_geometry(self, qm_options=None):
+        if qm_options is None:
+            qm_options = self.qm_options
         with self.directory() as tmpdir:
-            infile, outfile = self.qm_options.write_opt_file(self.psi4mol,
-                                                             name=self.name)
-            self.qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
+            infile, outfile = qm_options.write_opt_file(self.psi4mol,
+                                                        name=self.name)
+            qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
             xyz = psi4utils.opt_logfile_to_xyz_string(outfile)
         return xyz
 
@@ -99,6 +101,7 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
                                                  coordinates_or_psi4mol,
                                                  name=name)
         default_kwargs = self.orientation_options.to_kwargs(**kwargs)
+        default_kwargs["directory_path"] = kwargs.get("directory_path")
         orientation = Orientation(psi4mol=mol, name=name,
                                   qm_options=self.qm_options,
                                   grid_options=self.grid_options,
@@ -118,7 +121,7 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
             if not self.orientations:
                 self.add_orientation(self.psi4mol)
 
-    def finalize_geometry(self, force=False):
+    def finalize_geometry(self, force=False, qm_options=None):
         """Finalize geometry of psi4mol
 
         If :attr:`psiresp.conformer.Conformer.optimize_geometry` is ``True``,
@@ -128,11 +131,10 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         final geometry will get written to an xyz file to bypass this check
         next time.
         """
-        # print("in conf", self.psi4mol)
         if self._finalized and not force:
             return
         if self.optimize_geometry:
-            xyz = self.compute_optimized_geometry()
+            xyz = self.compute_optimized_geometry(qm_options=qm_options)
             mol = psi4utils.psi4mol_from_xyz_string(xyz)
             self.psi4mol.set_geometry(mol.geometry())
         self._finalized = True

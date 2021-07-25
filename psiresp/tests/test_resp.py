@@ -12,8 +12,6 @@ from .datafiles import (DMSO_QMRA,
                         NME2ALA2_OPT_RESPA2_CHARGES, NME2ALA2_OPT_RESPA1_CHARGES, NME2ALA2_OPT_ESPA1_CHARGES,
                         )
 
-# from .datafiles import DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4
-
 
 def test_resp_from_file():
     resp = psiresp.Resp.from_molfile(DMSO_QMRA,

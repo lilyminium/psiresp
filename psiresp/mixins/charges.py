@@ -29,6 +29,12 @@ class RespCharges(RespStage, ChargeConstraintOptions):
                                                    "per RESP molecule"))
     _unrestrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
     _restrained_charges: Optional[np.ndarray] = PrivateAttr(default=None)
+    _start_index: int = PrivateAttr(default=0)
+    _charge_object: "RespCharges" = PrivateAttr()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._charge_object = self
 
     @validator("n_orientations")
     def validate_n_orientations(cls, v, values):
@@ -43,13 +49,31 @@ class RespCharges(RespStage, ChargeConstraintOptions):
 
     @property
     def restrained_charges(self):
-        if self._restrained_charges is not None:
-            return self._restrained_charges[:self.n_atoms]
+        i = self._start_index
+        j = i + self.n_atoms
+        if self._charge_object._restrained_charges is not None:
+            return self._charge_object._restrained_charges[i:j]
+
+    # @restrained_charges.setter
+    # def restrained_charges(self, values):
+    #     if self._restrained_charges is None:
+    #         self._restrained_charges = np.asarray(values)
+    #     else:
+    #         self._restrained_charges[:] = values
 
     @property
     def unrestrained_charges(self):
-        if self._unrestrained_charges is not None:
-            return self._unrestrained_charges[:self.n_atoms]
+        i = self._start_index
+        j = i + self.n_atoms
+        if self._charge_object._unrestrained_charges is not None:
+            return self._charge_object._unrestrained_charges[i:j]
+
+    # @unrestrained_charges.setter
+    # def unrestrained_charges(self, values):
+    #     if self._restrained_charges is None:
+    #         self._restrained_charges = np.asarray(values)
+    #     else:
+    #         self._restrained_charges[:] = values
 
     @property
     def charges(self):
@@ -99,7 +123,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         from scipy.sparse.linalg import spsolve, lsmr
         try:
             return spsolve(a, b)
-        except RuntimeError:  # TODO: this could be slow?
+        except RuntimeError as e:  # TODO: this could be slow?
             return lsmr(a, b)[0]
 
     def fit(self,
@@ -117,6 +141,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         -------
         numpy.ndarray
         """
+        
 
         a, b = self.get_constraint_matrix(a_matrix, b_matrix)
         q1 = self._solve_a_b(a, b)

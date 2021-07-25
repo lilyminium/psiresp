@@ -62,15 +62,19 @@ class Model(BaseModel, metaclass=ModelMeta):
                 value = fieldcls(**values)
                 setattr(self, name, value)
         for k, v in extra.items():
-            self.__setattr__(k, v)
+            setattr(self, k, v)
 
-    def __getattr__(self, attr):
-        return object.__getattribute__(self, attr)
-        # try:
-        #     return object.__getattribute__(self, attr)
-        # except AttributeError:
-        # clsname = self.__class__.__name__
-        # raise AttributeError(f"{clsname} has no attribute {attr}")
+    __getattr__ = object.__getattribute__
+
+    def __setattr__(self, attrname, value):
+        # if it's a property, just allow
+        try:
+            super().__setattr__(attrname, value)
+        except ValueError:
+            if attrname in dir(self):
+                object.__setattr__(self, attrname, value)
+            else:
+                raise
 
     def __setstate__(self, state):
         super().__setstate__(state)

@@ -80,22 +80,30 @@ def save_data(data: Data, path: Path):
     path: pathlib.Path or str
         Filename
     """
-    suffix = pathlib.Path(path).suffix.strip(".")
+    path_obj = pathlib.Path(path)
+    suffix = path_obj.suffix.strip(".")
 
     if suffix == "csv":
-        data.to_csv(path, index=False)
+        def save(): return data.to_csv(path, index=False)
     elif suffix in ("dat", "txt"):
-        np.savetxt(path, data)
+        def save(): return np.savetxt(path, data)
     elif suffix == "npy":
-        np.save(path, data)
+        def save(): return np.save(path, data)
     elif suffix == "npz":
-        np.savez(path, **data)
+        def save(): return np.savez(path, **data)
     elif suffix == "xyz":
         if isinstance(data, str):
-            with open(path, "w") as f:
-                f.write(data)
+            def save():
+                with open(path, "w") as f:
+                    f.write(data)
         else:
-            data.save_xyz_file(path, True)
+            def save(): return data.save_xyz_file(path, True)
     else:
         raise ValueError(f"Can't find saver for {suffix} file")
+    try:
+        save()
+    except OSError:
+        directory = path_obj.parent.resolve()
+        directory.mkdir(parents=True)
+        save()
     logger.info(f"Saved to {os.path.abspath(path)}")

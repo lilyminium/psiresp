@@ -9,7 +9,7 @@ import scipy
 import psi4
 from pydantic import Field
 
-from .mixins import RespMixin, RespMoleculeOptions, ChargeConstraintOptions, IOMixin
+from .mixins import RespMixin, RespCharges, RespMoleculeOptions, ChargeConstraintOptions, IOMixin
 from .resp import Resp
 from .utils import psi4utils
 
@@ -88,10 +88,27 @@ class MultiResp(RespMixin, IOMixin):
             obj.add_resp(resp)
         return obj
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for resp in self.resps:
+    def __init__(self, *args, resps=[], **kwargs):
+        if args and len(args) == 1 and not resps:
+            resps = args[0]
+            super().__init__(**kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+        for resp in resps:
+            self.add_resp(resp)  # lgtm [py/init-calls-subclass]
             resp.parent = self
+
+    def _set_charges(self, charges, stage=1):
+        super()._set_charges(charges, stage=stage)
+        i = 0
+        n_orientations = self.n_orientation_array
+        for resp in self.resps:
+            j = i + resp.n_atoms
+            resp_charges = RespCharges(symbols=resp.symbols,
+                                       n_orientations=n_orientations[i:j])
+            resp_charges._start_index = 0
+            resp_charges._charge_object = charges
+            resp._set_charges(resp_charges, stage=stage)
 
     @property
     def path(self):
