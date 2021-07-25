@@ -1,3 +1,25 @@
+"""
+Psi4 QM job options --- :mod:`psiresp.mixins.qm`
+================================================
+
+This module contains options and code for writing Psi4
+job files and executing them in a subprocess.
+Users should not typically
+interact with the methods on this class themselves, but instead simply
+set the options and call :meth:`psiresp.resp.Resp.run`.
+
+.. autodata:: psiresp.mixins.qm.QM_METHODS
+
+.. autodata:: psiresp.mixins.qm.QM_BASIS_SETS
+
+.. autodata:: psiresp.mixins.qm.QM_SOLVENTS
+
+.. autodata:: psiresp.mixins.qm.QM_G_CONVERGENCES
+
+.. autoclass:: psiresp.mixins.qm.QMOptions
+    :members:
+"""
+
 from typing import List, Callable, Optional
 import concurrent.futures
 import os
@@ -16,7 +38,7 @@ from .. import base
 
 logger = logging.getLogger(__name__)
 
-
+#: A limited list of QM methods in Psi4
 QM_METHODS = [
     # TODO: can I get this dynamically from Psi4?
     "scf", "hf", "b3lyp", "pw6b95",
@@ -32,6 +54,7 @@ QM_METHODS = [
     "m06-2x", "pw6b95-d3bj",
 ]
 
+#: A limited list of basis sets in Psi4
 QM_BASIS_SETS = [
     "sto-3g", "3-21g",
     "6-31g", "6-31+g", "6-31++g",
@@ -58,8 +81,10 @@ QM_BASIS_SETS = [
     # "cc-pCV(X+d)Z", "cc-pwCVXZ", "cc-pwCV(X+d)Z"
 ]
 
+#: A list of supported and tested solvents in Psi4
 QM_SOLVENTS = ["water"]
 
+#: Optimization convergence options in Psi4
 QM_G_CONVERGENCES = [
     "qchem", "molpro", "turbomole", "cfour", "nwchem_loose",
     "gau", "gau_loose", "gau_tight", "interfrag_tight", "gau_verytight",
