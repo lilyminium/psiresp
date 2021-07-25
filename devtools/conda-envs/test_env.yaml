@@ -3,17 +3,16 @@ channels:
   - conda-forge
   - rdkit
   - psi4
+  - psi4/label/dev
   - defaults
 
 dependencies:
   # Base depends
-  - python
   - pip
-    # Testing
+  # Testing
   - pytest
   - pytest-cov
   - codecov
-  - typing_extensions
 
   # program
   - cython
@@ -28,3 +27,4 @@ dependencies:
       - pytest-xdist
       - mdanalysis==2.0.0b0
       - pyyaml
+      - typing_extensions
