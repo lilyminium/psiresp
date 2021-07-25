@@ -59,11 +59,13 @@ class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
         return len(self.orientations)
 
     @datafile(filename="optimized_geometry.xyz")
-    def compute_optimized_geometry(self):
+    def compute_optimized_geometry(self, qm_options=None):
+        if qm_options is None:
+            qm_options = self.qm_options
         with self.directory() as tmpdir:
-            infile, outfile = self.qm_options.write_opt_file(self.psi4mol,
-                                                             name=self.name)
-            self.qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
+            infile, outfile = qm_options.write_opt_file(self.psi4mol,
+                                                        name=self.name)
+            qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
             xyz = psi4utils.opt_logfile_to_xyz_string(outfile)
         return xyz
 
