@@ -62,7 +62,7 @@ class Model(BaseModel, metaclass=ModelMeta):
                 value = fieldcls(**values)
                 setattr(self, name, value)
         for k, v in extra.items():
-            self.__setattr__(k, v)
+            setattr(self, k, v)
 
     __getattr__ = object.__getattribute__
 

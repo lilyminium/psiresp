@@ -1,5 +1,6 @@
 from typing import Optional
 import pathlib
+import logging
 
 import numpy as np
 from pydantic import PrivateAttr
@@ -7,6 +8,7 @@ from pydantic import PrivateAttr
 from . import mixins, utils
 from .utils.io import datafile
 
+logger = logging.getLogger(__name__)
 
 class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridOptions):
     _parent_path: pathlib.Path = PrivateAttr(default=".")
@@ -93,6 +95,7 @@ class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
             infile = qm_options.write_esp_file(self.psi4mol,
                                                name=self.name)
             proc = qm_options.try_run_qm(infile, cwd=tmpdir)
+            logger.info(proc)
             esp = np.loadtxt("grid_esp.dat")
         self._esp = esp
         # assert len(self._esp)

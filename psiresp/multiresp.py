@@ -95,7 +95,7 @@ class MultiResp(RespMixin, IOMixin):
         else:
             super().__init__(*args, **kwargs)
         for resp in resps:
-            self.add_resp(resp)
+            self.add_resp(resp)  # lgtm [py/init-calls-subclass]
             resp.parent = self
 
     def _set_charges(self, charges, stage=1):

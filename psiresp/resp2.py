@@ -7,7 +7,6 @@ import psi4
 
 # from .mixins import RespMoleculeOptions, MoleculeMixin, RespMixin
 from .resp import Resp
-from .mixins import RespMixin
 from .multiresp import MultiResp
 from .utils import psi4utils
 from .utils.due import due, Doi
@@ -29,10 +28,7 @@ class Resp2Mixin:
     def solvated(self):
         return self._solvated_phase
 
-    @property
-    def charges(self):
-        return self.delta * self.solvated.charges + (1 - self.delta) * self.gas.charges
-
+    
     def _assign_qm_grid_options(self):
         self.qm_options._gas_phase_by_name = True
         self.qm_options._gas_phase_name = "_gas"
@@ -42,10 +38,6 @@ class Resp2Mixin:
             phase.qm_options = self.qm_options
             phase.grid_options = self.grid_options
             phase.directory_path = self.path / name
-
-    def _fit_resp_charges(self):
-        for phase in self.phases:
-            phase._fit_resp_charges()
 
     @property
     def phases(self):
@@ -120,7 +112,16 @@ class Resp2(Resp2Mixin, Resp):
 
     @property
     def conformers(self):
+        # TODO: maybe I should not do this?
         return self.gas.conformers + self.solvated.conformers
+
+    @property
+    def charges(self):
+        return self.delta * self.solvated.charges + (1 - self.delta) * self.gas.charges
+
+    def _fit_resp_charges(self):
+        for phase in self.phases:
+            phase._fit_resp_charges()
 
 
 @due.dcite(
@@ -166,6 +167,14 @@ class MultiResp2(Resp2Mixin, MultiResp):
     def __setstate__(self, state):
         super().__setstate__(state)
         self._assign_qm_grid_options()
+
+    @property
+    def charges(self):
+        return self.delta * self.solvated.charges + (1 - self.delta) * self.gas.charges
+
+    def _fit_resp_charges(self):
+        for phase in self.phases:
+            phase._fit_resp_charges()
 
     def add_resp(self,
                  psi4mol_or_resp: Union[psi4.core.Molecule, Resp],
@@ -265,9 +274,10 @@ class MultiResp2(Resp2Mixin, MultiResp):
         SystemExit
             If ``execute_qm`` is False
         """
+        # TODO: necessary? Or can I rely on the RespMixin?
         self.finalize_geometries(executor=executor, timeout=timeout)
         for orient in self.orientations:
-            grid = orient.compute_grid(grid_options=self.grid_options)
+            orient.compute_grid(grid_options=self.grid_options)
         functions = [orient.compute_esp for orient in self.orientations]
         self.qm_options.run_with_executor(functions, executor=executor, timeout=timeout,
                                           command_log=command_log)
