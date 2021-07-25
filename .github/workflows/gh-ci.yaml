@@ -20,8 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: [3.7]
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+        python-version: [3.7, 3.8, 3.9]
         codecov: [true]
         include:
           - name: macOS
@@ -81,7 +81,7 @@ jobs:
         run: |
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
           pytest -n 4 psiresp/tests $PYTEST_FLAGS
-        
+
       - name: codecov
         uses: codecov/codecov-action@v1
         with:
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: setup_miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -109,10 +109,7 @@ jobs:
 
       - name: install_psiresp
         run: python setup.py install
-      
+
       - name: build_docs
         run: |
           python setup.py build_ext
-
-
-
