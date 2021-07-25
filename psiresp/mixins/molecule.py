@@ -64,7 +64,7 @@ class MoleculeMixin(IOMixin):
                              f"Given: {len(mols)}")
         return cls(psi4mol=mols[0], **kwargs)
 
-    @validator("psi4mol")
+    @validator("psi4mol", pre=True)
     def validate_psi4mol(cls, v):
         if isinstance(v, str):
             v = psi4.core.Molecule.from_string(v, dtype="psi4")
