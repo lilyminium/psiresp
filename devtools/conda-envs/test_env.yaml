@@ -1,6 +1,7 @@
 name: test
 channels:
   - conda-forge
+  - rdkit
   - psi4
 dependencies:
   # Base depends
