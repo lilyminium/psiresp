@@ -7,11 +7,13 @@ from typing import Union, Optional, Callable
 
 import pandas as pd
 import numpy as np
-from numpy.typing import ArrayLike
+# TODO: numpy 1.20+
+# from numpy.typing import ArrayLike
 
 logger = logging.getLogger(__name__)
 
-Data = Union[ArrayLike, pd.DataFrame]
+# Data = Union[ArrayLike, pd.DataFrame]
+Data = Union[list, pd.DataFrame]
 Path = Union[pathlib.Path, str]
 
 
