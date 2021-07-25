@@ -1,7 +1,6 @@
 name: test
 channels:
   - conda-forge
-  - psi4
   - psi4/label/dev
   - defaults
 
@@ -16,7 +15,7 @@ dependencies:
   # program
   - cython
   - numpy
-  - psi4==1.4rc4.dev1
+  - psi4=1.4a2.dev1058
   - qcelemental
   - rdkit
 
