@@ -15,7 +15,7 @@ dependencies:
   # program
   - cython
   - numpy
-  - psi4=1.4rc2
+  - psi4=1.4rc4.dev1
   - qcelemental
   - rdkit
 
