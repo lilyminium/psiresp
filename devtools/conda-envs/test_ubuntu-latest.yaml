@@ -1,0 +1,28 @@
+name: test
+channels:
+  - conda-forge
+  - psi4/label/dev
+  - defaults
+
+dependencies:
+  # Base depends
+  - pip
+  # Testing
+  - pytest
+  - pytest-cov
+  - codecov
+
+  # program
+  - cython
+  - numpy
+  - psi4=1.4rc2
+  - qcelemental
+  - rdkit
+
+  # Pip-only installs
+  - pip:
+      - duecredit
+      - pytest-xdist
+      - mdanalysis==2.0.0b0
+      - pyyaml
+      - typing_extensions

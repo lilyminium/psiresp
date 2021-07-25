@@ -23,10 +23,6 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
-        include:
-          - name: macOS
-            os: macOS-latest
-            python-version: 3.7
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
@@ -64,7 +60,7 @@ jobs:
           channels: conda-forge, psi4/label/dev
           add-pip-as-python-dependency: true
           architecture: x64
-          environment-file: devtools/conda-envs/test_env.yaml
+          environment-file: devtools/conda-envs/test_${{ matrix.os }}.yaml
           activate-environment: test
 
       - name: check_setup
