@@ -1,7 +1,6 @@
 name: test
 channels:
   - conda-forge
-  - rdkit
   - psi4
   - psi4/label/dev
   - defaults
