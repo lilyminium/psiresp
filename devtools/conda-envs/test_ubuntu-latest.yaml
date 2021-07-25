@@ -13,16 +13,15 @@ dependencies:
   - codecov
 
   # program
-  - cython
+  # - cython
   - numpy
   - psi4=1.4
   - qcelemental
   - rdkit
-
   # Pip-only installs
-  - pip:
-      - duecredit
-      - pytest-xdist
-      - mdanalysis==2.0.0b0
-      - pyyaml
-      - typing_extensions
+  # - pip:
+  #     - duecredit
+  #     - pytest-xdist
+  #     - mdanalysis==2.0.0b0
+  #     - pyyaml
+  #     - typing_extensions
