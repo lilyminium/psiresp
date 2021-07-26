@@ -18,10 +18,11 @@ dependencies:
   - psi4=1.4rc4.dev1
   - qcelemental
   - rdkit
+  - scipy
   # # Pip-only installs
-  # - pip:
-  #     - duecredit
-  #     - pytest-xdist
-  #     - mdanalysis==2.0.0b0
-  #     - pyyaml
-  #     - typing_extensions
+  - pip:
+      - duecredit
+      - pytest-xdist
+      - mdanalysis==2.0.0b0
+      - pyyaml
+      - typing_extensions
