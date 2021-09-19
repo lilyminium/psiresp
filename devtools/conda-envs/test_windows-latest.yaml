@@ -1,8 +1,7 @@
 name: test
 channels:
   - conda-forge
-  - psi4/label/dev
-  - rdkit
+  - psi4
 
 dependencies:
   # Base depends
@@ -13,9 +12,10 @@ dependencies:
   - codecov
 
   # # program
-  # - cython
+  - cython
+  - mdanalysis
   - numpy
-  - psi4=1.4rc4.dev1
+  - psi4
   - qcelemental
   - rdkit
   - scipy
@@ -23,6 +23,5 @@ dependencies:
   - pip:
       - duecredit
       - pytest-xdist
-      - mdanalysis==2.0.0b0
       - pyyaml
       - typing_extensions
