@@ -64,7 +64,8 @@ jobs:
           channels: conda-forge, psi4
           add-pip-as-python-dependency: true
           architecture: x64
-          environment-file: devtools/conda-envs/test_${{ matrix.os }}.yaml
+          # environment-file: devtools/conda-envs/test_${{ matrix.os }}.yaml
+          environment-file: devtools/conda-envs/test_env.yaml
           activate-environment: test
 
       - name: Update psi4
