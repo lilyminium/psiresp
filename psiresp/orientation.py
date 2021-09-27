@@ -1,102 +1,74 @@
 from typing import Optional
-import pathlib
-import logging
 
 import numpy as np
-from pydantic import PrivateAttr
+from pydantic import Field, validator, root_validator
 
-from . import mixins, utils
-from .utils.io import datafile
-
-logger = logging.getLogger(__name__)
-
-class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridOptions):
-    _parent_path: pathlib.Path = PrivateAttr(default=".")
-
-    @property
-    def default_path(self):
-        return pathlib.Path(self._parent_path) / self.name
+from . import base, psi4utils
+from .constraint import ConstraintMatrix
+from .moleculebase import BaseMolecule
 
 
-class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
-    """
-    Class to manage one orientation of a conformer. This should
-    not usually be created or interacted with by a user. Instead,
-    users are expected to work primarily with
-    :class:`psiresp.conformer.Conformer` or :class:`psiresp.resp.Resp`.
+class Orientation(BaseMolecule):
+    grid: ...
+    esp: ...
+    energy: Optional[float] = None
+    grid_options: ...
+    constraint_matrix: ...
+    weight: ...
 
-    Attributes
-    ----------
-    grid: numpy.ndarray
-        The grid of points on which to compute the ESP
-    esp: numpy.ndarray
-        The computed ESP at grid points
-    r_inv: numpy.ndarray
-        inverse distance from each grid point to each atom, in
-        atomic units.
-    """
+    def compute_esp(self, qcrecord):
+        self.energy = qcrecord.properties.return_energy
+        if self.grid is None:
+            self.grid = self.grid_options.generate_vdw_grid(self.qcmol.symbols,
+                                                            self.coordinates)
+        self.esp = psi4utils.compute_esp(qcrecord, self.grid)
+        self.constraint_matrix = self.construct_constraint_matrix()
 
-    # conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
-    _grid: Optional[np.ndarray] = PrivateAttr(default=None)
-    _esp: Optional[np.ndarray] = PrivateAttr(default=None)
-    _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
+    def construct_constraint_matrix(self):
+        BOHR_TO_ANGSTROM = qcel.constants.conversion_factor("bohr", "angstrom")
 
-    @property
-    def grid(self):
-        if self._grid is None:
-            self._grid = self.compute_grid()
-        return self._grid
+        displacement = self.coordinates - self.grid.reshape((-1, 1, 3))
+        r_inv = BOHR_TO_ANGSTROM / np.sqrt(
+            np.einsum("ijk, ijk->ij", displacement, displacement)
+        )
+        a = np.einsum("ij, ik->jk", r_inv, r_inv)
+        b = np.einsum("i, ij->j", self.esp, r_inv)
+        return ConstraintMatrix.from_a_and_b(a, b)
 
-    @property
-    def esp(self):
-        if self._esp is None:
-            self._esp = self.compute_esp()
-        return self._esp
+    # grid: np.ndarray
+    # esp: np.ndarray
+    # qcrecord: ...
+    # grid_options: ...
+    # constraint_matrix: ConstraintMatrix
 
-    @property
-    def r_inv(self):
-        if self._r_inv is None:
-            self._r_inv = self.compute_r_inv()
-        return self._r_inv
+    # @root_validator(pre=True)
+    # def check_grid_and_esp(cls, values):
+    #     if values.get("constraint_matrix"):
+    #         return values
 
-    def compute_r_inv(self) -> np.ndarray:
-        """Get inverse r"""
-        points = self.grid.reshape((len(self.grid), 1, 3))
-        disp = self.coordinates - points
-        inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
-        return inverse * utils.BOHR_TO_ANGSTROM
+    #     qcrecord = values["qcrecord"]
+    #     mol = qcrecord.get_molecule()
 
-    def get_esp_mat_a(self) -> np.ndarray:
-        """Get A matrix for solving"""
-        return np.einsum("ij, ik->jk", self.r_inv, self.r_inv)
+    #     grid = values.get("grid")
+    #     if grid is None:
+    #         grid_options = values["grid_options"]
+    #         grid = grid_options.generate_vdw_grid(mol.symbols, mol.geometry)
+    #         values["grid"] = grid
 
-    def get_esp_mat_b(self) -> np.ndarray:
-        """Get B matrix for solving"""
-        return np.einsum("i, ij->j", self.esp, self.r_inv)
+    #     esp = values.get("esp")
+    #     if esp is None:
+    #         esp = psi4utils.compute_esp(qcrecord, grid)
+    #         values["esp"] = esp
 
-    @datafile(filename="{self.name}_grid.dat")
-    def compute_grid(self, grid_options=None):
-        if grid_options is None:
-            grid_options = self.grid_options
-        grid = grid_options.generate_vdw_grid(self.symbols, self.coordinates)
-        self._grid = grid
-        return grid
+    #     matrix = ConstraintMatrix.from_grid_and_esp(mol.geometry, grid, esp)
+    #     values["constraint_matrix"] = matrix
+    #     return values
 
-    @datafile(filename="{self.name}_grid_esp.dat")
-    def compute_esp(self, qm_options=None):
-        if qm_options is None:
-            qm_options = self.qm_options
-        grid = self.grid
-        if self.psi4mol_geometry_in_bohr:
-            grid = grid * utils.ANGSTROM_TO_BOHR
-        with self.directory() as tmpdir:
-            # ... this dies unless you write out grid.dat
-            np.savetxt("grid.dat", grid)
-            infile = qm_options.write_esp_file(self.psi4mol,
-                                               name=self.name)
-            proc = qm_options.try_run_qm(infile, cwd=tmpdir)
-            logger.info(proc)
-            esp = np.loadtxt("grid_esp.dat")
-        self._esp = esp
-        # assert len(self._esp)
-        return esp
+    def get_boltzmann_weight(self, temperature: float = 298.15):
+        joules = self.energy * qcel.constants.conversion_factor("hartree", "joules")
+        kb_jk = qcel.constants.Boltzmann_constant
+        return joules / (kb_jk * temperature)
+
+    def get_weighted_matrix(self, temperature: float = 298.15):
+        weight = self.get_boltzmann_weight(temperature)
+        return self.constraint_matrix * (weight ** 2)

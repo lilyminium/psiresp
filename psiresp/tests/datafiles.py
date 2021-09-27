@@ -3,6 +3,8 @@ from pkg_resources import resource_filename
 # from .utils import datafile
 
 
+TMP_POSTGRES_SERVER = resource_filename(__name__, "data/database")
+
 DMSO = resource_filename(__name__, "data/molecules/dmso_opt_c1.xyz")
 DMSO_ESP = resource_filename(__name__, "data/dmso_opt_c1.esp")
 DMSO_RINV = resource_filename(__name__, "data/dmso_opt_c1_r_inv.dat")
