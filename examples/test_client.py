@@ -76,8 +76,6 @@ units bohr
 # storage = TemporaryPostgres()
 # storage.psql.create_database("asdf")
 
-# storage = TemporaryPostgres(database_name="test_psiresp",
-#                             tmpdir=TMP_POSTGRES_SERVER)
 
 # tmp_server = FractalSnowflake(max_workers=2,
 #                               storage_project_name="test_psiresp",
@@ -91,39 +89,44 @@ units bohr
 # print(server)
 # tmp_client = server.client()
 if __name__ == "__main__":
-    storage_name = "test_qcfractal_compute_snowflake"
-    pserver = postgres_server()
-    pserver.create_database(storage_name)
+    storage = TemporaryPostgres(database_name="test_psiresp")
+    storage.psql.restore_database("test.psql")
+
+    # storage_name = "test_qcfractal_compute_snowflake"
+    # pserver = postgres_server()
+    # pserver.create_database(storage_name)
 
     with FractalSnowflake(
         max_workers=1,
-        storage_project_name=storage_name,
-        storage_uri=pserver.database_uri(),
-        reset_database=True,
+        storage_project_name="test_psiresp",
+        storage_uri=storage.psql.database_uri(),
+        reset_database=False,
         start_server=False,
     ) as tmp_server:
-        reset_server_database(tmp_server)
+        # reset_server_database(tmp_server)
 
         tmp_client = ptl.FractalClient(tmp_server)
         print(tmp_client)
 
-        response = tmp_client.add_compute(program="psi4",
-                                          basis="6-31g",
-                                          method="b3lyp",
-                                          driver="energy",
-                                          molecule=molecule)
-        print(response)
+        # response = tmp_client.add_compute(program="psi4",
+        #                                   basis="6-31g",
+        #                                   method="b3lyp",
+        #                                   driver="energy",
+        #                                   molecule=molecule)
+        # print(response)
 
-        tmp_server.await_results()
-        complete = False
-        while not complete:
-            time.sleep(10)
-            print("loop")
-            n_complete = tmp_client.query_results(id=response.submitted)
-            print(n_complete)
-            if n_complete[0].status == "COMPLETE":
-                complete = True
+        # tmp_server.await_results()
+        # complete = False
+        # while not complete:
+        #     time.sleep(10)
+        #     print("loop")
+        #     n_complete = tmp_client.query_results(id=response.submitted)
+        #     print(n_complete)
+        #     if n_complete[0].status == "COMPLETE":
+        #         complete = True
 
-        print(response.ids)
-        record = tmp_client.query_results(response.ids)
+        # print(response.ids)
+        record = tmp_client.query_results(id=["1"])  # response.ids)
         print(record)
+
+    # storage.psql.backup_database("test.psql")
