@@ -1,8 +1,9 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 import numpy as np
 import qcelemental as qcel
 import qcengine as qcng
+from pydantic import Field
 
 from . import base, qcutils, rdutils, orutils
 from .conformer import Conformer
@@ -12,16 +13,30 @@ from .moleculebase import BaseMolecule
 class ConformerGenerationOptions(base.Model):
 
     n_conformer_pool: int = 4000
-    n_max_conformers: int = 8
+    n_max_conformers: int = 0
     rms_tolerance: float = 0.05
     energy_window: float = 15
-    clear_existing_orientations: bool = True
+    keep_original_conformer: bool = True
+
+    def generate_coordinates(self, qcmol):
+        original = qcmol.geometry.reshape((1, -1, 3))
+        if not self.n_max_conformers:
+            return original
+
+        rdkwargs = self.dict()
+        keep = rdkwargs.pop("keep_original_conformer")
+        coords = rdutils.generate_diverse_conformer_coordinates(qcmol,
+                                                                **rdkwargs)
+        if keep:
+            coords = np.concatenate([original, coords])
+        return coords
 
 
 class Molecule(BaseMolecule):
     charge: float = 0
+    optimize_geometry: bool = False
     conformers: List = []
-    conformer_generation_options: ...
+    conformer_generation_options: ConformerGenerationOptions = ConformerGenerationOptions()
 
     stage_1_unrestrained_charges: Optional[np.ndarray] = None
     stage_1_restrained_charges: Optional[np.ndarray] = None
@@ -32,7 +47,6 @@ class Molecule(BaseMolecule):
         default=False,
         description="Whether to use the original orientation of the conformer."
     )
-
     reorientations: List[Tuple[int, int, int]] = Field(
         default_factory=list,
         description=("Specific rigid-body reorientations to generate. Each"
@@ -55,6 +69,11 @@ class Molecule(BaseMolecule):
                                                                "xy plane. This is indexed from 0.")
                                                   )
 
+    def __repr__(self):
+        qcmol_repr = self._get_qcmol_repr()
+        n_confs = len(self.conformers)
+        return f"{self._clsname}({qcmol_repr}, charge={self.charge}) with {n_confs} conformers"
+
     def generate_transformations(self,
                                  n_rotations: int = 0,
                                  n_reorientations: int = 0,
@@ -73,7 +92,7 @@ class Molecule(BaseMolecule):
 
     @property
     def n_orientations(self):
-        return sum(map(len(self.transformations))) + int(self.keep_original_orientation)
+        return len(self.conformers) * (len(self.transformations) + int(self.keep_original_orientation))
 
     def generate_orientation_coordinates(self, coordinates=None):
         if coordinates is None:
@@ -95,28 +114,32 @@ class Molecule(BaseMolecule):
         return np.array(orientations)
 
     def generate_conformers(self):
-        kwargs = self.conformer_generation_options.dict()
-        kwargs.pop("clear_existing_orientations", None)
-        coords = rdutils.generate_diverse_conformer_coordinates(self.qcmol, **kwargs)
+        coords = self.conformer_generation_options.generate_coordinates(self.qcmol)
         for coord in coords:
             self.add_conformer_with_coordinates(coord)
+        if not self.conformers:
+            self.add_conformer_with_coordinates(self.coordinates)
 
     def add_conformer_with_coordinates(self, coordinates):
         qcmol = self.qcmol_with_coordinates(coordinates)
         self.conformers.append(Conformer(qcmol=qcmol))
 
-    def generate_orientations(self, grid_options):
+    def generate_orientations(self, clear_existing_orientations: bool = True):
+        if not self.conformers:
+            self.generate_conformers()
         for conf in self.conformers:
-            if self.conformer_generation_options.clear_existing_orientations:
+            if clear_existing_orientations:
                 conf.orientations = []
             coords = self.generate_orientation_coordinates(conf.qcmol.geometry)
             for coord in coords:
-                conf.add_orientation_with_coordinates(coord, grid_options=grid_options)
+                conf.add_orientation_with_coordinates(coord)
+            if not len(conf.orientations):
+                conf.add_orientation_with_coordinates(conf.coordinates)
 
 
 class Atom(base.Model):
-    atom_index: int
+    index: int
     molecule: Molecule
 
     def __hash__(self):
-        return hash((self.molecule, self.atom_index))
+        return hash((self.molecule, self.index))

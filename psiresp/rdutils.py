@@ -2,6 +2,7 @@
 import itertools
 from typing import TYPE_CHECKING, Set, Tuple
 
+from typing_extensions import Literal
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -20,13 +21,14 @@ BONDTYPES = {
 def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
     rwmol = Chem.RWMol()
     for symbol in qcmol.symbols:
-        rwmol.AddAtom(symbol)
-    for i, j, d in qcmol.connectivity:
-        if np.isclose(d, 1.5):
-            bondtype = Chem.BondType.AROMATIC
-        else:
-            bondtype = BONDTYPES.get(int(d), Chem.BondType.UNSPECIFIED)
-        rwmol.AddBond(i, j, bondtype)
+        rwmol.AddAtom(Chem.Atom(symbol))
+    if qcmol.connectivity is not None:
+        for i, j, d in qcmol.connectivity:
+            if np.isclose(d, 1.5):
+                bondtype = Chem.BondType.AROMATIC
+            else:
+                bondtype = BONDTYPES.get(int(d), Chem.BondType.UNSPECIFIED)
+            rwmol.AddBond(i, j, bondtype)
     Chem.SanitizeMol(rwmol)
     add_conformer_from_coordinates(rwmol, qcmol.geometry)
     return rwmol
@@ -95,13 +97,17 @@ def minimize_conformer_geometries(rdmol: "rdkit.Chem.Mol",
 
 def compute_mmff_charges(rdmol: "rdkit.Chem.Mol",
                          forcefield: Literal["MMFF94", "MMFF94s"] = "MMFF94",
-                         normalize_partial_charges: bool = True):
+                         normalize_partial_charges: bool = True,
+                         ) -> np.ndarray:
     mps = AllChem.MMFFGetMoleculeProperties(rdmol, forcefield)
+    if mps is None:
+        molstr = Chem.MolToSmiles(rdmol)
+        raise ValueError(f"MMFF charges could not be computed for {molstr}")
     n_atoms = rdmol.GetNumAtoms()
     charges = np.array([mps.GetMMFFPartialCharge(i) for i in range(n_atoms)])
 
     if normalize_partial_charges:
-        total_charge = rdmol.GetFormalCharge()
+        total_charge = Chem.GetFormalCharge(rdmol)
         partial_charges = charges.sum()
         offset = (total_charge - partial_charges) / n_atoms
         charges += offset
@@ -112,12 +118,12 @@ def get_exclusions(rdmol: "rdkit.Chem.Mol") -> Set[Tuple[int, int]]:
     exclusions = set()
     for i, atom in enumerate(rdmol.GetAtoms()):
         partners = [b.GetOtherAtomIdx(i) for b in atom.GetBonds()]
-        exclusions |= set((i, x) for x in partners)
+        exclusions |= set(tuple(sorted([i, x])) for x in partners)
         exclusions |= set(itertools.combinations(sorted(partners), 2))
     return exclusions
 
 
-def compute_distance_matrix(coordinates):
+def compute_distance_matrix(coordinates: np.ndarray) -> np.ndarray:
     dist_sq = np.einsum('ijk,ilk->ijl', coordinates, coordinates)
     diag = np.einsum("ijj->ij", dist_sq)
     a, b = diag.shape
@@ -127,7 +133,8 @@ def compute_distance_matrix(coordinates):
 
 
 def compute_electrostatic_energy(rdmol: "rdkit.Chem.Mol",
-                                 forcefield: Literal["MMFF94", "MMFF94s"] = "MMFF94"):
+                                 forcefield: Literal["MMFF94", "MMFF94s"] = "MMFF94",
+                                 ) -> np.ndarray:
 
     conformers = np.array([c.GetPositions() for c in rdmol.GetConformers()])
     distances = compute_distance_matrix(conformers)
@@ -135,13 +142,14 @@ def compute_electrostatic_energy(rdmol: "rdkit.Chem.Mol",
                                       out=np.zeros_like(distances),
                                       where=~np.isclose(distances, 0))
 
-    charges = compute_mmff_charges(rdmol, forcefield)
+    charges = np.abs(compute_mmff_charges(rdmol)).reshape(-1, 1)
     charge_products = charges @ charges.T
 
     excl_i, excl_j = zip(*get_exclusions(rdmol))
-    charge_products[excl_i, excl_j] = charge_products[excl_j, excl_i] = 0.0
+    charge_products[(excl_i, excl_j)] = 0.0
+    charge_products[(excl_j, excl_i)] = 0.0
 
-    energies = inverse_distances * charge_products[np.newaxis, ...]
+    energies = inverse_distances * charge_products
     return 0.5 * energies.sum(axis=(1, 2))
 
 
@@ -170,12 +178,12 @@ def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
         return
 
     energies = compute_electrostatic_energy(rdmol, forcefield="MMFF94")
-    all_conformer_ids = np.array([c.GetId() for c in rdmol.GetConformers()])
+    all_conformer_ids = [c.GetId() for c in rdmol.GetConformers()]
 
     sorting = np.argsort(energies)
     upper_energy = energy_window + energies[sorting[0]]
     cutoff = np.searchsorted(energies[sorting], upper_energy)
-    conformer_ids = all_conformer_ids[sorting[:cutoff]]
+    conformer_ids = [all_conformer_ids[i] for i in sorting[:cutoff]]
     rms_matrix = compute_heavy_rms(rdmol, conformer_ids)
 
     n_max_output = min(limit, rms_matrix.shape[0])
@@ -189,7 +197,7 @@ def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
         rmsdist = np.where(any_too_close, -np.inf, selected_rms.sum(axis=0))
         selected_indices.append(rmsdist.argmax())
 
-    return conformer_ids[selected_indices]
+    return [conformer_ids[i] for i in selected_indices]
 
 
 def select_elf_conformer_coordinates(rdmol: "rdkit.Chem.Mol",

@@ -1,10 +1,21 @@
 import pytest
 from numpy.testing import assert_allclose
 
-import numpy as np
-from psiresp import GridOptions
+import qcelemental as qcel
 
-from .datafiles import UNIT_SPHERE_3, UNIT_SPHERE_64, DMSO_SHELL_D1, DMSO_SHELL_D2
+import numpy as np
+from psiresp.grid import GridOptions
+
+from psiresp.tests.datafiles import (UNIT_SPHERE_3, UNIT_SPHERE_64,
+                                     DMSO, DMSO_GRID,
+                                     DMSO_O1, DMSO_O1_GRID,
+                                     DMSO_O2, DMSO_O2_GRID,
+                                     )
+
+
+@pytest.fixture()
+def default_grid_options():
+    return GridOptions()
 
 
 @pytest.mark.parametrize("n_points, ref_file", [
@@ -14,7 +25,7 @@ from .datafiles import UNIT_SPHERE_3, UNIT_SPHERE_64, DMSO_SHELL_D1, DMSO_SHELL_
 def test_generate_unit_sphere(n_points, ref_file):
     points = GridOptions.generate_unit_sphere(n_points)
     reference = np.loadtxt(ref_file, comments="!")
-    assert_allclose(points, reference, decimal=5)
+    assert_allclose(points, reference, atol=1e-10)
 
 
 @pytest.mark.parametrize("radii, density, n_points", [
@@ -31,3 +42,13 @@ def test_generate_connolly_spheres(radii, density, n_points):
     for sphere, n in zip(points, n_points):
         col = sphere[:, 0]
         assert len(col[~np.isnan(col)]) <= n
+
+
+@pytest.mark.parametrize("qcmol, reference_grid", [
+    (DMSO, DMSO_GRID),
+    (DMSO_O1, DMSO_O1_GRID),
+    (DMSO_O2, DMSO_O2_GRID),
+], indirect=True)
+def test_generate_vdw_grid(qcmol, reference_grid, default_grid_options):
+    grid = default_grid_options.generate_vdw_grid(qcmol)
+    assert_allclose(grid, reference_grid)

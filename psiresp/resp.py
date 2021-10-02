@@ -1,7 +1,10 @@
-from typing import List
-
+from typing import List, Optional
+import warnings
 
 import numpy as np
+from pydantic import Field
+
+from psiresp import base, charge, constraint
 
 
 class BaseRespOptions(base.Model):
@@ -50,20 +53,22 @@ class RespCharges(BaseRespOptions):
     _restrained_charges = None
     _unrestrained_charges = None
 
-    molecule_constraints: ...
+    charge_constraints: charge.MoleculeChargeConstraints
+    surface_constraints: constraint.ConstraintMatrix
 
     def solve(self):
-        matrix = self.molecule_constraints.construct_constraint_matrix(mask=self._matrix_mask)
+        matrix = self.charge_constraints.construct_constraint_matrix(self.surface_constraints,
+                                                                     mask=self._matrix_mask)
         matrix._solve()
 
         self._unrestrained_charges = matrix._charges
         if not self.restrained_fit or not self.resp_a:
             return
 
-        n_iter += 1
+        n_iter = 0
         while (matrix.charge_difference > self.convergence_tolerance
                and n_iter < self.max_iter):
-            matrix._iter_solve()
+            matrix._iter_solve(self._resp_a, self._resp_b_squared)
             n_iter += 1
 
         if matrix.charge_difference > self.convergence_tolerance:
@@ -78,16 +83,16 @@ class RespCharges(BaseRespOptions):
 
     @property
     def n_structure_array(self):
-        return np.array([*([mol.n_orientations] * mol.n_atoms)
-                         for mol in self.molecules])
+        return np.concatenate([[mol.n_orientations] * mol.n_atoms
+                               for mol in self.molecules])
 
     @property
     def molecules(self):
-        return self.molecule_constraints.molecules
+        return self.charge_constraints.molecules
 
     @property
     def _resp_a(self):
-        return self.resp_a * self.n_structure_array[self._matrix_mask_bool]
+        return self.resp_a * self.n_structure_array[self._matrix_mask]
 
     @property
     def symbols(self):
@@ -98,19 +103,23 @@ class RespCharges(BaseRespOptions):
     def restrained_charges(self):
         if self._restrained_charges is None:
             return None
-        return self.molecule_constraints._index_array(self._restrained_charges)
+        return self.charge_constraints._index_array(self._restrained_charges)
 
     @property
     def unrestrained_charges(self):
         if self._unrestrained_charges is None:
             return None
-        return self.molecule_constraints._index_array(self._unrestrained_charges)
+        return self.charge_constraints._index_array(self._unrestrained_charges)
+
+    @property
+    def _charges(self):
+        if self._restrained_charges is not None:
+            return self._restrained_charges
+        return self._unrestrained_charges
 
     @property
     def charges(self):
-        if self.restrained_charges is not None:
-            return self.restrained_charges
-        return self.unrestrained_charges
+        return self.charge_constraints._index_array(self._charges)
 
     @property
     def _matrix_mask(self):

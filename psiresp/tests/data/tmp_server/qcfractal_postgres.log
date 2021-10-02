@@ -1,0 +1,23 @@
+2021-09-27 16:09:36.182 PDT [11206] LOG:  starting PostgreSQL 13.3 on x86_64-apple-darwin13.4.0, compiled by clang version 11.1.0, 64-bit
+2021-09-27 16:09:36.186 PDT [11206] LOG:  listening on IPv6 address "::1", port 52931
+2021-09-27 16:09:36.186 PDT [11206] LOG:  listening on IPv4 address "127.0.0.1", port 52931
+2021-09-27 16:09:36.186 PDT [11206] LOG:  listening on Unix socket "/Users/lily/pydev/psiresp/psiresp/tests/data/tmp_server/.s.PGSQL.52931"
+2021-09-27 16:09:36.189 PDT [11209] LOG:  database system was shut down at 2021-09-27 16:09:36 PDT
+2021-09-27 16:09:36.197 PDT [11206] LOG:  database system is ready to accept connections
+2021-09-27 16:09:54.776 PDT [11206] LOG:  received fast shutdown request
+2021-09-27 16:09:54.777 PDT [11206] LOG:  aborting any active transactions
+2021-09-27 16:09:54.777 PDT [11244] FATAL:  terminating connection due to administrator command
+2021-09-27 16:09:54.778 PDT [11206] LOG:  background worker "logical replication launcher" (PID 11216) exited with exit code 1
+2021-09-27 16:09:54.779 PDT [11210] LOG:  shutting down
+2021-09-27 16:09:54.809 PDT [11206] LOG:  database system is shut down
+2021-09-27 16:10:36.304 PDT [11455] LOG:  starting PostgreSQL 13.3 on x86_64-apple-darwin13.4.0, compiled by clang version 11.1.0, 64-bit
+2021-09-27 16:10:36.308 PDT [11455] LOG:  listening on IPv6 address "::1", port 52931
+2021-09-27 16:10:36.308 PDT [11455] LOG:  listening on IPv4 address "127.0.0.1", port 52931
+2021-09-27 16:10:36.309 PDT [11455] LOG:  listening on Unix socket "/Users/lily/pydev/psiresp/psiresp/tests/data/tmp_server/.s.PGSQL.52931"
+2021-09-27 16:10:36.315 PDT [11456] LOG:  database system was shut down at 2021-09-27 16:09:54 PDT
+2021-09-27 16:10:36.321 PDT [11455] LOG:  database system is ready to accept connections
+2021-09-27 16:10:37.497 PDT [11455] LOG:  received fast shutdown request
+2021-09-27 16:10:37.497 PDT [11455] LOG:  aborting any active transactions
+2021-09-27 16:10:37.499 PDT [11455] LOG:  background worker "logical replication launcher" (PID 11462) exited with exit code 1
+2021-09-27 16:10:37.499 PDT [11457] LOG:  shutting down
+2021-09-27 16:10:37.509 PDT [11455] LOG:  database system is shut down

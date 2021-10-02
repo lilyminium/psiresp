@@ -2,9 +2,7 @@ import itertools
 from typing import List, TYPE_CHECKING
 
 import numpy as np
-
-if TYPE_CHECKING:
-    import qcelemental
+import qcelemental as qcel
 
 from . import base, qcutils
 
@@ -40,7 +38,7 @@ def generate_atom_combinations(symbols: List[str]):
     """
     symbols = np.asarray(symbols)
     is_H = symbols == "H"
-    h_atoms = list(np.flatnonzero(is_H) + 1)
+    h_atoms = list(np.flatnonzero(is_H))
     heavy_atoms = list(np.flatnonzero(~is_H) + 1)
     seen = set()
 
@@ -58,7 +56,7 @@ def generate_atom_combinations(symbols: List[str]):
 
 
 class BaseMolecule(base.Model):
-    qcmol: "qcelemental.models.Molecule"
+    qcmol: qcel.models.Molecule
 
     def qcmol_with_coordinates(self, coordinates):
         return qcutils.qcmol_with_coordinates(self.qcmol, coordinates)
@@ -72,7 +70,11 @@ class BaseMolecule(base.Model):
         return self.qcmol.geometry
 
     def __hash__(self):
-        return str(hash(type(self))) + self.qcmol.get_hash()
+        return hash((type(self), self.qcmol.get_hash()))
+
+    def _get_qcmol_repr(self):
+        qcmol_attrs = [f"{x}={getattr(self.qcmol, x)}" for x in ["name"]]
+        return ", ".join(qcmol_attrs)
 
     def generate_atom_combinations(self, n_combinations=None):
         atoms = generate_atom_combinations(self.qcmol.symbols)

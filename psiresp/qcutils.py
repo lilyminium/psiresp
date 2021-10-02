@@ -86,6 +86,6 @@ def reconstruct_density(qcrecord):
 
 
 def qcmol_with_coordinates(qcmol, coordinates):
-    qcmol = qcmol.copy(deep=True)
-    qcmol.geometry = coordinates
-    return qcmol
+    dct = qcmol.dict()
+    dct["geometry"] = coordinates
+    return qcel.models.Molecule(**dct)

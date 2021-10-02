@@ -1,12 +1,11 @@
 
-from typing import Optional
+from typing import Optional, List
 
-from . import base
-from .orientation import Orientation
+from psiresp import base
+from psiresp.orientation import Orientation
+from psiresp.moleculebase import BaseMolecule
 
-
-class Conformer(base.Model):
-    qcmol: "qcelemental.models.Molecule"
+class Conformer(BaseMolecule):
     orientations: List[Orientation] = []
     is_optimized: bool = False
 

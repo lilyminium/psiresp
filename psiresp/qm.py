@@ -1,10 +1,11 @@
 import time
 from typing import List, Callable, Optional
 
+import numpy as np
 from typing_extensions import Literal
 import qcelemental as qcel
 import qcengine as qcng
-import qcportal as ptl
+import qcfractal.interface as ptl
 from pydantic import Field
 
 from .base import Model
@@ -76,13 +77,31 @@ class PCMOptions(Model):
 
 
 class BaseQMOptions(Model):
-    method: QMMethod
-    basis_set: QMBasisSet
-    pcm_options: Optional[PCMOptions] = None
-    driver: str = "energy"
+    method: QMMethod = Field(
+        default="hf",
+        description="QM method for optimizing geometry and calculating ESPs",
+    )
+    basis: QMBasisSet = Field(
+        default="6-31g*",
+        description="QM basis set for optimizing geometry and calculating ESPs",
+    )
+    pcm_options: Optional[PCMOptions] = Field(
+        default=None,
+        description="Implicit solvent for QM jobs, if any.",
+    )
+    driver: str = Field(
+        default="energy",
+        description="QM property to compute",
+    )
 
     def _generate_keywords(self):
         return {}
+
+    @property
+    def solvent(self):
+        if not self.pcm_options:
+            return None
+        return self.pcm_options.solvent
 
     def generate_keywords(self):
         keywords = self._generate_keywords()
@@ -90,42 +109,59 @@ class BaseQMOptions(Model):
             keywords.update(self.pcm_options.generate_keywords())
         return keywords
 
-    def add_compute(self, client, qcmols: List = [], **kwargs) -> ptl.models.ComputeResponse:
+    def add_compute(self,
+                    client: ptl.FractalClient,
+                    qcmols: List[qcel.models.Molecule] = [],
+                    **kwargs
+                    ) -> ptl.models.ComputeResponse:
+
         keywords = self.generate_keywords()
-
-        if self.solvent:
-            keywords.update(self.pcm_options.generate_keywords())
-
-        kwset = ptl.models.KeywordSet(keywords)
+        kwset = ptl.models.KeywordSet(values=keywords)
         kwid = client.add_keywords([kwset])[0]
+
+        protocols = {"wavefunction": "orbitals_and_eigenvalues"}
 
         return client.add_compute(program="psi4",
                                   method=self.method,
-                                  basis=self.basis_set,
+                                  basis=self.basis,
                                   driver=self.driver,
                                   keywords=kwid,
                                   molecule=qcmols,
+                                  protocols=protocols,
                                   **kwargs)
 
-    def add_compute_and_wait(self, client, qcmols: List = [], query_interval: int = 60,
-                             ignore_error: bool = True, **kwargs):
+    def add_compute_and_wait(self,
+                             client: ptl.FractalClient,
+                             qcmols: List[qcel.models.Molecule] = [],
+                             query_interval: int = 20,
+                             ignore_error: bool = True,
+                             **kwargs
+                             ) -> List[ptl.models.ResultRecord]:
+        from qcfractal.interface.models.records import RecordStatusEnum
+
         start_time = time.time()
         response = self.add_compute(client, qcmols, **kwargs)
 
-        n_jobs = len(response.ids)
-        n_complete = 0
-        n_error = 0
-        while n_complete + n_error < n_jobs:
-            time.sleep(query_interval)
-            complete = client.query_results(id=response.submitted, status="COMPLETE")
-            error = client.query_results(id=response.submitted, status="ERROR")
-            n_complete = len(complete)
-            n_error = len(error)
+        n_jobs = len(response.submitted)
+        if n_jobs:
+            n_complete = 0
+            n_error = 0
+            while n_complete + n_error < n_jobs:
+                time.sleep(query_interval)
+                results = client.query_results(id=response.submitted)
+                status = [r.status for r in results]
+                status = np.array([s.value
+                                   if isinstance(s, RecordStatusEnum)
+                                   else s
+                                   for s in status])
+                n_complete = (status == "COMPLETE").sum()
+                n_error = (status == "ERROR").sum()
+                break
+            if n_error and not ignore_error:
+                err = f"{n_error} jobs errored. Job ids: {[x.id for x in error]}"
+                raise ValueError(err)
 
         elapsed = time.time() - start_time
-        if n_error and not ignore_error:
-            err = f"{n_error} jobs errored. Job ids: {[x.id for x in error]}"
-            raise ValueError(err)
 
         records = client.query_results(response.ids)
 
@@ -135,9 +171,9 @@ class BaseQMOptions(Model):
         return records
 
 
-class QMGeometryOptimization(BaseQMOptions):
+class QMGeometryOptimizationOptions(BaseQMOptions):
 
-    g_convergence: QMGConvergence
+    g_convergence: QMGConvergence = "gau_tight"
     driver: str = "gradient"
 
     max_iter: int = Field(
@@ -163,5 +199,5 @@ class QMGeometryOptimization(BaseQMOptions):
         }
 
 
-class QMEnergy(BaseQMOptions):
-    driver: "energy"
+class QMEnergyOptions(BaseQMOptions):
+    pass

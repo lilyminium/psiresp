@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import psi4
 import numpy as np
 
@@ -27,7 +29,7 @@ def construct_psi4_wavefunction(qcrecord):
 
 
 def compute_esp(qcrecord, grid):
-    psi4wfn = qcutils.construct_psi4_wavefunction(qcrecord)
+    psi4wfn = construct_psi4_wavefunction(qcrecord)
     esp_calc = psi4.core.ESPPropCalc(psi4wfn)
 
     psi4grid = psi4.core.Matrix.from_array(grid)
@@ -36,12 +38,12 @@ def compute_esp(qcrecord, grid):
     return np.array(psi4esp)
 
 
-def get_connectivity(qcmol):
+def get_connectivity(qcmol) -> List[List[int]]:
     psi4mol = psi4mol_from_qcmol(qcmol)
-    return psi4.qcdb.parker._bond_profile(psi4mol)
+    return np.asarray(psi4.qcdb.parker._bond_profile(psi4mol))
 
 
-def get_sp3_ch_indices(qcmol):
+def get_sp3_ch_indices(qcmol) -> Dict[int, List[int]]:
     symbols = np.asarray(qcmol.symbols)
 
     bonds = get_connectivity(qcmol)
@@ -51,7 +53,7 @@ def get_sp3_ch_indices(qcmol):
     for i in np.where(symbols == "C")[0]:
         contains_index = np.any(bonds[:, :2] == i, axis=1)
         c_bonds = bonds[contains_index & single_bonds][:, :2]
-        c_partners = cbonds[cbonds != i]
+        c_partners = c_bonds[c_bonds != i]
         if len(c_partners) == 4:
             groups[i] = c_partners[symbols[c_partners] == "H"]
     return groups

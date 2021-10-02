@@ -1,28 +1,42 @@
 from typing import Optional
 
 import numpy as np
-from pydantic import Field, validator, root_validator
+from pydantic import Field, PrivateAttr  # , validator, root_validator
+import qcelemental as qcel
 
-from . import base, psi4utils
-from .constraint import ConstraintMatrix
-from .moleculebase import BaseMolecule
+from psiresp import psi4utils
+from psiresp.constraint import ConstraintMatrix
+from psiresp.moleculebase import BaseMolecule
+from psiresp.grid import GridOptions
 
 
-class Orientation(BaseMolecule):
-    grid: ...
-    esp: ...
+class OrientationEsp(BaseMolecule):
+    grid: Optional[np.ndarray] = None
+    esp: Optional[np.ndarray] = None
     energy: Optional[float] = None
-    grid_options: ...
-    constraint_matrix: ...
-    weight: ...
+    weight: Optional[float] = 1
 
-    def compute_esp(self, qcrecord):
-        self.energy = qcrecord.properties.return_energy
-        if self.grid is None:
-            self.grid = self.grid_options.generate_vdw_grid(self.qcmol.symbols,
-                                                            self.coordinates)
-        self.esp = psi4utils.compute_esp(qcrecord, self.grid)
-        self.constraint_matrix = self.construct_constraint_matrix()
+    _constraint_matrix: Optional[ConstraintMatrix] = None
+
+    @property
+    def constraint_matrix(self):
+        if self._constraint_matrix is None:
+            self.construct_constraint_matrix()
+        return self._constraint_matrix
+
+    def get_weight(self, temperature: float = 298.15):
+        if self.weight is None:
+            return self.get_boltzmann_weight(temperature)
+        return self.weight
+
+    def get_boltzmann_weight(self, temperature: float = 298.15):
+        joules = self.energy * qcel.constants.conversion_factor("hartree", "joules")
+        kb_jk = qcel.constants.Boltzmann_constant
+        return joules / (kb_jk * temperature)
+
+    def get_weighted_matrix(self, temperature: float = 298.15):
+        weight = self.get_weight(temperature=temperature)
+        return self.constraint_matrix * (weight ** 2)
 
     def construct_constraint_matrix(self):
         BOHR_TO_ANGSTROM = qcel.constants.conversion_factor("bohr", "angstrom")
@@ -31,9 +45,38 @@ class Orientation(BaseMolecule):
         r_inv = BOHR_TO_ANGSTROM / np.sqrt(
             np.einsum("ijk, ijk->ij", displacement, displacement)
         )
+        # r_inv = 1 / np.sqrt(
+        #     np.einsum("ijk, ijk->ij", displacement, displacement)
+        # )
         a = np.einsum("ij, ik->jk", r_inv, r_inv)
         b = np.einsum("i, ij->j", self.esp, r_inv)
-        return ConstraintMatrix.from_a_and_b(a, b)
+
+        matrix = ConstraintMatrix.from_a_and_b(a, b)
+        self._constraint_matrix = matrix
+        return matrix
+
+
+class Orientation(BaseMolecule):
+
+    weight: Optional[float] = 1
+
+    _orientation_esp: Optional[OrientationEsp] = PrivateAttr(
+        default=None,
+    )
+
+    def compute_esp(self, qcrecord,
+                    grid_options: GridOptions = GridOptions()):
+        grid = grid_options.generate_vdw_grid(self.qcmol)
+        esp = OrientationEsp(
+            qcmol=self.qcmol,
+            grid=grid,
+            esp=psi4utils.compute_esp(qcrecord, grid),
+            energy=qcrecord.properties.return_energy,
+            weight=self.weight
+        )
+        self._orientation_esp = esp
+        assert self._orientation_esp is not None
+        return esp
 
     # grid: np.ndarray
     # esp: np.ndarray
@@ -63,12 +106,3 @@ class Orientation(BaseMolecule):
     #     matrix = ConstraintMatrix.from_grid_and_esp(mol.geometry, grid, esp)
     #     values["constraint_matrix"] = matrix
     #     return values
-
-    def get_boltzmann_weight(self, temperature: float = 298.15):
-        joules = self.energy * qcel.constants.conversion_factor("hartree", "joules")
-        kb_jk = qcel.constants.Boltzmann_constant
-        return joules / (kb_jk * temperature)
-
-    def get_weighted_matrix(self, temperature: float = 298.15):
-        weight = self.get_boltzmann_weight(temperature)
-        return self.constraint_matrix * (weight ** 2)

@@ -16,6 +16,7 @@ from typing import Dict, List
 import numpy as np
 from scipy.spatial import distance as spdist
 from pydantic import Field
+import qcelemental as qcel
 
 from . import vdwradii, base, psi4utils
 
@@ -182,10 +183,10 @@ class GridOptions(base.Model):
         inside = np.all(within_bounds, axis=1)
         return shell_points[inside]
 
-    def generate_vdw_grid(self,
-                          symbols: List[str],
-                          coordinates: np.ndarray,
-                          ) -> np.ndarray:
+    def _generate_vdw_grid(self,
+                           symbols: List[str],
+                           coordinates: np.ndarray,
+                           ) -> np.ndarray:
         """Generate VdW surface points
 
         Parameters
@@ -208,7 +209,9 @@ class GridOptions(base.Model):
             points.extend(self.get_shell_within_bounds(radii, coordinates))
         return np.array(points)
 
+    def generate_vdw_grid(self, qcmol):
+        return self._generate_vdw_grid(qcmol.symbols, qcmol.geometry)
+
     def generate_grid(self, qcrecord):
-        qcmol = qcrecord.get_molecule()
-        grid = self.generate_vdw_grid(qcmol.symbols, qcmol.geometry)
+        grid = self.generate_vdw_grid(qcrecord.get_molecule())
         return grid
