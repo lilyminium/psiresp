@@ -207,10 +207,11 @@ class GridOptions(base.Model):
         for factor in self.vdw_scale_factors:
             radii = symbol_radii * factor
             points.extend(self.get_shell_within_bounds(radii, coordinates))
-        return np.array(points)
+        return np.array(points)  # / qcel.constants.conversion_factor("angstrom", "bohr")
 
     def generate_vdw_grid(self, qcmol):
-        return self._generate_vdw_grid(qcmol.symbols, qcmol.geometry)
+        coordinates = qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
+        return self._generate_vdw_grid(qcmol.symbols, coordinates)
 
     def generate_grid(self, qcrecord):
         grid = self.generate_vdw_grid(qcrecord.get_molecule())

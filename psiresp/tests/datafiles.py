@@ -86,12 +86,12 @@ DMSO_STAGE_2_B = resource_filename(__name__, "data/stage_2_constraints_b.dat")
 # ETHANOL_RESPA1_CHARGES = resource_filename(__name__, "data/charges/ethanol_c2_o4_respA1.dat")
 # ETHANOL_ESPA1_CHARGES = resource_filename(__name__, "data/charges/ethanol_c2_o4_espA1.dat")
 
-# AMM_NME_OPT_RESPA2_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_respA2.dat")
-# AMM_NME_OPT_RESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_respA1.dat")
-# AMM_NME_OPT_ESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_espA1.dat")
+AMM_NME_OPT_RESPA2_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_respA2.dat")
+AMM_NME_OPT_RESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_respA1.dat")
+AMM_NME_OPT_ESPA1_CHARGES = resource_filename(__name__, "data/charges/amm_dimethyl_espA1.dat")
 
-# ETHANOL_RESP2_C1 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c1.xyz")
-# ETHANOL_RESP2_C2 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c2.xyz")
+ETHANOL_RESP2_C1 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c1.xyz")
+ETHANOL_RESP2_C2 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt_c2.xyz")
 # ETHANOL_RESP2_GAS_C1_O1_GRID_ESP = resource_filename(__name__,
 #                                                      "data/test_resp2/resp2_ethanol_gas/"
 #                                                      "resp2_ethanol_gas_c001/"

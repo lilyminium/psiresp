@@ -39,15 +39,15 @@ class OrientationEsp(BaseMolecule):
         return self.constraint_matrix * (weight ** 2)
 
     def construct_constraint_matrix(self):
-        BOHR_TO_ANGSTROM = qcel.constants.conversion_factor("bohr", "angstrom")
-
         displacement = self.coordinates - self.grid.reshape((-1, 1, 3))
+
+        # r_inv should be in bohr units, even though
+        # coordinates and displacement are in angstrom?
+        BOHR_TO_ANGSTROM = qcel.constants.conversion_factor("bohr", "angstrom")
         r_inv = BOHR_TO_ANGSTROM / np.sqrt(
             np.einsum("ijk, ijk->ij", displacement, displacement)
         )
-        # r_inv = 1 / np.sqrt(
-        #     np.einsum("ijk, ijk->ij", displacement, displacement)
-        # )
+
         a = np.einsum("ij, ik->jk", r_inv, r_inv)
         b = np.einsum("i, ij->j", self.esp, r_inv)
 

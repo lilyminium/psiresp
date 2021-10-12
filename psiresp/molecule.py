@@ -1,4 +1,5 @@
 from typing import List, Dict, Optional, Tuple
+import functools
 
 import numpy as np
 import qcelemental as qcel
@@ -19,7 +20,8 @@ class ConformerGenerationOptions(base.Model):
     keep_original_conformer: bool = True
 
     def generate_coordinates(self, qcmol):
-        original = qcmol.geometry.reshape((1, -1, 3))
+        original = np.array([qcmol.geometry])
+        original *= qcel.constants.conversion_factor("bohr", "angstrom")
         if not self.n_max_conformers:
             return original
 
@@ -91,8 +93,12 @@ class Molecule(BaseMolecule):
         return [self.reorientations, self.rotations, self.translations]
 
     @property
+    def n_transformations(self):
+        return sum(map(len, self.transformations))
+
+    @property
     def n_orientations(self):
-        return len(self.conformers) * (len(self.transformations) + int(self.keep_original_orientation))
+        return len(self.conformers) * (self.n_transformations + int(self.keep_original_orientation))
 
     def generate_orientation_coordinates(self, coordinates=None):
         if coordinates is None:
@@ -103,7 +109,7 @@ class Molecule(BaseMolecule):
             orientations.append(coordinates)
 
         for indices in self.reorientations:
-            orientations.append(orutils.rigid_reorient(*indices, coordinates))
+            orientations.append(orutils.rigid_orient(*indices, coordinates))
 
         for indices in self.rotations:
             orientations.append(orutils.rigid_rotate(*indices, coordinates))
@@ -130,16 +136,29 @@ class Molecule(BaseMolecule):
         for conf in self.conformers:
             if clear_existing_orientations:
                 conf.orientations = []
-            coords = self.generate_orientation_coordinates(conf.qcmol.geometry)
+            coords = self.generate_orientation_coordinates(conf.coordinates)
             for coord in coords:
                 conf.add_orientation_with_coordinates(coord)
             if not len(conf.orientations):
                 conf.add_orientation_with_coordinates(conf.coordinates)
 
 
+@functools.total_ordering
 class Atom(base.Model):
     index: int
     molecule: Molecule
 
+    @classmethod
+    def from_molecule(cls, molecule, indices=[]):
+        if not isinstance(indices, (list, tuple, np.ndarray)):
+            indices = [indices]
+        return [cls(molecule=molecule, index=i) for i in indices]
+
     def __hash__(self):
         return hash((self.molecule, self.index))
+
+    def __eq__(self, other):
+        return self.molecule == other.molecule and self.index == other.index
+
+    def __lt__(self, other):
+        return self.index < other.index

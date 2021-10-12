@@ -125,8 +125,13 @@ class Job(base.Model):
             )
             for mol in self.molecules
         ]
-        a_block = scipy.linalg.block_diag(*[mat.a for mat in matrices])
-        b_block = np.concatenate([mat.b for mat in matrices])
+        a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
+        a_row = scipy.linalg.block_diag(*[np.ones(mat.b.shape[0]) for mat in matrices])
+        a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
+        a_block = np.bmat([[a_mol, a_row.T], [a_row, a_zeros]])
+
+        b_block = np.concatenate([mat.b for mat in matrices]
+                                 + [[mol.charge for mol in self.molecules]])
         return ConstraintMatrix.from_a_and_b(a_block, b_block)
 
     def generate_molecule_charge_constraints(self):
@@ -159,7 +164,7 @@ class Job(base.Model):
         if update_molecules:
             self.update_molecule_charges()
 
-    @property
+    @ property
     def charges(self):
         if self.stage_2_charges is None:
             try:

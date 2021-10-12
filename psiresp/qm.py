@@ -141,25 +141,16 @@ class BaseQMOptions(Model):
 
         start_time = time.time()
         response = self.add_compute(client, qcmols, **kwargs)
-
-        n_jobs = len(response.submitted)
-        if n_jobs:
-            n_complete = 0
-            n_error = 0
-            while n_complete + n_error < n_jobs:
-                time.sleep(query_interval)
-                results = client.query_results(id=response.submitted)
-                status = [r.status for r in results]
-                status = np.array([s.value
-                                   if isinstance(s, RecordStatusEnum)
-                                   else s
-                                   for s in status])
-                n_complete = (status == "COMPLETE").sum()
-                n_error = (status == "ERROR").sum()
-                break
-            if n_error and not ignore_error:
-                err = f"{n_error} jobs errored. Job ids: {[x.id for x in error]}"
-                raise ValueError(err)
+        n_incomplete = len(qcmols)
+        while(n_incomplete):
+            time.sleep(query_interval)
+            results = client.query_results(id=response.ids)
+            status = [r.status for r in results]
+            status = np.array([s.value
+                               if isinstance(s, RecordStatusEnum)
+                               else s
+                               for s in status])
+            n_incomplete = (status == "INCOMPLETE").sum()
 
         elapsed = time.time() - start_time
 

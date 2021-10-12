@@ -141,7 +141,7 @@ def rotate_z(n: int, coordinates: np.ndarray):
     coordinates[:, 1] = ys*cos_angle - xs*sin_angle
 
 
-def orient_rigid(i: int,
+def rigid_orient(i: int,
                  j: int,
                  k: int,
                  coordinates: np.ndarray,
@@ -181,7 +181,7 @@ def orient_rigid(i: int,
     return xyz
 
 
-def rotate_rigid(i: int,
+def rigid_rotate(i: int,
                  j: int,
                  k: int,
                  coordinates: np.ndarray,
@@ -212,4 +212,4 @@ def rotate_rigid(i: int,
     coordinates: numpy.ndarray
         New rotated coordinates
     """
-    return coordinates[i] + orient_rigid(i, j, k, coordinates)
+    return coordinates[i] + rigid_orient(i, j, k, coordinates)

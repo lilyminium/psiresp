@@ -8,24 +8,24 @@ from psiresp.tests.datafiles import (DMSO, METHYLAMMONIUM_OPT,
 
 @pytest.fixture
 def qcmol(request):
-    return qcel.models.Molecule.from_file(request.param)
+    return qcel.models.Molecule.from_file(request.param, dtype="xyz")
 
 
 @pytest.fixture
 def dmso_qcmol():
-    return qcel.models.Molecule.from_file(DMSO)
+    return qcel.models.Molecule.from_file(DMSO, dtype="xyz")
 
 
 @pytest.fixture
 def methylammonium_qcmol():
-    return qcel.models.Molecule.from_file(METHYLAMMONIUM_OPT)
+    return qcel.models.Molecule.from_file(METHYLAMMONIUM_OPT, dtype="xyz")
 
 
 @pytest.fixture
 def nme2ala2_c1_opt_qcmol():
-    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C1)
+    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C1, dtype="xyz")
 
 
 @pytest.fixture
 def nme2ala2_c2_opt_qcmol():
-    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C2)
+    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C2, dtype="xyz")

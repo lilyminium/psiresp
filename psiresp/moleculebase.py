@@ -67,7 +67,7 @@ class BaseMolecule(base.Model):
 
     @property
     def coordinates(self):
-        return self.qcmol.geometry
+        return self.qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
 
     def __hash__(self):
         return hash((type(self), self.qcmol.get_hash()))

@@ -1,8 +1,12 @@
 import numpy as np
 import qcelemental as qcel
 
+ANGSTROM_TO_BOHR = qcel.constants.conversion_factor("angstrom", "bohr")
+
 
 def qcmol_from_rdkit(rdmol, confId=-1):
+    from rdkit import Chem
+
     symbols = [a.GetSymbol() for a in rdmol.GetAtoms()]
     if rdmol.GetNumConformers() == 0:
         validate = False
@@ -10,6 +14,8 @@ def qcmol_from_rdkit(rdmol, confId=-1):
     else:
         validate = None
         geometry = np.array(rdmol.GetConformer(confId).GetPositions())
+
+    geometry *= ANGSTROM_TO_BOHR
 
     connectivity = [
         (b.GetBeginAtomIdx(), b.GetEndAtomIdx(), b.GetBondTypeAsDouble())
@@ -87,5 +93,5 @@ def reconstruct_density(qcrecord):
 
 def qcmol_with_coordinates(qcmol, coordinates):
     dct = qcmol.dict()
-    dct["geometry"] = coordinates
+    dct["geometry"] = coordinates * ANGSTROM_TO_BOHR
     return qcel.models.Molecule(**dct)

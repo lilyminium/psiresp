@@ -2,6 +2,7 @@ from typing import List, Dict
 
 import psi4
 import numpy as np
+import qcelemental as qcel
 
 from . import qcutils
 
@@ -32,7 +33,9 @@ def compute_esp(qcrecord, grid):
     psi4wfn = construct_psi4_wavefunction(qcrecord)
     esp_calc = psi4.core.ESPPropCalc(psi4wfn)
 
-    psi4grid = psi4.core.Matrix.from_array(grid)
+    ANGSTROM_TO_BOHR = qcel.constants.conversion_factor("angstrom", "bohr")
+    # grid = grid  ANGSTROM_TO_BOHR
+    psi4grid = psi4.core.Matrix.from_array(grid)  # * ANGSTROM_TO_BOHR)
     psi4esp = esp_calc.compute_esp_over_grid_in_memory(psi4grid)
 
     return np.array(psi4esp)

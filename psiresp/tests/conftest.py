@@ -17,15 +17,16 @@ pytest_plugins = [
     "psiresp.tests.fixtures.qcmols",
     "psiresp.tests.fixtures.qcrecords",
     "psiresp.tests.fixtures.molecules",
+    "psiresp.tests.fixtures.options",
 ]
 
 
 @pytest.fixture(scope="session")
 def postgres_server():
     storage = TemporaryPostgres(database_name="test_psiresp")
-    # storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
+    storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
     yield storage.psql
-    # storage.psql.backup_database(POSTGRES_SERVER_BACKUP)
+    storage.psql.backup_database(POSTGRES_SERVER_BACKUP)
     storage.stop()
 
 
@@ -59,3 +60,15 @@ def reference_esp(request):
 @pytest.fixture
 def reference_grid(request):
     return np.load(request.param)
+
+
+@pytest.fixture
+def red_charges(request):
+    with open(request.param, 'r') as f:
+        content = f.read()
+
+    mols = [x.split('\n')[1:] for x in content.split('MOLECULE') if x]
+    charges = [np.array([float(x.split()[4]) for x in y if x]) for y in mols]
+    if len(charges) == 1:
+        charges = charges[0]
+    return charges

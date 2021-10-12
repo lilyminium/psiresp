@@ -5,7 +5,8 @@ from psiresp.molecule import Molecule
 
 @pytest.fixture
 def dmso(dmso_qcmol):
-    return Molecule(qcmol=dmso_qcmol, optimize_geometry=False)
+    return Molecule(qcmol=dmso_qcmol, optimize_geometry=False,
+                    keep_original_orientation=True)
 
 
 @pytest.fixture

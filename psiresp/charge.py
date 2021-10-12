@@ -12,6 +12,7 @@ from psiresp.molecule import Atom, Molecule
 from psiresp.constraint import SparseConstraintMatrix
 
 
+@functools.total_ordering
 class BaseChargeConstraint(base.Model):
     atoms: Set[Atom] = set()
 
@@ -30,6 +31,9 @@ class BaseChargeConstraint(base.Model):
         if type(other) != type(self):
             return False
         return self.atoms == other.atoms
+
+    def __lt__(self, other):
+        return sorted(self.atoms)[0] < sorted(other.atoms)[0]
 
     @property
     def indices(self):
@@ -108,6 +112,20 @@ class BaseChargeConstraintOptions(base.Model):
         return (len(self.charge_sum_constraints)
                 + len(self.charge_equivalence_constraints))
 
+    def add_charge_sum_constraint(self, charge, atoms=[]):
+        self.charge_sum_constraints.append(ChargeSumConstraint(charge=charge, atoms=atoms))
+
+    def add_charge_equivalence_constraint(self, atoms=[]):
+        self.charge_equivalence_constraints.append(ChargeEquivalenceConstraint(atoms=atoms))
+
+    def add_charge_sum_constraint_for_molecule(self, molecule, charge=0, indices=[]):
+        atoms = Atom.from_molecule(molecule=molecule, indices=indices)
+        return self.add_charge_sum_constraint(charge=charge, atoms=atoms)
+
+    def add_charge_equivalence_constraint_for_molecule(self, molecule, indices=[]):
+        atoms = Atom.from_molecule(molecule=molecule, indices=indices)
+        return self.add_charge_equivalence_constraint(atoms=atoms)
+
     def _unite_overlapping_equivalences(self):
         """Join ChargeEquivalenceConstraints with overlapping atoms"""
         equivalences = defaultdict(set)
@@ -180,11 +198,11 @@ class BaseChargeConstraintOptions(base.Model):
         self._unite_overlapping_equivalences()
         self._remove_incompatible_and_redundant_equivalent_atoms()
         constraint_set = set(self.charge_equivalence_constraints)
-        self.charge_equivalence_constraints = list(constraint_set)
+        self.charge_equivalence_constraints = sorted(constraint_set)
 
     def clean_charge_sum_constraints(self):
         self._remove_redundant_charge_constraints()
-        self.charge_sum_constraints = list(set(self.charge_sum_constraints))
+        self.charge_sum_constraints = sorted(set(self.charge_sum_constraints))
 
 
 class ChargeConstraintOptions(BaseChargeConstraintOptions):
@@ -262,7 +280,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         return SparseConstraintMatrix(a, b, self._n_atoms, mask=mask)
 
     def _generate_charge_constraint_column(self):
-        n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules)
+        n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules) + 1
         increments = self.get_molecule_increments()
 
         constraints = [*self.charge_sum_constraints,
@@ -284,7 +302,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         unconstrained_indices = [a.index + increments[a.molecule]
                                  for a in unconstrained_atoms]
 
-        indices = np.arange(self._n_atoms)
+        indices = np.arange(len(charges))
         to_constrain = ~np.in1d(indices, unconstrained_indices)
         charges = np.asarray(charges)[to_constrain]
         indices = indices[to_constrain]
@@ -304,7 +322,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         self.charge_sum_constraints.append(constraint)
 
     def _atom_from_index(self, index):
-        i = np.searchsorted(self._n_molecule_atoms, index, side="right") - 1
+        i = np.searchsorted(self._n_molecule_atoms[1:], index, side="left")
         return Atom(molecule=self.molecules[i],
                     index=index - self._n_molecule_atoms[i])
 

@@ -30,12 +30,10 @@ class Model(BaseModel):
         return type(self).__name__
 
     def __setattr__(self, attr, value):
-        print(attr)
         try:
             super().__setattr__(attr, value)
         except ValueError as e:
             setters = inspect.getmembers(self.__class__, predicate=_is_settable)
-            print(setters)
             for propname, setter in setters:
                 if propname == attr:
                     return object.__setattr__(self, propname, value)

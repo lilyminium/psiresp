@@ -109,46 +109,19 @@ class ConstraintMatrix(base.Model):
 
 class SparseConstraintMatrix:
 
-    # a: scipy.sparse.csr_matrix
-    # b: scipy.sparse.csr_matrix
-
-    # @classmethod
-    # def from_molecules(cls, molecules=[], **kwargs):
-    #     matrices = [
-    #         ConstraintMatrix.from_orientations(
-    #             orientations=[o for conf in mol.conformers for o in conf.orientations],
-    #             **kwargs
-    #         )
-    #         for mol in molecules
-    #     ]
-
-    #     a_coo = [scipy.sparse.coo_matrix(mat.a) for mat in matrices]
-    #     a = scipy.sparse.block_diag(a_coo).tocsr()
-    #     b = np.concatenate([mat.b for mat in matrices])
-
-    #     all_atom_rows = scipy.sparse.block_diag(
-    #         [scipy.sparse.coo_matrix(np.ones(m.n_atoms)) for m in molecules]
-    #     )
-    #     A = scipy.sparse.bmat([[a, all_atom_rows.T],
-    #                            [all_atom_rows, None]]).tocsr()
-
-    #     charges = [m.charge for m in molecules]
-    #     B = scipy.sparse.csr_matrix(np.r_[b, charges])
-
-    #     return cls(a=A, b=B)
-
     def __init__(self, a, b, n_atoms, mask=None):
         self._a = scipy.sparse.csr_matrix(a)
         self._b = b
         if mask is None:
             mask = np.ones(n_atoms, dtype=bool)
 
-        self._array_indices = np.where(mask)
+        self._array_indices = np.where(mask)[0]
 
         diag_indices = np.diag_indices(n_atoms)
         self._array_mask = (diag_indices[0][mask],
                             diag_indices[1][mask])
 
+        self._n_atoms = n_atoms
         self._charges = None
         self._previous_charges = None
         self._previous_a = None
@@ -156,7 +129,7 @@ class SparseConstraintMatrix:
 
     @property
     def a(self):
-        return self._a[(self._array_indices, self._array_indices)]
+        return self._a[self._array_mask]
 
     @a.setter
     def a(self, value):
@@ -166,7 +139,7 @@ class SparseConstraintMatrix:
     def charges(self):
         if self._charges is None:
             return None
-        return self._charges[self._array_indices].reshape(-1)
+        return self._charges[self._array_indices]
 
     @property
     def previous_charges(self):
@@ -178,38 +151,17 @@ class SparseConstraintMatrix:
     def charge_difference(self):
         if self._previous_charges is None or self._charges is None:
             return np.inf
-        return np.abs(self._charges - self._previous_charges).max()
-
-    # def _set_constraint_matrices(self, molecules, temperature: float = 298.15):
-    #     matrices = [
-    #         ConstraintMatrix.from_orientations(
-    #             orientations=[o for conf in mol.conformers for o in conf.orientations],
-    #             temperature=temperature,
-    #         )
-    #         for mol in molecules
-    #     ]
-
-    #     a_coo = [scipy.sparse.coo_matrix(mat.a) for mat in matrices]
-    #     a = scipy.sparse.block_diag(a_coo).tocsr()
-    #     b = np.concatenate([mat.b for mat in matrices])
-
-    #     all_atom_rows = scipy.sparse.block_diag(
-    #         [scipy.sparse.coo_matrix(np.ones(m.n_atoms)) for m in molecules]
-    #     )
-    #     sparse_input = [[a, all_atom_rows.T], [all_atom_rows, None]]
-    #     self._original_a = self._a = scipy.sparse.bmats(sparse_input).tocsr()
-
-    #     charges = [m.charge for m in molecules]
-    #     self._b = scipy.sparse.csr_matrix(np.r_[b, charges])
+        return np.max(np.abs(self._charges - self._previous_charges)[:self._n_atoms])
 
     def _solve(self):
         self._previous_charges = self._charges
         try:
             self._charges = scipy.sparse.linalg.spsolve(self._a, self._b)
         except RuntimeError as e:  # TODO: this could be slow?
-            self._charges = scipy.sparse.linalg.lsmr(self._a, self._b)
+            self._charges = scipy.sparse.linalg.lsmr(self._a, self._b)[0]
 
     def _iter_solve(self, a_array, b_squared):
         self._a = self._original_a.copy()
         self.a += a_array / np.sqrt(self.charges ** 2 + b_squared)
+        # self.a += a_array / np.sqrt(self.charges ** 2 + b_squared)
         self._solve()

@@ -59,7 +59,7 @@ def test_charge_equivalence_constraint(dmso):
 #     def test_unite_overlapping_equivalences(self)
 
 class TestMoleculeChargeConstraints:
-    def test_add_constraints_from_charges(self, dmso, fractal_client):
+    def test_add_constraints_from_charges(self, dmso, dmso_qcmol, fractal_client):
         charge_options = ChargeConstraintOptions(symmetric_methyls=True,
                                                  symmetric_methylenes=True)
         job = Job(molecules=[dmso],
@@ -84,7 +84,6 @@ class TestMoleculeChargeConstraints:
         assert len(constraints.charge_equivalence_constraints) == 2
 
         surface_constraints = job.construct_molecule_constraint_matrix()
-        print("computed surface thing")
         matrix = constraints.construct_constraint_matrix(surface_constraints)
 
         ref_a = np.loadtxt(DMSO_STAGE_2_A)
