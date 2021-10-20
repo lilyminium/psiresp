@@ -211,12 +211,13 @@ class ChargeConstraintOptions(BaseChargeConstraintOptions):
 
 
 class MoleculeChargeConstraints(BaseChargeConstraintOptions):
-    molecules: Tuple[Molecule]
+    molecules: List[Molecule]
     unconstrained_atoms: List[Atom] = []
 
     _n_atoms: int
     _n_molecule_atoms: np.ndarray
-    _molecule_increments: Dict[Molecule, int]
+    _molecule_increments: Dict[int, int]
+    _molecule_hashes: Dict[int, Molecule]
     _edges: List[Tuple[int, int]]
 
     @ classmethod
@@ -247,7 +248,12 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
 
         self._n_atoms = sum(mol.n_atoms for mol in self.molecules)
         self._n_molecule_atoms = np.cumsum(np.r_[0, self._n_atoms])
-        self._molecule_increments = dict(zip(self.molecules, self._n_molecule_atoms))
+        self._molecule_hashes = {}
+        self._molecule_increments = {}
+        for mol, n_atoms in zip(self.molecules, self._n_molecule_atoms):
+            self._molecule_hashes[hash(mol)] = mol
+            self._molecule_increments[hash(mol)] = n_atoms
+        
         self._edges = list(zip(self._n_molecule_atoms[:-1],
                                self._n_molecule_atoms[1:]))
 
@@ -280,7 +286,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         return SparseConstraintMatrix(a, b, self._n_atoms, mask=mask)
 
     def _generate_charge_constraint_column(self):
-        n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules) + 1
+        n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules) #+ 1
         increments = self.get_molecule_increments()
 
         constraints = [*self.charge_sum_constraints,

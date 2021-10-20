@@ -1,9 +1,8 @@
 import inspect
-
+from typing import Any, Optional, Union, no_type_check
 
 import numpy as np
 from pydantic import BaseModel
-
 
 def _is_settable(member):
     return isinstance(member, property) and member.fset is not None
@@ -39,3 +38,22 @@ class Model(BaseModel):
                     return object.__setattr__(self, propname, value)
             else:
                 raise e
+
+    @classmethod
+    @no_type_check
+    def _get_value(
+        cls,
+        v: Any,
+        to_dict: bool,
+        by_alias: bool,
+        include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']],
+        exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']],
+        exclude_unset: bool,
+        exclude_defaults: bool,
+        exclude_none: bool,
+    ) -> Any:
+
+        if isinstance(v, set):
+            v = list(v)
+        return super()._get_value(v, to_dict, by_alias, include, exclude, exclude_unset, exclude_defaults, exclude_none)
+
