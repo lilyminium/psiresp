@@ -2,6 +2,7 @@ name: psiresp-docs
 channels:
   - psi4
   - conda-forge
+  - defaults
 
 dependencies:
   - ipython
