@@ -1,8 +1,7 @@
-import time
-from typing import Optional, List, Tuple
+from typing import Optional, List
 import multiprocessing
-import functools
 import itertools
+import logging
 
 import tqdm
 from pydantic import Field, validator, root_validator
@@ -15,6 +14,8 @@ from psiresp.resp import RespCharges
 from psiresp.orientation import Orientation
 from psiresp.constraint import ESPSurfaceConstraintMatrix
 from psiresp.qcutils import QCWaveFunction
+
+logger = logging.getLogger(__name__)
 
 
 class Job(base.Model):
@@ -88,10 +89,16 @@ class Job(base.Model):
                 return self.stage_1_charges
         return self.stage_2_charges.charges
 
+    @property
+    def n_conformers(self):
+        return sum(len(mol.conformers) for mol in self.molecules)
+
     def generate_conformers(self):
         """Generate conformers for every molecule"""
-        for mol in self.molecules:
+        logger.debug(f"Generating conformers for {len(self.molecules)} molecules")
+        for mol in tqdm.tqdm(self.molecules, desc="generate-conformers"):
             mol.generate_conformers()
+        logger.debug(f"Job has total {self.n_conformers} conformers")
 
     def generate_orientations(self):
         """Generate orientations for every conformer of every molecule"""

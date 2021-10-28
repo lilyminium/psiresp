@@ -26,6 +26,7 @@ and the Automated Topology Builder.
    :caption: Contents:
 
    getting_started
+   molecule
    hpc
    api
    io

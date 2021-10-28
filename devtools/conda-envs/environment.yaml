@@ -1,0 +1,22 @@
+name: psiresp
+channels:
+  - psi4
+  - conda-forge
+  - defaults
+
+dependencies:
+  - mdanalysis
+  - numpy>=1.20.0
+  - pandas
+  - pip
+  - psi4>=1.4
+  - python==3.8
+  - qcelemental==0.22.0
+  - qcfractal
+  - rdkit
+  - scipy
+  # Pip-only installs
+  - pip:
+      - duecredit
+      - pytest-xdist
+      - pyyaml

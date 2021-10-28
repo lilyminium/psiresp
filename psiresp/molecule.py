@@ -1,25 +1,45 @@
-from typing import List, Dict, Optional, Tuple
+from typing import List, Optional, Tuple
 import functools
+import logging
 
 import numpy as np
 import qcelemental as qcel
-import qcengine as qcng
 from pydantic import Field
 
-from . import base, qcutils, rdutils, orutils
+from . import base, rdutils, orutils
 from .conformer import Conformer
 from .moleculebase import BaseMolecule
 
+logger = logging.getLogger(__name__)
+
 
 class ConformerGenerationOptions(base.Model):
+    """Options for generating conformers"""
 
-    n_conformer_pool: int = 4000
-    n_max_conformers: int = 0
-    rms_tolerance: float = 0.05
-    energy_window: float = 15
-    keep_original_conformer: bool = True
+    n_conformer_pool: int = Field(
+        default=4000,
+        description="Number of initial conformers to generate"
+    )
+    n_max_conformers: int = Field(
+        default=0,
+        description="Maximum number of conformers to keep"
+    )
+    rms_tolerance: float = Field(
+        default=0.05,
+        description="RMS tolerance for pruning conformers"
+    )
+    energy_window: float = Field(
+        default=15,
+        description=("Energy window within which to keep conformers. "
+                     "This is the range from the lowest energetic conformer"),
+    )
+    keep_original_conformer: bool = Field(
+        default=True,
+        description="Whether to keep the original conformer in the molecule"
+    )
 
-    def generate_coordinates(self, qcmol):
+    def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:
+        """Generate conformer coordinates in angstrom"""
         original = np.array([qcmol.geometry])
         original *= qcel.constants.conversion_factor("bohr", "angstrom")
         if not self.n_max_conformers:
@@ -35,16 +55,56 @@ class ConformerGenerationOptions(base.Model):
 
 
 class Molecule(BaseMolecule):
-    charge: Optional[int] = None
-    multiplicity: Optional[int] = None
-    optimize_geometry: bool = False
-    conformers: List = []
-    conformer_generation_options: ConformerGenerationOptions = ConformerGenerationOptions()
+    """Class to manage a molecule"""
+    charge: Optional[int] = Field(
+        default=None,
+        description=("Charge to apply to the molecule. "
+                     "If `charge=None`, the charge is taken to be "
+                     "the molecular_charge on the QCElemental molecule")
+    )
+    multiplicity: Optional[int] = Field(
+        default=None,
+        description=("Multiplicity to apply to the molecule. "
+                     "If `multiplicity=None`, the multiplicity is taken to be "
+                     "the molecular_multiplicity on the QCElemental molecule")
+    )
+    optimize_geometry: bool = Field(
+        default=False,
+        description="Whether to optimize the geometry of conformers",
+    )
+    conformers: List[Conformer] = Field(
+        default_factory=list,
+        description="List of `psiresp.conformer.Conformer`s of the molecule"
+    )
+    conformer_generation_options: ConformerGenerationOptions = Field(
+        default_factory=ConformerGenerationOptions,
+        description="Conformer generation options",
+    )
 
-    stage_1_unrestrained_charges: Optional[np.ndarray] = None
-    stage_1_restrained_charges: Optional[np.ndarray] = None
-    stage_2_unrestrained_charges: Optional[np.ndarray] = None
-    stage_2_restrained_charges: Optional[np.ndarray] = None
+    stage_1_unrestrained_charges: Optional[np.ndarray] = Field(
+        default=None,
+        description=("Stage 1 unrestrained charges. "
+                     "These are typically assigned from a "
+                     ":class:`psiresp.job.Job`.")
+    )
+    stage_1_restrained_charges: Optional[np.ndarray] = Field(
+        default=None,
+        description=("Stage 1 restrained charges. "
+                     "These are typically assigned from a "
+                     ":class:`psiresp.job.Job`.")
+    )
+    stage_2_unrestrained_charges: Optional[np.ndarray] = Field(
+        default=None,
+        description=("Stage 2 unrestrained charges. "
+                     "These are typically assigned from a "
+                     ":class:`psiresp.job.Job`.")
+    )
+    stage_2_restrained_charges: Optional[np.ndarray] = Field(
+        default=None,
+        description=("Stage 2 restrained charges. "
+                     "These are typically assigned from a "
+                     ":class:`psiresp.job.Job`.")
+    )
 
     keep_original_orientation: bool = Field(
         default=False,
@@ -71,6 +131,7 @@ class Molecule(BaseMolecule):
                                                                "x-axis, and the third atom defines a plane parallel to the"
                                                                "xy plane. This is indexed from 0.")
                                                   )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.charge is None:
@@ -90,8 +151,14 @@ class Molecule(BaseMolecule):
     def generate_transformations(self,
                                  n_rotations: int = 0,
                                  n_reorientations: int = 0,
-                                 n_translations: int = 0,
-                                 rotations: list = []):
+                                 n_translations: int = 0):
+        """Automatically generate the atom combinations for
+        rotations and reorientations, as well as translation
+        vectors.
+
+        Atom combinations are generated first by iterating over
+        combinations of heavy atoms, and then incorporating hydrogens.
+        """
         n_max = max(n_rotations, n_reorientations)
         if n_max:
             combinations = self.generate_atom_combinations(n_max)
@@ -101,17 +168,26 @@ class Molecule(BaseMolecule):
 
     @property
     def transformations(self):
+        """All transformations"""
         return [self.reorientations, self.rotations, self.translations]
 
     @property
     def n_transformations(self):
+        "Number of transformations"
         return sum(map(len, self.transformations))
 
     @property
     def n_orientations(self):
+        """Number of orientations that should exist.
+        This may not correspond to the number of orientations actually in
+        the conformer, if generate_orientations has not been called yet."""
         return len(self.conformers) * (self.n_transformations + int(self.keep_original_orientation))
 
-    def generate_orientation_coordinates(self, coordinates=None):
+    def generate_orientation_coordinates(
+        self,
+        coordinates: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """Generate coordinates for orientations in angstrom"""
         if coordinates is None:
             coordinates = self.coordinates
 
@@ -131,17 +207,34 @@ class Molecule(BaseMolecule):
         return np.array(orientations)
 
     def generate_conformers(self):
+        """Generate conformers"""
         coords = self.conformer_generation_options.generate_coordinates(self.qcmol)
         for coord in coords:
             self.add_conformer_with_coordinates(coord)
         if not self.conformers:
             self.add_conformer_with_coordinates(self.coordinates)
 
+    def add_conformer(self, conformer=None, **kwargs):
+        if conformer is not None and isinstance(conformer, Conformer):
+            if not np.equals(conformer.qcmol.symbols, self.qcmol.symbols):
+                raise ValueError("Conformer molecule does not match. "
+                                 f"Conformer symbols: {conformer.qcmol.symbols}, "
+                                 f"Molecule symbols: {self.qcmol.symbols}")
+        else:
+            conformer = Conformer(**kwargs)
+        self.conformers.append(conformer)
+
     def add_conformer_with_coordinates(self, coordinates, units="angstrom"):
+        """Add a new conformer with specified coordinates.
+
+        No checking is done to ensure that the
+        conformer does not already exist in the molecule.
+        """
         qcmol = self.qcmol_with_coordinates(coordinates, units=units)
         self.conformers.append(Conformer(qcmol=qcmol))
 
     def generate_orientations(self, clear_existing_orientations: bool = True):
+        """Generate Orientation objects for each conformer."""
         if not self.conformers:
             self.generate_conformers()
         for conf in self.conformers:
@@ -156,6 +249,7 @@ class Molecule(BaseMolecule):
 
 @functools.total_ordering
 class Atom(base.Model):
+    """Class to manage atoms for charge constraints"""
     index: int
     molecule: Molecule
 

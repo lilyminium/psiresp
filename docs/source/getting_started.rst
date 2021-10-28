@@ -16,7 +16,7 @@ If you need the latest development environment, build from source::
   git clone https://github.com/lilyminium/psiresp
   cd psiresp
   # create new environment with dependencies
-  conda env create -f devtools/conda-envs/resp_env.yaml
+  conda env create -f devtools/conda-envs/environment.yaml
   conda activate psiresp
   # build the package
   python setup.py install
