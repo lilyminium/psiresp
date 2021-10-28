@@ -32,6 +32,7 @@ class Orientation(BaseMolecule):
     def compute_esp_from_record(self, record):
         self.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
         self.compute_esp()
+        self.energy = record.properties.return_energy
 
     @property
     def constraint_matrix(self):

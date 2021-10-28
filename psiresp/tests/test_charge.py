@@ -49,7 +49,7 @@ def test_charge_equivalence_constraint(dmso):
 
 class TestMoleculeChargeConstraints:
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     def test_add_constraints_from_charges(self, dmso, fractal_client):
         charge_options = ChargeConstraintOptions(symmetric_methyls=True,
                                                  symmetric_methylenes=True)

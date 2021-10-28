@@ -20,11 +20,11 @@ from psiresp.qm import QMEnergyOptions
 from psiresp.tests.utils import load_gamess_esp
 
 
-@pytest.mark.slow
+# @pytest.mark.slow
 @pytest.mark.parametrize("coord_file, esp_file", [
     (DMSO, DMSO_ESP),
-    (DMSO_O1, DMSO_O1_ESP),
-    (DMSO_O2, DMSO_O2_ESP),
+    # (DMSO_O1, DMSO_O1_ESP),
+    # (DMSO_O2, DMSO_O2_ESP),
 ])
 def test_compute_esp(coord_file, esp_file, fractal_client):
     # setup
@@ -43,5 +43,5 @@ def test_compute_esp(coord_file, esp_file, fractal_client):
     record = qm_options.wait_for_results(fractal_client, response_ids=result_id)[0]
 
     orientation.compute_esp_from_record(record)
-    assert_allclose(orientation.esp, ref_esp)
+    assert_allclose(orientation.esp, ref_esp, atol=1e-07)
     assert orientation.energy < 0

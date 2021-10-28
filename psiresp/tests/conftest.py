@@ -46,7 +46,6 @@ def fractal_server(postgres_server):
 
 @pytest.fixture(scope="session")
 def fractal_client(fractal_server):
-    # yield ptl.FractalClient("hpc3-22-03:7777", verify=False)
     yield ptl.FractalClient(fractal_server)
 
 

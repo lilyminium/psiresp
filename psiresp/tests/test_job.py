@@ -14,7 +14,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 
 
 class TestSingleResp:
-    @pytest.mark.slow
+    # @pytest.mark.slow
     def test_unrestrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=False)
         job = Job(molecules=[dmso],
@@ -28,7 +28,7 @@ class TestSingleResp:
         assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1)
         assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2)
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     def test_restrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=True)
         job = Job(molecules=[dmso],
@@ -75,7 +75,7 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
