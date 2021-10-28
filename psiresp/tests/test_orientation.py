@@ -9,12 +9,13 @@ from psiresp.tests.datafiles import (DMSO, DMSO_ESP, DMSO_RINV,
                                      DMSO_O1, DMSO_O1_ESP, DMSO_O1_RINV,
                                      DMSO_O2, DMSO_O2_ESP, DMSO_O2_RINV,
                                      )
-from psiresp.tests.base import (coordinates_from_xyzfile,
-                                psi4mol_from_xyzfile,
-                                orientation_from_psi4mol,
-                                esp_from_gamess_file
-                                )
+# from psiresp.tests.base import (coordinates_from_xyzfile,
+#                                 psi4mol_from_xyzfile,
+#                                 orientation_from_psi4mol,
+#                                 esp_from_gamess_file
+#                                 )
 
+from psiresp.tests.utils import load_gamess_esp
 
 @pytest.mark.parametrize("coord_file, esp_file", [
     (DMSO, DMSO_ESP),

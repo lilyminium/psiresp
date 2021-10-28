@@ -1,4 +1,4 @@
-
+from typing import Optional, Tuple
 import copy
 
 import numpy as np
@@ -22,10 +22,7 @@ def array_ops(func):
     return wrapper
 
 
-class ConstraintMatrix(base.Model):
-
-    # class Config(base.Model.Config):
-    #     extra = "allow"
+class ESPSurfaceConstraintMatrix(base.Model):
 
     matrix: np.ndarray
 
@@ -52,16 +49,13 @@ class ConstraintMatrix(base.Model):
         if not len(orientations):
             raise ValueError("At least one Orientation must be provided")
 
-        if not all((o._orientation_esp is not None
-                    and o._orientation_esp.esp is not None)
-                   for o in orientations):
+        if not all(ort.esp is not None for ort in orientations):
             raise ValueError("All Orientations must have had the ESP computed")
 
         first = orientations[0]
         matrix = cls.with_n_dim(first.qcmol.geometry.shape[0])
         for ort in orientations:
-            mat = ort._orientation_esp.get_weighted_matrix(temperature=temperature)
-            matrix += mat
+            matrix += ort.get_weighted_matrix(temperature=temperature)
         return matrix
 
     @classmethod
@@ -107,45 +101,71 @@ class ConstraintMatrix(base.Model):
         self.matrix[-1] = value
 
 
-class SparseConstraintMatrix:
+class SparseGlobalConstraintMatrix(base.Model):
 
-    def __init__(self, a, b, n_atoms, mask=None):
-        self._a = scipy.sparse.csr_matrix(a)
-        self._b = b
-        if mask is None:
-            mask = np.ones(n_atoms, dtype=bool)
+    a: scipy.sparse.csr_matrix
+    b: np.ndarray
+    n_structure_array: Optional[np.ndarray] = None
+    mask: Optional[np.ndarray] = None
 
-        self._array_indices = np.where(mask)[0]
+    _original_a: Optional[scipy.sparse.csr_matrix] = None
+    _charges: Optional[np.ndarray] = None
+    _previous_charges: Optional[np.ndarray] = None
+    _n_atoms: Optional[int] = None
+    _array_mask: Optional[Tuple[np.ndarray, np.ndarray]] = None
+    _array_indices: Optional[np.ndarray] = None
 
-        diag_indices = np.diag_indices(n_atoms)
-        self._array_mask = (diag_indices[0][mask],
-                            diag_indices[1][mask])
+    @classmethod
+    def from_constraints(cls, surface_constraints,
+                         charge_constraints,
+                         exclude_hydrogens=True):
+        a = scipy.sparse.csr_matrix(surface_constraints.a)
+        b = surface_constraints.b
 
-        self._n_atoms = n_atoms
-        self._charges = None
-        self._previous_charges = None
-        self._previous_a = None
-        self._original_a = copy.deepcopy(self._a)
+        if charge_constraints.n_constraints:
+            a_block = scipy.sparse.hstack([
+                scipy.sparse.coo_matrix(dense)
+                for dense in charge_constraints.to_a_col_constraints()
+            ])
+            b_block_ = charge_constraints.to_b_constraints()
+            a = scipy.sparse.bmat(
+                [[a, a_block],
+                 [a_block.transpose(), None]],
+                format="csr",
+            )
+            b_block = np.zeros(a_block.shape[1])
+            b_block[:len(b_block_)] = b_block_
+            b = np.r_[b, b_block]
 
-    @property
-    def a(self):
-        return self._a[self._array_mask]
+        n_structure_array = np.concatenate(
+            [[mol.n_orientations] * mol.n_atoms
+            for mol in charge_constraints.molecules]
+        )
 
-    @a.setter
-    def a(self, value):
-        self._a[(self._array_indices, self._array_indices)] = value
 
-    @property
-    def charges(self):
-        if self._charges is None:
-            return None
-        return self._charges[self._array_indices]
+        symbols = np.concatenate(
+            [mol.qcmol.symbols
+             for mol in charge_constraints.molecules]
+        )
+        mask = np.ones_like(symbols, dtype=bool)
+        if exclude_hydrogens:
+            mask[np.where(symbols == "H")[0]] = False
+        return cls(a=a, b=b, n_structure_array=n_structure_array, mask=mask)
 
-    @property
-    def previous_charges(self):
-        if self._previous_charges is None:
-            return None
-        return self._previous_charges[self._array_indices]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._n_atoms = len(self.b)
+        if self.n_structure_array is None:
+            self.n_structure_array = np.ones(self._n_atoms)
+        if self.mask is None:
+            self.mask = np.ones(self._n_atoms, dtype=bool)
+        self._array_indices = np.where(self.mask)[0]
+        diag_indices = np.diag_indices(self._n_atoms)
+        self._array_mask = (diag_indices[0][self._array_indices],
+                            diag_indices[1][self._array_indices])
+        self._original_a = copy.deepcopy(self.a)
 
     @property
     def charge_difference(self):
@@ -153,15 +173,23 @@ class SparseConstraintMatrix:
             return np.inf
         return np.max(np.abs(self._charges - self._previous_charges)[:self._n_atoms])
 
+    @property
+    def charges(self):
+        if self._charges is None:
+            return None
+        return self._charges[self._array_indices]
+
     def _solve(self):
         self._previous_charges = self._charges
         try:
-            self._charges = scipy.sparse.linalg.spsolve(self._a, self._b)
+            self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
+            # self._charges = scipy.linalg.solve(self.a.toarray(), self.b)
         except RuntimeError as e:  # TODO: this could be slow?
-            self._charges = scipy.sparse.linalg.lsmr(self._a, self._b)[0]
+            self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
 
-    def _iter_solve(self, a_array, b_squared):
-        self._a = self._original_a.copy()
-        self.a += a_array / np.sqrt(self.charges ** 2 + b_squared)
-        # self.a += a_array / np.sqrt(self.charges ** 2 + b_squared)
+    def _iter_solve(self, resp_a, resp_b):
+        increment = (resp_a * self.n_structure_array)[self._array_indices]
+        increment /= np.sqrt(self._charges ** 2 + resp_b ** 2)[self._array_indices]
+        self.a = self._original_a.copy()
+        self.a[self._array_mask] += increment
         self._solve()

@@ -1,5 +1,6 @@
 import pytest
 
+import numpy as np
 from numpy.testing import assert_allclose
 
 from psiresp.job import Job
@@ -37,8 +38,8 @@ class TestSingleResp:
                   -0.50568553, -0.33670393, 0.15982115, 0.12029174, 0.153629]]
         resp_2 = [[-0.25158642, 0.11778735, 0.11778735, 0.11778735, 0.30951582,
                   -0.50568553, -0.29298059, 0.12912489, 0.12912489, 0.12912489]]
-        assert_allclose(job.stage_1_charges.restrained_charges, resp_1, atol=5e-6)
-        assert_allclose(job.stage_2_charges.restrained_charges, resp_2, atol=1e-6)
+        assert_allclose(job.stage_1_charges.restrained_charges, resp_1, atol=1e-5)
+        assert_allclose(job.stage_2_charges.restrained_charges, resp_2, atol=1e-5)
 
 
 class TestMultiResp:
@@ -50,18 +51,33 @@ class TestMultiResp:
     def test_charge_constraints(self, nme2ala2, methylammonium,
                                 methylammonium_nme2ala2_charge_constraints,
                                 stage_2, resp_a, red_charges,
-                                fractal_client):
+                                fractal_client, job_esps, job_grids):
 
         resp_options = RespOptions(stage_2=stage_2, resp_a=resp_a)
         job = Job(molecules=[methylammonium, nme2ala2],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options)
-        job.compute_esps(client=fractal_client)
+        job.compute_orientation_energies(client=fractal_client)
+        job.compute_esps()
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    # orient.esp = job_esps[fname]
+                    # orient.grid = job_grids[fname]
+                    np.savetxt(f"data/esps/{fname}_esp.dat", orient.esp)
+                    np.savetxt(f"data/esps/{fname}_grid.dat", orient.grid)
         job.compute_charges()
+        charges = np.concatenate(job.charges)
+        print(job.charges)
 
-        assert_allclose(job.charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0)
-        assert_allclose(job.charges[[27, 28, 29, 30, 31, 32]].sum(), 0)
-        assert_allclose(job.charges[25], 0.6163)
-        assert_allclose(job.charges[26], -0.5722)
-        assert_allclose(job.charges[18], job.charges[22])
-        assert_allclose(job.charges, red_charges)
+        print(red_charges)
+
+        assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[25], 0.6163)
+        assert_allclose(charges[26], -0.5722)
+        assert_allclose(charges[18], charges[22])
+        for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
+            assert_allclose(calculated, reference)
+        # assert_allclose(np.array(job.charges), np.array(red_charges))

@@ -35,7 +35,8 @@ class ConformerGenerationOptions(base.Model):
 
 
 class Molecule(BaseMolecule):
-    charge: float = 0
+    charge: Optional[int] = None
+    multiplicity: Optional[int] = None
     optimize_geometry: bool = False
     conformers: List = []
     conformer_generation_options: ConformerGenerationOptions = ConformerGenerationOptions()
@@ -70,6 +71,16 @@ class Molecule(BaseMolecule):
                                                                "x-axis, and the third atom defines a plane parallel to the"
                                                                "xy plane. This is indexed from 0.")
                                                   )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.charge is None:
+            self.charge = self.qcmol.molecular_charge
+        else:
+            self.qcmol.__dict__["molecular_charge"] = self.charge
+        if self.multiplicity is None:
+            self.multiplicity = self.qcmol.molecular_multiplicity
+        else:
+            self.qcmol.__dict__["molecular_multiplicity"] = self.multiplicity
 
     def __repr__(self):
         qcmol_repr = self._get_qcmol_repr()
@@ -126,8 +137,8 @@ class Molecule(BaseMolecule):
         if not self.conformers:
             self.add_conformer_with_coordinates(self.coordinates)
 
-    def add_conformer_with_coordinates(self, coordinates):
-        qcmol = self.qcmol_with_coordinates(coordinates)
+    def add_conformer_with_coordinates(self, coordinates, units="angstrom"):
+        qcmol = self.qcmol_with_coordinates(coordinates, units=units)
         self.conformers.append(Conformer(qcmol=qcmol))
 
     def generate_orientations(self, clear_existing_orientations: bool = True):

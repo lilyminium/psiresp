@@ -50,5 +50,5 @@ def test_generate_connolly_spheres(radii, density, n_points):
     (DMSO_O2, DMSO_O2_GRID),
 ], indirect=True)
 def test_generate_vdw_grid(qcmol, reference_grid, default_grid_options):
-    grid = default_grid_options.generate_vdw_grid(qcmol)
+    grid = default_grid_options.generate_grid(qcmol)
     assert_allclose(grid, reference_grid)

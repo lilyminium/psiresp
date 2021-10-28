@@ -9,13 +9,7 @@ def _is_settable(member):
 
 
 class Model(BaseModel):
-    """Base class that all option-containing classes should subclass.
-
-    This mostly contains the convenience methods:
-        * :meth:`psiresp.base.Model.__post_init__`
-            This is called after `__init__`
-        * :meth:`psiresp.base.Model.from_model`
-            This constructs an instance from compatible attributes of another object
+    """Base class that all classes should subclass.
     """
 
     class Config:

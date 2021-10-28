@@ -11,7 +11,7 @@ set the options and call :meth:`psiresp.resp.Resp.run`.
     :members:
 """
 
-from typing import Dict, List
+from typing import Dict, List, Any, Optional, Union, TYPE_CHECKING
 
 import numpy as np
 from scipy.spatial import distance as spdist
@@ -19,6 +19,10 @@ from pydantic import Field
 import qcelemental as qcel
 
 from . import vdwradii, base, psi4utils
+
+if TYPE_CHECKING:  # pragma: no cover
+    import qcelemental
+    import qcfractal
 
 
 class GridOptions(base.Model):
@@ -207,12 +211,35 @@ class GridOptions(base.Model):
         for factor in self.vdw_scale_factors:
             radii = symbol_radii * factor
             points.extend(self.get_shell_within_bounds(radii, coordinates))
-        return np.array(points)  # / qcel.constants.conversion_factor("angstrom", "bohr")
+        return np.array(points)
 
-    def generate_vdw_grid(self, qcmol):
-        coordinates = qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
-        return self._generate_vdw_grid(qcmol.symbols, coordinates)
-
-    def generate_grid(self, qcrecord):
-        grid = self.generate_vdw_grid(qcrecord.get_molecule())
+    def generate_grid(self,
+                      molecule: Union[str, int,
+                                      Dict[str, Any],
+                                      "qcelemental.models.Molecule",
+                                      "qcfractal.interface.models.records.ResultRecord",
+                                      ],
+                      client: Optional["qcfractal.interface.client.FractalClient"] = None,
+                      ) -> np.ndarray:
+        """Generate VdW surface points
+        """
+        if isinstance(molecule, dict):
+            molecule = qcel.models.Molecule.from_data(molecule, validate=True)
+        elif isinstance(molecule, (str, int)) and client is not None:
+            molecule = client.query_molecules(id=[str(molecule)])[0]
+        elif not isinstance(molecule, qcel.models.Molecule):
+            try:
+                molecule = molecule.get_molecule()
+            except AttributeError:
+                try:
+                    molecule = molecule.to_qcschema()
+                except AttributeError:
+                    raise ValueError("`molecule` must be a "
+                                     "QCElemental molecule, "
+                                     "QCFractal ResultRecord, "
+                                     "or OpenFF Toolkit Molecule.")
+        
+        bohr2angstrom = qcel.constants.conversion_factor("bohr", "angstrom")
+        coordinates = molecule.geometry * bohr2angstrom
+        grid = self._generate_vdw_grid(molecule.symbols, coordinates)
         return grid

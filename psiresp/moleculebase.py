@@ -58,8 +58,8 @@ def generate_atom_combinations(symbols: List[str]):
 class BaseMolecule(base.Model):
     qcmol: qcel.models.Molecule
 
-    def qcmol_with_coordinates(self, coordinates):
-        return qcutils.qcmol_with_coordinates(self.qcmol, coordinates)
+    def qcmol_with_coordinates(self, coordinates, units="angstrom"):
+        return qcutils.qcmol_with_coordinates(self.qcmol, coordinates, units=units)
 
     @property
     def n_atoms(self):
@@ -71,6 +71,9 @@ class BaseMolecule(base.Model):
 
     def __hash__(self):
         return hash((type(self), self.qcmol.get_hash()))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def _get_qcmol_repr(self):
         qcmol_attrs = [f"{x}={getattr(self.qcmol, x)}" for x in ["name"]]

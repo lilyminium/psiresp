@@ -13,7 +13,8 @@ from . import base, psi4utils, orutils, molecule, charge, qm, grid, resp
 from psiresp.charge import MoleculeChargeConstraints
 from psiresp.resp import RespCharges
 from psiresp.orientation import Orientation
-from psiresp.constraint import ConstraintMatrix
+from psiresp.constraint import ESPSurfaceConstraintMatrix
+from psiresp.qcutils import QCWaveFunction
 
 
 class Job(base.Model):
@@ -40,7 +41,14 @@ class Job(base.Model):
         description="Charge constraints"
     )
 
-    verbose: bool = False
+    working_directory: str = Field(
+        default="working_directory",
+        description="working directory"
+    )
+
+    write_progress_files: bool = True
+
+    verbose: bool = True
     ignore_errors: bool = False
     temperature: float = 298.15
 
@@ -58,73 +66,100 @@ class Job(base.Model):
             clear = not mol.keep_original_orientation
             mol.generate_orientations(clear_existing_orientations=clear)
 
-    def optimize_geometries(self, client):
-        conformers = [conformer.qcmol
+    def optimize_geometries(self, client=None):
+        conformers = [conformer
                       for mol in self.molecules
                       for conformer in mol.conformers
                       if mol.optimize_geometry and not conformer.is_optimized]
+        if client is not None:
+            qcmols = [conf.qcmol for conf in conformers]
+            ids = self.qm_optimization_options.add_compute(client, qcmols).ids
+            for conf, id_ in zip(conformers, ids):
+                conformer._qc_id = id_
+            results = self.qm_optimization_options.wait_for_results(client,
+                                                                    response_ids=ids)
+            for conf, record in zip(conformers, results):
+                conf.molecule.geometry = record.get_final_molecule().geometry
 
-        records = self.qm_optimization_options.add_compute_and_wait(client,
-                                                                    conformers)
+        elif len(conformers):
+            import sys
+            for conf in conformers:
+                self.qm_optimization_options.write_psi4_input(conf.qcmol,
+                                                              working_directory=self.working_directory)
+            sys.exit()
 
-        for conf, rec in zip(conformers, records):
-            conf.molecule.geometry = rec.return_result
-
-    def compute_esps(self, client):
+    def compute_orientation_energies(self, client=None):
         orientations = [orientation
                         for mol in self.molecules
                         for conformer in mol.conformers
                         for orientation in conformer.orientations
-                        if orientation._orientation_esp is None]
+                        if orientation.qc_wavefunction is None]
         qcmols = [o.qcmol for o in orientations]
+        if client is not None:
+            ids = self.qm_esp_options.add_compute(client, qcmols).ids
+            for orientation, id_ in zip(orientations, ids):
+                orientation._qc_id = int(id_)
+            
+            results = self.qm_esp_options.wait_for_results(client, response_ids=ids)
+            # set up progress bar
+            tqorientations = tqdm.tqdm(orientations, disable=not self.verbose,
+                                       desc="qcwavefunction-construction")
+            for orient, record in zip(tqorientations, results):
+                orient.energy = record.properties.return_energy
+                orient.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
 
-        records = self.qm_esp_options.add_compute_and_wait(client,
-                                                           qcmols)
-
+    def compute_esps(self):
+        orientations = [orientation
+                        for mol in self.molecules
+                        for conformer in mol.conformers
+                        for orientation in conformer.orientations
+                        if orientation.esp is None]
+        tqorientations = tqdm.tqdm(orientations, disable=not self.verbose,
+                                   desc="compute-esp")
         # create functions for multiprocessing mapping
         computer = self._try_compute_esp if self.ignore_errors else self._compute_esp
 
-        # compute esp with possible verbosity
         with multiprocessing.Pool(processes=self.n_processes) as pool:
-            results = tqdm.tqdm(
-                pool.starmap(computer, zip(orientations, records)),
-                disable=not self.verbose,
-            )
-
+            results = pool.map(computer, orientations)
+        
         # raise errors if any occurred
         errors = [r for r in results if not isinstance(r, Orientation)]
         if errors:
             raise ValueError(*errors)
+        for orientation, o2 in zip(orientations, results):
+            orientation.esp = o2.esp
+            orientation.grid = o2.grid
 
-        for orientation, result in zip(orientations, results):
-            orientation._orientation_esp = result._orientation_esp
-
-    def _compute_esp(self, orientation, record):
-        orientation.compute_esp(record, grid_options=self.grid_options)
-        assert orientation._orientation_esp is not None
+    def _compute_esp(self, orientation):
+        if orientation.grid is None:
+            orientation.compute_grid(grid_options=self.grid_options)
+        orientation.compute_esp()
+        assert orientation.esp is not None
         return orientation
 
-    def _try_compute_esp(self, orientation, record):
+    def _try_compute_esp(self, orientation):
         try:
-            return self._compute_esp(orientation, record)
+            return self._compute_esp(orientation)
         except BaseException as e:
             return str(e)
 
-    def run(self, client, update_molecules: bool = True):
+    def run(self, client=None, update_molecules: bool = True):
         self.generate_conformers()
         self.optimize_geometries(client=client)
         self.generate_orientations()
-        self.compute_esps(client=client)
+        self.compute_orientation_energies(client=client)
+        self.compute_esps()
         self.compute_charges(update_molecules=update_molecules)
 
-    def construct_molecule_constraint_matrix(self):
+    def construct_surface_constraint_matrix(self):
         matrices = [
-            ConstraintMatrix.from_orientations(
+            ESPSurfaceConstraintMatrix.from_orientations(
                 orientations=[o for conf in mol.conformers for o in conf.orientations],
                 temperature=self.temperature,
             )
             for mol in self.molecules
         ]
+        breakpoint()
         a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
         a_row = scipy.linalg.block_diag(*[np.ones(mat.b.shape[0]) for mat in matrices])
         a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
@@ -132,21 +167,21 @@ class Job(base.Model):
 
         b_block = np.concatenate([mat.b for mat in matrices]
                                  + [[mol.charge for mol in self.molecules]])
-        return ConstraintMatrix.from_a_and_b(a_block, b_block)
+        return ESPSurfaceConstraintMatrix.from_a_and_b(a_block, b_block)
 
     def generate_molecule_charge_constraints(self):
         return MoleculeChargeConstraints.from_charge_constraints(self.charge_constraints,
                                                                  molecules=self.molecules)
 
     def compute_charges(self, update_molecules=True):
-        surface_constraints = self.construct_molecule_constraint_matrix()
-
+        surface_constraints = self.construct_surface_constraint_matrix()
         stage_1_constraints = self.generate_molecule_charge_constraints()
 
         if self.resp_options.stage_2:
             stage_2_constraints = stage_1_constraints.copy(deep=True)
             stage_1_constraints.charge_equivalence_constraints = []
-
+        
+        breakpoint()
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
                                            resp_a=self.resp_options.resp_a1,
@@ -164,7 +199,7 @@ class Job(base.Model):
         if update_molecules:
             self.update_molecule_charges()
 
-    @ property
+    @property
     def charges(self):
         if self.stage_2_charges is None:
             try:

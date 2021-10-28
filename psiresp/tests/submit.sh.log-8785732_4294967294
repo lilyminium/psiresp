@@ -1,0 +1,679 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.12, pytest-6.2.4, py-1.10.0, pluggy-0.13.1
+rootdir: /dfs6/pub/lilyw7/pydev/psiresp, configfile: pyproject.toml
+plugins: qcfractal-0.15.6, requests-mock-1.9.3
+collected 5 items
+
+test_job.py ..FFF                                                        [100%]
+
+=================================== FAILURES ===================================
+_ TestMultiResp.test_charge_constraints[False-0.0-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_espA1.dat] _
+
+self = <test_job.TestMultiResp object at 0x7f9b81078dc0>
+nme2ala2 = Molecule(name=C7H14N2O2, charge=0) with 2 conformers
+methylammonium = Molecule(name=CH6N, charge=1) with 1 conformers
+methylammonium_nme2ala2_charge_constraints = ChargeConstraintOptions(charge_sum_constraints=[ChargeSumConstraint(atoms={Atom(index=20, molecule=Molecule(name=C7H14...ex=7, molecule=Molecule(name=CH6N, charge=1) with 1 conformers)})], symmetric_methyls=False, symmetric_methylenes=True)
+stage_2 = False, resp_a = 0.0
+red_charges = [array([-0.2416,  0.1646,  0.1647,  0.1653, -0.0735,  0.2735,  0.2735,
+        0.2735]), array([-0.6331,  0.1595,  0.1...215,
+        0.1261,  0.1261,  0.1261,  0.6163, -0.5722, -0.3223,  0.2428,
+       -0.3687,  0.1598,  0.1515,  0.1369])]
+fractal_client = FractalClient(server_name='QCFractal Server', address='https://hpc3-l18-05:7777/', username='None')
+job_esps = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([0.0352396497189797, 0.0201718178403816, 0.0161697547396198, ...,
+ ....1636058459170928,
+       0.1675559689370116, 0.1614454272167087, 0.1591318125841346,
+       0.1597205214363893]), ...}
+job_grids = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([[-1.3723571286992204,  4.006524139220508 ,  3.6675488955960907],
+ ....2996193717060396,  1.3485806710094863],
+       [ 3.987635647849548 , -1.485481850970714 ,  1.3485806710094863]]), ...}
+
+    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+        (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
+        (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
+        (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
+    ], indirect=['red_charges'])
+    def test_charge_constraints(self, nme2ala2, methylammonium,
+                                methylammonium_nme2ala2_charge_constraints,
+                                stage_2, resp_a, red_charges,
+                                fractal_client, job_esps, job_grids):
+    
+        resp_options = RespOptions(stage_2=stage_2, resp_a=resp_a)
+        job = Job(molecules=[methylammonium, nme2ala2],
+                  charge_constraints=methylammonium_nme2ala2_charge_constraints,
+                  resp_options=resp_options)
+        job.compute_orientation_energies(client=fractal_client)
+        # job.compute_esps()
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    orient.esp = job_esps[fname]
+                    orient.grid = job_grids[fname]
+                    # np.savetxt(f"{fname}_esp.dat", orient.esp)
+                    # np.savetxt(f"{fname}_grid.dat", orient.grid)
+        job.compute_charges()
+        charges = np.concatenate(job.charges)
+        print(job.charges)
+    
+        print(red_charges)
+    
+        assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[25], 0.6163)
+        assert_allclose(charges[26], -0.5722)
+        assert_allclose(charges[18], charges[22])
+        for calculated, reference in zip(job.charges, red_charges):
+>           assert_allclose(calculated, reference)
+E           AssertionError: 
+E           Not equal to tolerance rtol=1e-07, atol=0
+E           
+E           Mismatched elements: 8 / 8 (100%)
+E           Max absolute difference: 0.1231744505239594
+E           Max relative difference: 1.6758428642715566
+E            x: array([-0.319711,  0.179488,  0.179488,  0.179717,  0.049674,  0.243781,
+E                   0.243781,  0.243781])
+E            y: array([-0.2416,  0.1646,  0.1647,  0.1653, -0.0735,  0.2735,  0.2735,
+E                   0.2735])
+
+test_job.py:82: AssertionError
+------------------------------ Captured log setup ------------------------------
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.40ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.82ms
+----------------------------- Captured stdout call -----------------------------
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+[array([-0.3197109604607496,  0.1794879062803129,  0.1794879202986364,
+        0.1797173931712172,  0.0496744505239594,  0.2437810967288745,
+        0.2437810967288745,  0.2437810967288745]), array([-0.3937946120790922,  0.1001511612568583,  0.1090162732822275,
+        0.1091431653405817,  0.8313363619253046, -0.5887027692587685,
+       -0.7338852409405476,  0.3477534011840195,  0.1600005241268095,
+       -0.201460617408299 ,  0.0696338283298676,  0.0696338283298676,
+        0.0696338283298676, -0.201460617408299 ,  0.0696338283298676,
+        0.0696338283298676,  0.0696338283298676,  0.6163            ,
+       -0.5722            , -0.3450740825574308,  0.2418314299341368,
+       -0.2619433879925587,  0.1324804160124179,  0.1238746396718007,
+        0.1088309849316341])]
+[array([-0.2416,  0.1646,  0.1647,  0.1653, -0.0735,  0.2735,  0.2735,
+        0.2735]), array([-0.6331,  0.1595,  0.1615,  0.1619,  1.018 , -0.6328, -0.8731,
+        0.3851,  0.2953, -0.4215,  0.1261,  0.1261,  0.1261, -0.4215,
+        0.1261,  0.1261,  0.1261,  0.6163, -0.5722, -0.3223,  0.2428,
+       -0.3687,  0.1598,  0.1515,  0.1369])]
+----------------------------- Captured stderr call -----------------------------
+qcwavefunction-construction:   0%|          | 0/10 [00:00<?, ?it/s]qcwavefunction-construction:  30%|███       | 3/10 [00:00<00:00, 21.54it/s]qcwavefunction-construction:  60%|██████    | 6/10 [00:00<00:00, 22.91it/s]qcwavefunction-construction:  90%|█████████ | 9/10 [00:00<00:00, 23.57it/s]qcwavefunction-construction: 100%|██████████| 10/10 [00:00<00:00, 23.91it/s]
+------------------------------ Captured log call -------------------------------
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 12.05ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.10ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.72ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.97ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.78ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.28ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.68ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.19ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.83ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.91ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 25.45ms
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+_ TestMultiResp.test_charge_constraints[False-0.01-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA2.dat] _
+
+self = <test_job.TestMultiResp object at 0x7f9b78273d00>
+nme2ala2 = Molecule(name=C7H14N2O2, charge=0) with 2 conformers
+methylammonium = Molecule(name=CH6N, charge=1) with 1 conformers
+methylammonium_nme2ala2_charge_constraints = ChargeConstraintOptions(charge_sum_constraints=[ChargeSumConstraint(atoms={Atom(index=20, molecule=Molecule(name=C7H14...ex=7, molecule=Molecule(name=CH6N, charge=1) with 1 conformers)})], symmetric_methyls=False, symmetric_methylenes=True)
+stage_2 = False, resp_a = 0.01
+red_charges = [array([-0.5336,  0.2111,  0.2111,  0.2087,  0.4017,  0.167 ,  0.167 ,
+        0.167 ]), array([ 0.0131,  0.0178,  0.0...091,
+        0.0158,  0.0158,  0.0158,  0.6163, -0.5722, -0.33  ,  0.2059,
+       -0.039 ,  0.0628,  0.0473,  0.053 ])]
+fractal_client = FractalClient(server_name='QCFractal Server', address='https://hpc3-l18-05:7777/', username='None')
+job_esps = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([0.0352396497189797, 0.0201718178403816, 0.0161697547396198, ...,
+ ....1636058459170928,
+       0.1675559689370116, 0.1614454272167087, 0.1591318125841346,
+       0.1597205214363893]), ...}
+job_grids = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([[-1.3723571286992204,  4.006524139220508 ,  3.6675488955960907],
+ ....2996193717060396,  1.3485806710094863],
+       [ 3.987635647849548 , -1.485481850970714 ,  1.3485806710094863]]), ...}
+
+    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+        (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
+        (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
+        (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
+    ], indirect=['red_charges'])
+    def test_charge_constraints(self, nme2ala2, methylammonium,
+                                methylammonium_nme2ala2_charge_constraints,
+                                stage_2, resp_a, red_charges,
+                                fractal_client, job_esps, job_grids):
+    
+        resp_options = RespOptions(stage_2=stage_2, resp_a=resp_a)
+        job = Job(molecules=[methylammonium, nme2ala2],
+                  charge_constraints=methylammonium_nme2ala2_charge_constraints,
+                  resp_options=resp_options)
+        job.compute_orientation_energies(client=fractal_client)
+        # job.compute_esps()
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    orient.esp = job_esps[fname]
+                    orient.grid = job_grids[fname]
+                    # np.savetxt(f"{fname}_esp.dat", orient.esp)
+                    # np.savetxt(f"{fname}_grid.dat", orient.grid)
+        job.compute_charges()
+        charges = np.concatenate(job.charges)
+        print(job.charges)
+    
+        print(red_charges)
+    
+        assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[25], 0.6163)
+        assert_allclose(charges[26], -0.5722)
+        assert_allclose(charges[18], charges[22])
+        for calculated, reference in zip(job.charges, red_charges):
+>           assert_allclose(calculated, reference)
+E           AssertionError: 
+E           Not equal to tolerance rtol=1e-07, atol=0
+E           
+E           Mismatched elements: 8 / 8 (100%)
+E           Max absolute difference: 0.3520255494760406
+E           Max relative difference: 0.8763394311078929
+E            x: array([-0.319711,  0.179488,  0.179488,  0.179717,  0.049674,  0.243781,
+E                   0.243781,  0.243781])
+E            y: array([-0.5336,  0.2111,  0.2111,  0.2087,  0.4017,  0.167 ,  0.167 ,
+E                   0.167 ])
+
+test_job.py:82: AssertionError
+----------------------------- Captured stdout call -----------------------------
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+[array([-0.3197109604607496,  0.1794879062803129,  0.1794879202986364,
+        0.1797173931712172,  0.0496744505239594,  0.2437810967288745,
+        0.2437810967288745,  0.2437810967288745]), array([-0.3937946120790922,  0.1001511612568583,  0.1090162732822275,
+        0.1091431653405817,  0.8313363619253046, -0.5887027692587685,
+       -0.7338852409405476,  0.3477534011840195,  0.1600005241268095,
+       -0.201460617408299 ,  0.0696338283298676,  0.0696338283298676,
+        0.0696338283298676, -0.201460617408299 ,  0.0696338283298676,
+        0.0696338283298676,  0.0696338283298676,  0.6163            ,
+       -0.5722            , -0.3450740825574308,  0.2418314299341368,
+       -0.2619433879925587,  0.1324804160124179,  0.1238746396718007,
+        0.1088309849316341])]
+[array([-0.5336,  0.2111,  0.2111,  0.2087,  0.4017,  0.167 ,  0.167 ,
+        0.167 ]), array([ 0.0131,  0.0178,  0.0634,  0.0484,  0.07  , -0.3759, -0.0901,
+        0.156 , -0.0234, -0.0091,  0.0158,  0.0158,  0.0158, -0.0091,
+        0.0158,  0.0158,  0.0158,  0.6163, -0.5722, -0.33  ,  0.2059,
+       -0.039 ,  0.0628,  0.0473,  0.053 ])]
+----------------------------- Captured stderr call -----------------------------
+qcwavefunction-construction:   0%|          | 0/10 [00:00<?, ?it/s]qcwavefunction-construction:  30%|███       | 3/10 [00:00<00:00, 21.41it/s]qcwavefunction-construction:  60%|██████    | 6/10 [00:00<00:00, 20.66it/s]qcwavefunction-construction:  90%|█████████ | 9/10 [00:00<00:00, 22.12it/s]qcwavefunction-construction: 100%|██████████| 10/10 [00:00<00:00, 20.92it/s]
+------------------------------ Captured log call -------------------------------
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.69ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.86ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.86ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.79ms
+INFO     tornado.application:handlers.py:218 QueueManager: Received completed tasks from FractalServer-hpc3-l18-05-a5113424-0ce9-457a-9e46-b9e44ddd0f67.
+INFO     tornado.application:handlers.py:219               Task ids: 70
+INFO     tornado.application:handlers.py:289 QueueManager: Found 1 complete tasks (1 successful, 0 failed).
+ERROR    tornado.application:web.py:1789 Uncaught exception POST /queue_manager (::1)
+HTTPServerRequest(protocol='http', host='localhost:36265', method='POST', uri='/queue_manager', version='HTTP/1.1', remote_ip='::1')
+Traceback (most recent call last):
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/tornado/web.py", line 1702, in _execute
+    result = method(*self.path_args, **self.path_kwargs)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/queue/handlers.py", line 343, in post
+    success, error = self.insert_complete_tasks(self.storage, body, self.logger)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/queue/handlers.py", line 299, in insert_complete_tasks
+    com = procedure_parser.handle_completed_output(v)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/procedures/single.py", line 293, in handle_completed_output
+    self.storage.update_results(updates)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/storage_sockets/sqlalchemy_socket.py", line 1330, in update_results
+    session.commit()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 1046, in commit
+    self.transaction.commit()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 504, in commit
+    self._prepare_impl()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 483, in _prepare_impl
+    self.session.flush()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2540, in flush
+    self._flush(objects)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2682, in _flush
+    transaction.rollback(_capture_exception=True)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/util/langhelpers.py", line 68, in __exit__
+    compat.raise_(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/util/compat.py", line 182, in raise_
+    raise exception
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2642, in _flush
+    flush_context.execute()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/unitofwork.py", line 422, in execute
+    rec.execute(self)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/unitofwork.py", line 586, in execute
+    persistence.save_obj(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 230, in save_obj
+    _emit_update_statements(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 885, in _emit_update_statements
+    for (
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 626, in _collect_update_commands
+    state.manager[propkey].impl.is_equal(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/sql/type_api.py", line 1367, in compare_values
+    return self.impl.compare_values(x, y)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/sql/type_api.py", line 381, in compare_values
+    return x == y
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+WARNING  tornado.application:managers.py:583 Post complete tasks was not successful. Attempting again on next update.
+INFO     tornado.application:managers.py:622 Processed 1 tasks: 1 succeeded / 0 failed).
+INFO     tornado.application:managers.py:623 Task ids, submission status, calculation status below
+INFO     tornado.application:managers.py:625     Task 70 : deferred / success
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 97.58%
+ERROR    tornado.access:web.py:2239 500 POST /queue_manager (::1) 244.69ms
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 24.54ms
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.application:handlers.py:218 QueueManager: Received completed tasks from FractalServer-hpc3-l18-05-a5113424-0ce9-457a-9e46-b9e44ddd0f67.
+INFO     tornado.application:handlers.py:219               Task ids: 70
+INFO     tornado.application:handlers.py:289 QueueManager: Found 1 complete tasks (1 successful, 0 failed).
+ERROR    tornado.application:web.py:1789 Uncaught exception POST /queue_manager (::1)
+HTTPServerRequest(protocol='http', host='localhost:36265', method='POST', uri='/queue_manager', version='HTTP/1.1', remote_ip='::1')
+Traceback (most recent call last):
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/tornado/web.py", line 1702, in _execute
+    result = method(*self.path_args, **self.path_kwargs)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/queue/handlers.py", line 343, in post
+    success, error = self.insert_complete_tasks(self.storage, body, self.logger)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/queue/handlers.py", line 299, in insert_complete_tasks
+    com = procedure_parser.handle_completed_output(v)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/procedures/single.py", line 293, in handle_completed_output
+    self.storage.update_results(updates)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcfractal/storage_sockets/sqlalchemy_socket.py", line 1330, in update_results
+    session.commit()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 1046, in commit
+    self.transaction.commit()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 504, in commit
+    self._prepare_impl()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 483, in _prepare_impl
+    self.session.flush()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2540, in flush
+    self._flush(objects)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2682, in _flush
+    transaction.rollback(_capture_exception=True)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/util/langhelpers.py", line 68, in __exit__
+    compat.raise_(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/util/compat.py", line 182, in raise_
+    raise exception
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/session.py", line 2642, in _flush
+    flush_context.execute()
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/unitofwork.py", line 422, in execute
+    rec.execute(self)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/unitofwork.py", line 586, in execute
+    persistence.save_obj(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 230, in save_obj
+    _emit_update_statements(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 885, in _emit_update_statements
+    for (
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/orm/persistence.py", line 626, in _collect_update_commands
+    state.manager[propkey].impl.is_equal(
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/sql/type_api.py", line 1367, in compare_values
+    return self.impl.compare_values(x, y)
+  File "/data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/sqlalchemy/sql/type_api.py", line 381, in compare_values
+    return x == y
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+WARNING  tornado.application:managers.py:500 Could not post jobs from 1 ago and over attempt limit, marking jobs as stale.
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 94.93%
+ERROR    tornado.access:web.py:2239 500 POST /queue_manager (::1) 21.51ms
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 20.83ms
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 92.73%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.46ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 90.64%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.17ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 88.65%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.05ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 86.74%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.06ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 84.91%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 24.46ms
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+_ TestMultiResp.test_charge_constraints[True-0.0005-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA1.dat] _
+
+self = <test_job.TestMultiResp object at 0x7f9b780745b0>
+nme2ala2 = Molecule(name=C7H14N2O2, charge=0) with 2 conformers
+methylammonium = Molecule(name=CH6N, charge=1) with 1 conformers
+methylammonium_nme2ala2_charge_constraints = ChargeConstraintOptions(charge_sum_constraints=[ChargeSumConstraint(atoms={Atom(index=20, molecule=Molecule(name=C7H14...ex=7, molecule=Molecule(name=CH6N, charge=1) with 1 conformers)})], symmetric_methyls=False, symmetric_methylenes=True)
+stage_2 = True, resp_a = 0.0005
+red_charges = [array([-0.3119,  0.1777,  0.1777,  0.1779,  0.0433,  0.2451,  0.2451,
+        0.2451]), array([-0.3689,  0.099 ,  0.1...961,
+        0.0912,  0.0912,  0.0912,  0.6163, -0.5722, -0.3301,  0.2352,
+       -0.2746,  0.1348,  0.1195,  0.1152])]
+fractal_client = FractalClient(server_name='QCFractal Server', address='https://hpc3-l18-05:7777/', username='None')
+job_esps = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([0.0352396497189797, 0.0201718178403816, 0.0161697547396198, ...,
+ ....1636058459170928,
+       0.1675559689370116, 0.1614454272167087, 0.1591318125841346,
+       0.1597205214363893]), ...}
+job_grids = {'0c7e913c4a8462f7181fc25edf913be91be8d7c4': array([[-1.3723571286992204,  4.006524139220508 ,  3.6675488955960907],
+ ....2996193717060396,  1.3485806710094863],
+       [ 3.987635647849548 , -1.485481850970714 ,  1.3485806710094863]]), ...}
+
+    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+        (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
+        (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
+        (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
+    ], indirect=['red_charges'])
+    def test_charge_constraints(self, nme2ala2, methylammonium,
+                                methylammonium_nme2ala2_charge_constraints,
+                                stage_2, resp_a, red_charges,
+                                fractal_client, job_esps, job_grids):
+    
+        resp_options = RespOptions(stage_2=stage_2, resp_a=resp_a)
+        job = Job(molecules=[methylammonium, nme2ala2],
+                  charge_constraints=methylammonium_nme2ala2_charge_constraints,
+                  resp_options=resp_options)
+        job.compute_orientation_energies(client=fractal_client)
+        # job.compute_esps()
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    orient.esp = job_esps[fname]
+                    orient.grid = job_grids[fname]
+                    # np.savetxt(f"{fname}_esp.dat", orient.esp)
+                    # np.savetxt(f"{fname}_grid.dat", orient.grid)
+>       job.compute_charges()
+
+test_job.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../job.py:190: in compute_charges
+    stage_2_constraints.add_constraints_from_charges(self.stage_1_charges._charges)
+../charge.py:362: in add_constraints_from_charges
+    self.clean_charge_sum_constraints()
+../charge.py:230: in clean_charge_sum_constraints
+    self._remove_redundant_charge_constraints()
+../charge.py:207: in _remove_redundant_charge_constraints
+    single_charges = self._get_single_atom_charge_constraints()
+../charge.py:171: in _get_single_atom_charge_constraints
+    if atom in single_charges:
+../molecule.py:172: in __eq__
+    return self.molecule == other.molecule and self.index == other.index
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   ???
+E   ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+
+pydantic/main.py:922: ValueError
+----------------------------- Captured stdout call -----------------------------
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+==from record==
+ResultProtocols(wavefunction=<WavefunctionProtocolEnum.orbitals_and_eigenvalues: 'orbitals_and_eigenvalues'>, stdout=True, error_correction=ErrorCorrectionProtocol(default_policy=True, policies=None))
+--keys--
+dict_keys(['scf_eigenvalues_a', 'scf_orbitals_a', 'basis', 'restricted', 'orbitals_a', 'eigenvalues_a'])
+----------------------------- Captured stderr call -----------------------------
+qcwavefunction-construction:   0%|          | 0/10 [00:00<?, ?it/s]qcwavefunction-construction:  30%|███       | 3/10 [00:00<00:00, 22.00it/s]qcwavefunction-construction:  60%|██████    | 6/10 [00:00<00:00, 21.94it/s]qcwavefunction-construction:  90%|█████████ | 9/10 [00:00<00:00, 22.74it/s]qcwavefunction-construction: 100%|██████████| 10/10 [00:00<00:00, 22.69it/s]
+------------------------------ Captured log call -------------------------------
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 83.15%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.74ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 81.47%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.96ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 79.85%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.79ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 78.30%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.70ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 76.81%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.96ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 75.37%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.86ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 73.99%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.01ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 72.65%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.23ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 71.37%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 11.67ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 70.13%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.94ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 68.93%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.13ms
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+---------------------------- Captured log teardown -----------------------------
+INFO     tornado.application:managers.py:358 QueueManager received shutdown signal: Not provided.
+
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.03, Core Usage Efficiency: 67.87%
+INFO     tornado.application:handlers.py:389 QueueManager: Shutdown of manager FractalServer-hpc3-l18-05-a5113424-0ce9-457a-9e46-b9e44ddd0f67 detected, recycling 6 incomplete tasks.
+INFO     tornado.access:web.py:2239 200 PUT /queue_manager (::1) 16.49ms
+INFO     tornado.application:managers.py:431 Shutdown was successful, 0 active and 6 stale tasks returned to master queue.
+INFO     tornado.application:managers.py:375 QueueManager stopping gracefully.
+
+INFO     tornado.application:server.py:456 FractalServer stopping gracefully. Stopped IOLoop.
+=============================== warnings summary ===============================
+../../../../../../../data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/past/builtins/misc.py:45
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/past/builtins/misc.py:45: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    from imp import reload
+
+psiresp/tests/test_job.py: 66 warnings
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcelemental/models/results.py:735: DeprecationWarning: ResultProtocols has been renamed to AtomicResultProtocols and will be removed in v0.13.0
+    warn(
+
+psiresp/tests/test_job.py: 66 warnings
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcelemental/models/results.py:724: DeprecationWarning: ResultProperties has been renamed to AtomicResultProperties and will be removed in v0.13.0
+    warn(
+
+psiresp/tests/test_job.py::TestSingleResp::test_unrestrained
+psiresp/tests/test_job.py::TestSingleResp::test_restrained
+psiresp/tests/test_job.py::TestMultiResp::test_charge_constraints[False-0.0-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_espA1.dat]
+psiresp/tests/test_job.py::TestMultiResp::test_charge_constraints[False-0.01-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA2.dat]
+psiresp/tests/test_job.py::TestMultiResp::test_charge_constraints[True-0.0005-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA1.dat]
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/numpy/matrixlib/defmatrix.py:1109: PendingDeprecationWarning: the matrix subclass is not the recommended way to represent matrices or deal with linear algebra (see https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html). Please adjust your code to use regular ndarray.
+    return matrix(concatenate(arr_rows, axis=0))
+
+psiresp/tests/test_job.py: 81 warnings
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/urllib3/connectionpool.py:1013: InsecureRequestWarning: Unverified HTTPS request is being made to host 'hpc3-l18-05'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html#ssl-warnings
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_job.py::TestMultiResp::test_charge_constraints[False-0.0-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_espA1.dat]
+FAILED test_job.py::TestMultiResp::test_charge_constraints[False-0.01-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA2.dat]
+FAILED test_job.py::TestMultiResp::test_charge_constraints[True-0.0005-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA1.dat]
+============ 3 failed, 2 passed, 219 warnings in 194.18s (0:03:14) =============

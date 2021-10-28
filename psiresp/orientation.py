@@ -5,18 +5,31 @@ from pydantic import Field, PrivateAttr  # , validator, root_validator
 import qcelemental as qcel
 
 from psiresp import psi4utils
-from psiresp.constraint import ConstraintMatrix
+from psiresp.constraint import ESPSurfaceConstraintMatrix
 from psiresp.moleculebase import BaseMolecule
 from psiresp.grid import GridOptions
+from psiresp.qcutils import QCWaveFunction
 
 
-class OrientationEsp(BaseMolecule):
+class Orientation(BaseMolecule):
+
+    weight: Optional[float] = 1
+    qc_wavefunction: Optional[QCWaveFunction] = None
     grid: Optional[np.ndarray] = None
     esp: Optional[np.ndarray] = None
     energy: Optional[float] = None
-    weight: Optional[float] = 1
 
-    _constraint_matrix: Optional[ConstraintMatrix] = None
+    _constraint_matrix: Optional[ESPSurfaceConstraintMatrix] = None
+    _qc_id: Optional[int] = None
+
+    def compute_grid(self, grid_options: GridOptions = GridOptions()):
+        self.grid = grid_options.generate_grid(self.qcmol)
+
+    def compute_esp(self):
+        self.esp = psi4utils.compute_esp(self.qc_wavefunction, self.grid)
+        # print("esp", self.qcmol)
+        # print(self.esp)
+        return self.esp
 
     @property
     def constraint_matrix(self):
@@ -51,58 +64,6 @@ class OrientationEsp(BaseMolecule):
         a = np.einsum("ij, ik->jk", r_inv, r_inv)
         b = np.einsum("i, ij->j", self.esp, r_inv)
 
-        matrix = ConstraintMatrix.from_a_and_b(a, b)
+        matrix = ESPSurfaceConstraintMatrix.from_a_and_b(a, b)
         self._constraint_matrix = matrix
         return matrix
-
-
-class Orientation(BaseMolecule):
-
-    weight: Optional[float] = 1
-
-    _orientation_esp: Optional[OrientationEsp] = PrivateAttr(
-        default=None,
-    )
-
-    def compute_esp(self, qcrecord,
-                    grid_options: GridOptions = GridOptions()):
-        grid = grid_options.generate_vdw_grid(self.qcmol)
-        esp = OrientationEsp(
-            qcmol=self.qcmol,
-            grid=grid,
-            esp=psi4utils.compute_esp(qcrecord, grid),
-            energy=qcrecord.properties.return_energy,
-            weight=self.weight
-        )
-        self._orientation_esp = esp
-        assert self._orientation_esp is not None
-        return esp
-
-    # grid: np.ndarray
-    # esp: np.ndarray
-    # qcrecord: ...
-    # grid_options: ...
-    # constraint_matrix: ConstraintMatrix
-
-    # @root_validator(pre=True)
-    # def check_grid_and_esp(cls, values):
-    #     if values.get("constraint_matrix"):
-    #         return values
-
-    #     qcrecord = values["qcrecord"]
-    #     mol = qcrecord.get_molecule()
-
-    #     grid = values.get("grid")
-    #     if grid is None:
-    #         grid_options = values["grid_options"]
-    #         grid = grid_options.generate_vdw_grid(mol.symbols, mol.geometry)
-    #         values["grid"] = grid
-
-    #     esp = values.get("esp")
-    #     if esp is None:
-    #         esp = psi4utils.compute_esp(qcrecord, grid)
-    #         values["esp"] = esp
-
-    #     matrix = ConstraintMatrix.from_grid_and_esp(mol.geometry, grid, esp)
-    #     values["constraint_matrix"] = matrix
-    #     return values

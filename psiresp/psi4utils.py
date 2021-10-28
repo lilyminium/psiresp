@@ -14,28 +14,26 @@ def psi4mol_from_qcmol(qcmol):
     return psi4.geometry(qcmol.to_string("psi4", "angstrom"))
 
 
-def construct_psi4_wavefunction(qcrecord):
-    qcmol = qcrecord.get_molecule()
-    psi4mol = psi4mol_from_qcmol(qcmol)
+def construct_psi4_wavefunction(qc_wavefunction):
+    psi4mol = psi4mol_from_qcmol(qc_wavefunction.qcmol)
     psi4mol.reset_point_group("c1")
 
-    qcdensity = qcutils.reconstruct_density(qcrecord)
+    qcdensity = qc_wavefunction.reconstruct_density()
     density = psi4.core.Matrix.from_array(qcdensity)
     psi4wfn = psi4.core.RHF(
-        psi4.core.Wavefunction.build(psi4mol, qcrecord.basis),
+        psi4.core.Wavefunction.build(psi4mol, qc_wavefunction.basis),
         psi4.core.SuperFunctional(),
     )
     psi4wfn.Da().copy(density)
     return psi4wfn
 
 
-def compute_esp(qcrecord, grid):
-    psi4wfn = construct_psi4_wavefunction(qcrecord)
+def compute_esp(qc_wavefunction, grid):
+    psi4wfn = construct_psi4_wavefunction(qc_wavefunction)
     esp_calc = psi4.core.ESPPropCalc(psi4wfn)
 
     ANGSTROM_TO_BOHR = qcel.constants.conversion_factor("angstrom", "bohr")
-    # grid = grid  ANGSTROM_TO_BOHR
-    psi4grid = psi4.core.Matrix.from_array(grid)  # * ANGSTROM_TO_BOHR)
+    psi4grid = psi4.core.Matrix.from_array(grid)# * ANGSTROM_TO_BOHR)
     psi4esp = esp_calc.compute_esp_over_grid_in_memory(psi4grid)
 
     return np.array(psi4esp)

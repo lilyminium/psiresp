@@ -8,6 +8,7 @@ from psiresp.moleculebase import BaseMolecule
 class Conformer(BaseMolecule):
     orientations: List[Orientation] = []
     is_optimized: bool = False
+    _qc_id: Optional[int] = None
 
     def add_orientation_with_coordinates(self, coordinates):
         qcmol = self.qcmol_with_coordinates(coordinates)

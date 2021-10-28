@@ -1,7 +1,9 @@
 import shutil
+import glob
 from pkg_resources import resource_filename
 
 import pytest
+
 
 import numpy as np
 import qcfractal.interface as ptl
@@ -10,7 +12,7 @@ from qcfractal import FractalSnowflake, FractalSnowflakeHandler
 from psiresp.testing import TemporaryPostgres
 from psiresp.molecule import Molecule
 
-from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, DMSO
+from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, DMSO, ESP_PATH, GRID_PATH
 from psiresp.tests.utils import load_gamess_esp
 
 pytest_plugins = [
@@ -44,7 +46,8 @@ def fractal_server(postgres_server):
 
 @pytest.fixture(scope="session")
 def fractal_client(fractal_server):
-    yield ptl.FractalClient(fractal_server)
+    yield ptl.FractalClient("hpc3-l18-05:7777", verify=False)
+    # yield ptl.FractalClient(fractal_server)
 
 
 @pytest.fixture(scope="function")
@@ -69,6 +72,22 @@ def red_charges(request):
 
     mols = [x.split('\n')[1:] for x in content.split('MOLECULE') if x]
     charges = [np.array([float(x.split()[4]) for x in y if x]) for y in mols]
-    if len(charges) == 1:
-        charges = charges[0]
+    # if len(charges) == 1:
+    #     charges = charges[0]
     return charges
+
+@pytest.fixture
+def job_esps():
+    mol_esps = {}
+    for fname in glob.glob(ESP_PATH):
+        qchash = fname.split("/")[-1].split("_")[0]
+        mol_esps[qchash] = np.loadtxt(fname)
+    return mol_esps
+
+@pytest.fixture
+def job_grids():
+    mol_esps = {}
+    for fname in glob.glob(GRID_PATH):
+        qchash = fname.split("/")[-1].split("_")[0]
+        mol_esps[qchash] = np.loadtxt(fname)
+    return mol_esps
