@@ -54,7 +54,9 @@ class Job(base.Model):
 
     defer_errors: bool = Field(
         default=False,
-        description="Whether to raise an error immediately or gather all errors during ESP computation"
+        description=("Whether to raise an error immediately, "
+                     "or gather all errors during ESP computation "
+                     "and raise at the end")
     )
     temperature: float = Field(
         default=298.15,

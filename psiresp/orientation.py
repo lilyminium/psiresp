@@ -12,8 +12,17 @@ from psiresp.qcutils import QCWaveFunction
 
 
 class Orientation(BaseMolecule):
+    """
+    Class to manage one orientation of a conformer. This should
+    not usually be created or interacted with by a user. Instead,
+    users are expected to work primarily with
+    :class:`psiresp.molecule.Molecule` or :class:`psiresp.job.Job`.
+    """
 
-    weight: Optional[float] = 1
+    weight: Optional[float] = Field(
+        default=1,
+        description="How much to weight this orientation in the ESP surface constraints"
+    )
     qc_wavefunction: Optional[QCWaveFunction] = None
     grid: Optional[np.ndarray] = None
     esp: Optional[np.ndarray] = None
