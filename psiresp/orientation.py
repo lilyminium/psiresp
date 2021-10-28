@@ -27,9 +27,11 @@ class Orientation(BaseMolecule):
 
     def compute_esp(self):
         self.esp = psi4utils.compute_esp(self.qc_wavefunction, self.grid)
-        # print("esp", self.qcmol)
-        # print(self.esp)
         return self.esp
+
+    def compute_esp_from_record(self, record):
+        self.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
+        self.compute_esp()
 
     @property
     def constraint_matrix(self):

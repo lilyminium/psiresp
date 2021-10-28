@@ -28,7 +28,7 @@ def postgres_server():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
     yield storage.psql
-    storage.psql.backup_database(POSTGRES_SERVER_BACKUP)
+    # storage.psql.backup_database(POSTGRES_SERVER_BACKUP)
     storage.stop()
 
 
@@ -46,8 +46,8 @@ def fractal_server(postgres_server):
 
 @pytest.fixture(scope="session")
 def fractal_client(fractal_server):
-    yield ptl.FractalClient("hpc3-22-03:7777", verify=False)
-    # yield ptl.FractalClient(fractal_server)
+    # yield ptl.FractalClient("hpc3-22-03:7777", verify=False)
+    yield ptl.FractalClient(fractal_server)
 
 
 @pytest.fixture(scope="function")
@@ -76,6 +76,7 @@ def red_charges(request):
     #     charges = charges[0]
     return charges
 
+
 @pytest.fixture
 def job_esps():
     mol_esps = {}
@@ -83,6 +84,7 @@ def job_esps():
         qchash = fname.split("/")[-1].split("_")[0]
         mol_esps[qchash] = np.loadtxt(fname)
     return mol_esps
+
 
 @pytest.fixture
 def job_grids():

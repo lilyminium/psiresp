@@ -7,6 +7,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+
 if TYPE_CHECKING:
     import rdkit
     import qcelemental
@@ -18,7 +19,28 @@ BONDTYPES = {
 }
 
 
-def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
+def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
+                           guess_connectivity: bool = True):
+
+    if guess_connectivity:
+        import psi4
+        psi4str = qcmol.to_string(dtype="psi4")
+        psi4mol = psi4.core.Molecule.from_string(psi4str, dtype="psi4", fix_com=True, fix_orientation=True)
+        rdmol = rdmol_from_psi4(psi4mol)
+    else:
+        rdmol = _rdmol_from_qcelemental(qcmol)
+    Chem.SanitizeMol(rdmol)
+    return rdmol
+
+
+def rdmol_from_psi4(psi4mol):
+    molstr = psi4mol.format_molecule_for_mol()
+    rdmol = Chem.MolFromMolBlock(molstr, removeHs=False, sanitize=True)
+    return rdmol
+
+
+def _rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
+    import qcelemental as qcel
     rwmol = Chem.RWMol()
     for symbol in qcmol.symbols:
         rwmol.AddAtom(Chem.Atom(symbol))
@@ -29,8 +51,8 @@ def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
             else:
                 bondtype = BONDTYPES.get(int(d), Chem.BondType.UNSPECIFIED)
             rwmol.AddBond(i, j, bondtype)
-    Chem.SanitizeMol(rwmol)
-    add_conformer_from_coordinates(rwmol, qcmol.geometry)
+    coordinates = qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
+    add_conformer_from_coordinates(rwmol, coordinates=coordinates)
     return rwmol
 
 

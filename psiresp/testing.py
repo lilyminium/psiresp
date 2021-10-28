@@ -24,7 +24,7 @@ class PostgresHarness(QCPostgresHarness):
         ret = {"retcode": proc.returncode, "stdout": stdout, "stderr": proc.stderr.decode()}
         return ret
 
-    def restore_database(self, filename) -> None:
+    def restore_database(self, filename, ) -> None:
 
         # Reasonable check here
         self._check_psql()
@@ -37,6 +37,8 @@ class PostgresHarness(QCPostgresHarness):
             "-c",
             f"--port={self.config.database.port}",
             f"--dbname={self.config.database.database_name}",
+            "--no-privileges",
+            "--no-owner",
             filename
         ]
         # fmt: on
@@ -46,6 +48,7 @@ class PostgresHarness(QCPostgresHarness):
 
         if ret["retcode"] != 0:
             self.logger(ret["stderr"])
+            raise ValueError(ret["stderr"])
             raise ValueError("\nFailed to restore the database.\n")
 
 

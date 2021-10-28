@@ -42,8 +42,6 @@ QMBasisSet = Literal[(*BASIS_SETS,)]
 QMSolvent = Optional[Literal[(*SOLVENTS,)]]
 QMGConvergence = Literal[(*G_CONVERGENCES,)]
 
-    
-
 
 class PCMOptions(Model):
     medium_solver_type: Literal["CPCM", "IEFPCM"] = "CPCM"
@@ -131,7 +129,6 @@ class BaseQMOptions(Model):
         kwset = ptl.models.KeywordSet(values=keywords)
         kwid = client.add_keywords([kwset])[0]
 
-
         return client.add_compute(program="psi4",
                                   method=self.method,
                                   basis=self.basis,
@@ -140,7 +137,18 @@ class BaseQMOptions(Model):
                                   molecule=qcmols,
                                   protocols=self.protocols,
                                   **kwargs)
-    
+
+    def add_compute_and_wait(self,
+                             client: ptl.FractalClient,
+                             qcmols: List[qcel.models.Molecule] = [],
+                             **kwargs
+                             ) -> ptl.models.ComputeResponse:
+        response = self.add_compute(client, qcmols=qcmols, **kwargs)
+        return self.wait_for_results(client, response_ids=response.ids)
+
+    def wait_for_results(self, client, response_ids=[]):
+        raise NotImplementedError
+
     def write_input(self, qcmol, working_directory="."):
         cwd = pathlib.Path(working_directory) / self._generate_id(qcmol)
         cwd.mkdir(exist_ok=True, parents=True)
@@ -159,41 +167,8 @@ class BaseQMOptions(Model):
         with infile.open() as f:
             f.write(compute.serialize("msgpack-ext"))
 
-
     def _generate_id(self, qcmol):
         return hash(qcmol.get_hash(), self)
-
-
-    # def add_compute_and_wait(self,
-    #                          client: ptl.FractalClient,
-    #                          qcmols: List[qcel.models.Molecule] = [],
-    #                          query_interval: int = 20,
-    #                          ignore_error: bool = True,
-    #                          **kwargs
-    #                          ) -> List[ptl.models.ResultRecord]:
-    #     from qcfractal.interface.models.records import RecordStatusEnum
-
-    #     start_time = time.time()
-    #     response = self.add_compute(client, qcmols, **kwargs)
-    #     n_incomplete = len(qcmols)
-    #     while(n_incomplete):
-    #         time.sleep(query_interval)
-    #         results = client.query_results(id=response.ids)
-    #         status = [r.status for r in results]
-    #         status = np.array([s.value
-    #                            if isinstance(s, RecordStatusEnum)
-    #                            else s
-    #                            for s in status])
-    #         n_incomplete = (status == "INCOMPLETE").sum()
-
-    #     elapsed = time.time() - start_time
-
-    #     records = client.query_results(response.ids)
-
-    #     # sort by input, not sure if it does this already
-    #     id_num = {x: i for i, x in enumerate(response.ids)}
-    #     records.sort(key=lambda x: id_num[x.id])
-    #     return records
 
 
 class QMGeometryOptimizationOptions(BaseQMOptions):
@@ -226,11 +201,10 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
     def wait_for_results(self, client, response_ids=[],
                          working_directory=None):
         results = wait(client, response_ids=response_ids,
-                        query_interval=self.query_interval,
-                        query_target="procedures",
-                        working_directory=working_directory)
+                       query_interval=self.query_interval,
+                       query_target="procedures",
+                       working_directory=working_directory)
         return results
-
 
 
 class QMEnergyOptions(BaseQMOptions):
@@ -239,6 +213,7 @@ class QMEnergyOptions(BaseQMOptions):
                        query_interval=self.query_interval,
                        query_target="results")
         return results
+
 
 def wait(client, response_ids=[], query_interval=20, query_target="results",
          working_directory=None):
@@ -249,9 +224,9 @@ def wait(client, response_ids=[], query_interval=20, query_target="results",
         results = query(id=response_ids)
         status = [r.status for r in results]
         status = np.array([s.value
-                            if isinstance(s, RecordStatusEnum)
-                            else s
-                            for s in status])
+                           if isinstance(s, RecordStatusEnum)
+                           else s
+                           for s in status])
         n_incomplete = (status == "INCOMPLETE").sum()
 
         if working_directory:
@@ -259,6 +234,7 @@ def wait(client, response_ids=[], query_interval=20, query_target="results",
                 results[i]
     results = query(id=response_ids)
     return sort_results(response_ids=response_ids, results=results)
+
 
 def sort_results(response_ids=[], results=[]):
     query_order = {x: i for i, x in enumerate(response_ids)}

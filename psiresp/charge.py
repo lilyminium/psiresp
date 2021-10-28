@@ -168,7 +168,7 @@ class BaseChargeConstraintOptions(base.Model):
         for constr in self.charge_sum_constraints:
             if len(constr.atoms) == 1:
                 atom = list(constr.atoms)[0]
-                if atom in single_charges:
+                if atom in single_charges and not np.allclose(single_charges[atom], constr.charge):
                     err = ("Found conflicting charge constraints for "
                            f"atom {atom}, constrained to both "
                            f"{single_charges[atom]} and {constr.charge}")
@@ -227,8 +227,9 @@ class BaseChargeConstraintOptions(base.Model):
         self.charge_equivalence_constraints = sorted(constraint_set)
 
     def clean_charge_sum_constraints(self):
-        self._remove_redundant_charge_constraints()
         self.charge_sum_constraints = sorted(set(self.charge_sum_constraints))
+        self._remove_redundant_charge_constraints()
+        
 
 
 class ChargeConstraintOptions(BaseChargeConstraintOptions):
@@ -295,50 +296,6 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     def to_b_constraints(self):
         b = [constr.charge for constr in self.charge_sum_constraints]
         return np.array(b)
-
-    # def construct_sparse_column_block(self):
-    #     n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules)
-    #     increments = self.get_molecule_increments()
-
-    #     columns = [c.to_sparse_col_constraint(n_atoms, increments)
-    #                for c in self.constraints()]
-    #     col_block = scipy.sparse.hstack(columns, format="coo")
-    #     return col_block
-
-    # def construct_global_constraint_matrix(self, surface_constraints,
-    #                                        mask=None):
-    #     a = scipy.sparse.csr_matrix(surface_constraints.a)
-    #     b = surface_constraints.b
-
-    #     if self.n_constraints:
-    #         a_block_col, b_block = self._generate_charge_constraint_column()
-    #         a = scipy.sparse.bmat(
-    #             [[a, a_block_col],
-    #              [a_block_col.transpose(), None]]
-    #         )
-    #         b = np.r_[b, b_block]
-    #     return SparseGlobalConstraintMatrix(a, b, self._n_atoms, mask=mask)
-
-    # def _generate_charge_constraint_column(self):
-    #     n_atoms = sum(m.qcmol.geometry.shape[0] for m in self.molecules) #+ 1
-    #     increments = self.get_molecule_increments()
-
-    #     constraints = [*self.charge_sum_constraints,
-    #                    *self.charge_equivalence_constraints]
-    #     col_ = [c.to_sparse_col_constraint(n_atoms, increments)
-    #             for c in constraints]
-    #     a_block = scipy.sparse.hstack(col_, format="csr")
-    #     b_charges = [c.charge for c in self.charge_sum_constraints]
-    #     b_block = np.zeros(a_block.shape[1])
-    #     b_block[:len(b_charges)] = b_charges
-    #     return a_block, b_block
-
-    # def to_col_constraints(self):
-    #     increments = self.get_molecule_increments()
-    #     for constr in self.constraints:
-    #         yield constr.to_row_constraint(n_dim=self.n_atoms,
-    #                                        molecule_increments=increments).T
-
 
 
     def add_constraints_from_charges(self, charges):

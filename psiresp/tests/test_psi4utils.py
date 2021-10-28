@@ -31,6 +31,7 @@ def test_get_sp3_ch_indices(dmso_qcmol):
         assert_equal(v, reference[k])
 
 
+@pytest.mark.xfail(reason="fix qcrecord lookup and server")
 @pytest.mark.parametrize("qcrecord, reference_grid, reference_esp", [
     (DMSO, DMSO_ESP, DMSO_ESP),
     # (DMSO_O1, DMSO_O1_ESP, DMSO_O1_ESP),

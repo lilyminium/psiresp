@@ -18,8 +18,14 @@ from psiresp.qcutils import QCWaveFunction
 
 
 class Job(base.Model):
+    """Class to manage RESP jobs. It is expected that
+    all RESP calculations will be run through this class.
+    """
 
-    molecules: List[molecule.Molecule] = []
+    molecules: List[molecule.Molecule] = Field(
+        default_factory=list,
+        description="Molecules to use for the RESP job"
+    )
     qm_optimization_options: qm.QMGeometryOptimizationOptions = Field(
         default=qm.QMGeometryOptimizationOptions(),
         description="QM options for geometry optimization"
@@ -45,8 +51,6 @@ class Job(base.Model):
         default="working_directory",
         description="working directory"
     )
-
-    write_progress_files: bool = True
 
     verbose: bool = True
     ignore_errors: bool = False

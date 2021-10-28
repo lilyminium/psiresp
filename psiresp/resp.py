@@ -66,6 +66,65 @@ class RespCharges(BaseRespOptions):
             charge_constraints=self.charge_constraints,
             exclude_hydrogens=self.exclude_hydrogens,
         )
+
+    # def solve(self):
+    #     from scipy.sparse.linalg import spsolve, lsmr
+    #     # matrix = self.charge_constraints.construct_constraint_matrix(self.surface_constraints,
+    #     #                                                              mask=self._matrix_mask)
+    #     self._matrix._solve()
+    #     self._unrestrained_charges = self._matrix._charges.flatten()
+    #     if not self.restrained_fit or not self.resp_a:
+    #         return
+
+    #     indices = np.where(self._matrix_mask)[0]
+    #     diag = np.diag_indices(len(self.symbols))
+    #     ix = (diag[0][self._matrix_mask], diag[1][self._matrix_mask])
+
+    #     b2 = self.resp_b ** 2
+    #     n_iter, delta = 0, 2 * self.convergence_tolerance
+    #     charges = self._unrestrained_charges.copy()
+    #     while (delta > self.convergence_tolerance
+    #            and n_iter < self.max_iter):
+    #         q_last = self._unrestrained_charges.copy()
+    #         a_iter = self._matrix.a.copy()
+    #         increment = self._resp_a / np.sqrt(charges[indices] ** 2 + b2)
+    #         a_iter[ix] += increment  # .reshape((-1, 1))
+    #         charges = spsolve(a_iter, self._matrix.b)
+    #         delta = np.max(np.abs(charges - q_last)[:len(self.symbols)])
+    #         n_iter += 1
+
+    #     self._restrained_charges = charges
+
+    # @property
+    # def _matrix_mask(self):
+    #     symbols = self.symbols
+    #     mask = np.ones_like(symbols, dtype=bool)
+    #     if self.exclude_hydrogens:
+    #         mask[np.where(symbols == "H")[0]] = False
+    #     return mask
+
+    # @property
+    # def _resp_b_squared(self):
+    #     return self.resp_b ** 2
+
+    # @property
+    # def n_structure_array(self):
+    #     return np.concatenate([[mol.n_orientations] * mol.n_atoms
+    #                            for mol in self.molecules])
+
+    # @property
+    # def molecules(self):
+    #     return self.charge_constraints.molecules
+
+    # @property
+    # def _resp_a(self):
+    #     return self.resp_a * self.n_structure_array[self._matrix_mask]
+
+    # @property
+    # def symbols(self):
+    #     return np.concatenate([m.qcmol.symbols
+    #                            for m in self.molecules])
+    
     
     def solve(self):
         self._matrix._solve()

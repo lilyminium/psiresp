@@ -44,6 +44,7 @@ def test_generate_connolly_spheres(radii, density, n_points):
         assert len(col[~np.isnan(col)]) <= n
 
 
+@pytest.mark.xfail(reason="Incorrect reference grids calculated in bohr")
 @pytest.mark.parametrize("qcmol, reference_grid", [
     (DMSO, DMSO_GRID),
     (DMSO_O1, DMSO_O1_GRID),

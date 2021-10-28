@@ -3,6 +3,8 @@ import time
 import shutil
 import os
 
+import numpy as np
+
 from qcfractal import FractalSnowflake, FractalSnowflakeHandler
 import qcfractal.interface as ptl
 import qcelemental as qcel

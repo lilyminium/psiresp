@@ -13,19 +13,19 @@ def qcmol(request):
 
 @pytest.fixture
 def dmso_qcmol():
-    return qcel.models.Molecule.from_file(DMSO, dtype="xyz")
+    return qcel.models.Molecule.from_file(DMSO, dtype="xyz", molecular_charge=0, molecular_multiplicity=1)
 
 
 @pytest.fixture
 def methylammonium_qcmol():
-    return qcel.models.Molecule.from_file(METHYLAMMONIUM_OPT, dtype="xyz")
+    return qcel.models.Molecule.from_file(METHYLAMMONIUM_OPT, dtype="xyz", molecular_charge=1, molecular_multiplicity=1)
 
 
 @pytest.fixture
 def nme2ala2_c1_opt_qcmol():
-    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C1, dtype="xyz")
+    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C1, dtype="xyz", molecular_charge=0, molecular_multiplicity=1)
 
 
 @pytest.fixture
 def nme2ala2_c2_opt_qcmol():
-    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C2, dtype="xyz")
+    return qcel.models.Molecule.from_file(NME2ALA2_OPT_C2, dtype="xyz", molecular_charge=0, molecular_multiplicity=1)
