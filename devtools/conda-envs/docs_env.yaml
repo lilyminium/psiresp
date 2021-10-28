@@ -9,7 +9,7 @@ dependencies:
   - jupyter
   - pip
   - psi4
-  - python
+  - python==3.8
   - rdkit
   # Pip-only installs
   - pip:
