@@ -1,1 +1,0 @@
-.. automodule:: psiresp.mixins.qm

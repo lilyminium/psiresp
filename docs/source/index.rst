@@ -26,11 +26,10 @@ and the Automated Topology Builder.
    :caption: Contents:
 
    getting_started
-   parallelization
    hpc
    api
    io
-   options/index
+   references
    
 
 

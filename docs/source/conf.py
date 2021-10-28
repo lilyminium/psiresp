@@ -15,11 +15,11 @@
 # Incase the project was not installed
 
 
+import psiresp
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
-import psiresp
 
 # -- Project information -----------------------------------------------------
 
@@ -57,6 +57,7 @@ extensions = [
     'myst_parser',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
+    'sphinxcontrib.autodoc_pydantic',
 ]
 
 mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
@@ -198,3 +199,11 @@ ipython_warning_is_error = False
 ipython_execlines = [
     'import numpy as np',
 ]
+
+
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_model_show_config = False
+autodoc_pydantic_model_show_config_member = False
+autodoc_pydantic_model_show_config_summary = False
+# Hide parameter list within class signature
+autodoc_pydantic_model_hide_paramlist = True

@@ -13,6 +13,7 @@ dependencies:
   - rdkit
   # Pip-only installs
   - pip:
+      - autodoc_pydantic
       - duecredit
       - mdanalysis==2.0.0b0
       - myst-parser

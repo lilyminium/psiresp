@@ -8,8 +8,7 @@ Important classes
    :toctree: _autosummary
    :caption: Important classes
 
-   psiresp.resp.Resp
-   psiresp.multiresp.MultiResp
+   psiresp.job.Job
    psiresp.conformer.Conformer
    psiresp.orientation.Orientation
 

@@ -9,7 +9,7 @@ from pydantic import Field, validator, root_validator
 import numpy as np
 import scipy.linalg
 
-from . import base, psi4utils, orutils, molecule, charge, qm, grid, resp
+from . import base, molecule, charge, qm, grid, resp
 from psiresp.charge import MoleculeChargeConstraints
 from psiresp.resp import RespCharges
 from psiresp.orientation import Orientation
@@ -49,28 +49,56 @@ class Job(base.Model):
 
     working_directory: str = Field(
         default="working_directory",
-        description="working directory"
+        description="Working directory for saving intermediate files"
     )
 
-    verbose: bool = True
-    ignore_errors: bool = False
-    temperature: float = 298.15
+    defer_errors: bool = Field(
+        default=False,
+        description="Whether to raise an error immediately or gather all errors during ESP computation"
+    )
+    temperature: float = Field(
+        default=298.15,
+        description="Temperature (in Kelvin) to use when Boltzmann-weighting conformers."
+    )
 
-    stage_1_charges: Optional[RespCharges] = None
-    stage_2_charges: Optional[RespCharges] = None
+    stage_1_charges: Optional[RespCharges] = Field(
+        default=None,
+        description="Stage 1 charges. These need to be computed by calling `run()` or `compute_charges()` directly."
+    )
+    stage_2_charges: Optional[RespCharges] = Field(
+        default=None,
+        description="Stage 2 charges. These need to be computed by calling `run()` or `compute_charges()` directly."
+    )
 
-    n_processes: Optional[int] = None
+    n_processes: Optional[int] = Field(
+        default=None,
+        description=("Number of processes to use in multiprocessing "
+                     "during ESP computation. `n_processes=None` uses "
+                     "the number of CPUs.")
+    )
+
+    @property
+    def charges(self):
+        if self.stage_2_charges is None:
+            try:
+                return self.stage_1_charges.charges
+            except AttributeError:
+                return self.stage_1_charges
+        return self.stage_2_charges.charges
 
     def generate_conformers(self):
+        """Generate conformers for every molecule"""
         for mol in self.molecules:
             mol.generate_conformers()
 
     def generate_orientations(self):
+        """Generate orientations for every conformer of every molecule"""
         for mol in self.molecules:
             clear = not mol.keep_original_orientation
             mol.generate_orientations(clear_existing_orientations=clear)
 
     def optimize_geometries(self, client=None):
+        """Compute optimized geometries"""
         conformers = [conformer
                       for mol in self.molecules
                       for conformer in mol.conformers
@@ -79,7 +107,7 @@ class Job(base.Model):
             qcmols = [conf.qcmol for conf in conformers]
             ids = self.qm_optimization_options.add_compute(client, qcmols).ids
             for conf, id_ in zip(conformers, ids):
-                conformer._qc_id = id_
+                conf._qc_id = id_
             results = self.qm_optimization_options.wait_for_results(client,
                                                                     response_ids=ids)
             for conf, record in zip(conformers, results):
@@ -93,6 +121,7 @@ class Job(base.Model):
             sys.exit()
 
     def compute_orientation_energies(self, client=None):
+        """Compute wavefunction for each orientation"""
         orientations = [orientation
                         for mol in self.molecules
                         for conformer in mol.conformers
@@ -103,29 +132,30 @@ class Job(base.Model):
             ids = self.qm_esp_options.add_compute(client, qcmols).ids
             for orientation, id_ in zip(orientations, ids):
                 orientation._qc_id = int(id_)
-            
+
             results = self.qm_esp_options.wait_for_results(client, response_ids=ids)
             # set up progress bar
-            tqorientations = tqdm.tqdm(orientations, disable=not self.verbose,
+            tqorientations = tqdm.tqdm(orientations,
                                        desc="qcwavefunction-construction")
             for orient, record in zip(tqorientations, results):
                 orient.energy = record.properties.return_energy
                 orient.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
 
     def compute_esps(self):
+        """Compute ESP on a grid for each orientation in a multiprocessing pool"""
         orientations = [orientation
                         for mol in self.molecules
                         for conformer in mol.conformers
                         for orientation in conformer.orientations
                         if orientation.esp is None]
-        tqorientations = tqdm.tqdm(orientations, disable=not self.verbose,
+        tqorientations = tqdm.tqdm(orientations,
                                    desc="compute-esp")
         # create functions for multiprocessing mapping
-        computer = self._try_compute_esp if self.ignore_errors else self._compute_esp
+        computer = self._try_compute_esp if self.defer_errors else self._compute_esp
 
         with multiprocessing.Pool(processes=self.n_processes) as pool:
-            results = pool.map(computer, orientations)
-        
+            results = pool.map(computer, tqorientations)
+
         # raise errors if any occurred
         errors = [r for r in results if not isinstance(r, Orientation)]
         if errors:
@@ -135,6 +165,7 @@ class Job(base.Model):
             orientation.grid = o2.grid
 
     def _compute_esp(self, orientation):
+        """Compute the grid and ESP for an orientation with the job's grid options"""
         if orientation.grid is None:
             orientation.compute_grid(grid_options=self.grid_options)
         orientation.compute_esp()
@@ -142,20 +173,27 @@ class Job(base.Model):
         return orientation
 
     def _try_compute_esp(self, orientation):
+        """Wrap ESP computation in a try/except to defer errors"""
         try:
             return self._compute_esp(orientation)
         except BaseException as e:
             return str(e)
 
-    def run(self, client=None, update_molecules: bool = True):
+    def run(self, client=None, update_molecules: bool = True) -> np.ndarray:
+        """Run the whole job"""
         self.generate_conformers()
         self.optimize_geometries(client=client)
         self.generate_orientations()
         self.compute_orientation_energies(client=client)
         self.compute_esps()
         self.compute_charges(update_molecules=update_molecules)
+        return self.charges
 
-    def construct_surface_constraint_matrix(self):
+    def construct_surface_constraint_matrix(self) -> ESPSurfaceConstraintMatrix:
+        """
+        Construct the constraint matrix for each atom,
+        as generated by the ESP at each grid point
+        """
         matrices = [
             ESPSurfaceConstraintMatrix.from_orientations(
                 orientations=[o for conf in mol.conformers for o in conf.orientations],
@@ -172,18 +210,26 @@ class Job(base.Model):
                                  + [[mol.charge for mol in self.molecules]])
         return ESPSurfaceConstraintMatrix.from_a_and_b(a_block, b_block)
 
-    def generate_molecule_charge_constraints(self):
+    def generate_molecule_charge_constraints(self) -> MoleculeChargeConstraints:
+        """
+        Gather the charge constraints pertaining to the molecules
+        in this RESP job
+        """
         return MoleculeChargeConstraints.from_charge_constraints(self.charge_constraints,
                                                                  molecules=self.molecules)
 
-    def compute_charges(self, update_molecules=True):
+    def compute_charges(self, update_molecules=True) -> np.ndarray:
+        """
+        Compute the charges for each molecule. Each Orientation must have had
+        the ESP computed, and there must be at least one orientation present.
+        """
         surface_constraints = self.construct_surface_constraint_matrix()
         stage_1_constraints = self.generate_molecule_charge_constraints()
 
         if self.resp_options.stage_2:
             stage_2_constraints = stage_1_constraints.copy(deep=True)
             stage_1_constraints.charge_equivalence_constraints = []
-         
+
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
                                            resp_a=self.resp_options.resp_a1,
@@ -200,18 +246,12 @@ class Job(base.Model):
 
         if update_molecules:
             self.update_molecule_charges()
-
-    @property
-    def charges(self):
-        if self.stage_2_charges is None:
-            try:
-                return self.stage_1_charges.charges
-            except AttributeError:
-                return self.stage_1_charges
-        return self.stage_2_charges.charges
+        return self.charges
 
     def update_molecule_charges(self):
-
+        """
+        Update the molecules in the job with the calculated charges
+        """
         all_charges = {}
         default = [None] * len(self.molecules)
 
