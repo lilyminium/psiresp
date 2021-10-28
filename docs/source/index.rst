@@ -25,7 +25,8 @@ and the Automated Topology Builder.
    :maxdepth: 2
    :caption: Contents:
 
-   getting_started
+   installation
+   usage
    molecule
    hpc
    api

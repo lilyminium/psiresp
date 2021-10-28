@@ -1,9 +1,5 @@
-Getting Started
-===============
-
-------------
 Installation
-------------
+============
 
 The easiest approach to install the latest release is to use pip::
 
@@ -26,4 +22,5 @@ To run tests::
 
   cd psiresp/tests/
   pytest . --disable-pytest-warnings
+
 

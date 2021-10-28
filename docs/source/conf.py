@@ -207,3 +207,9 @@ autodoc_pydantic_model_show_config_member = False
 autodoc_pydantic_model_show_config_summary = False
 # Hide parameter list within class signature
 autodoc_pydantic_model_hide_paramlist = True
+
+nbsphinx_prolog = r"""
+.. raw:: html
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
+    <script>require=requirejs;</script>
+"""
