@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.12, pytest-6.2.4, py-1.10.0, pluggy-0.13.1
+rootdir: /dfs6/pub/lilyw7/pydev/psiresp, configfile: pyproject.toml
+plugins: qcfractal-0.15.6, requests-mock-1.9.3
+collected 5 items
+
+test_job.py 
+>>>>>>>>>>>>>>>>>>> PDB set_trace (IO-capturing turned off) >>>>>>>>>>>>>>>>>>>>
+> /dfs6/pub/lilyw7/pydev/psiresp/psiresp/job.py(163)construct_surface_constraint_matrix()
+-> a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
+(Pdb) 
+F
+>>>>>>>>>>>>>>>>>>> PDB set_trace (IO-capturing turned off) >>>>>>>>>>>>>>>>>>>>
+> /dfs6/pub/lilyw7/pydev/psiresp/psiresp/job.py(163)construct_surface_constraint_matrix()
+-> a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
+(Pdb) 
+Fslurmstepd: error: *** JOB 8790062 ON hpc3-22-03 CANCELLED AT 2021-10-27T18:14:24 ***

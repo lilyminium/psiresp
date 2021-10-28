@@ -159,7 +159,6 @@ class Job(base.Model):
             )
             for mol in self.molecules
         ]
-        breakpoint()
         a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
         a_row = scipy.linalg.block_diag(*[np.ones(mat.b.shape[0]) for mat in matrices])
         a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
@@ -180,8 +179,7 @@ class Job(base.Model):
         if self.resp_options.stage_2:
             stage_2_constraints = stage_1_constraints.copy(deep=True)
             stage_1_constraints.charge_equivalence_constraints = []
-        
-        breakpoint()
+         
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
                                            resp_a=self.resp_options.resp_a1,
