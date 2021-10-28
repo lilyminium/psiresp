@@ -17,7 +17,7 @@ python:
   # formats:
   #   - pdf
   install:
-    - method: pip
+    - method: setuptools
 
   conda:
     environment: devtools/conda-envs/docs_env.yaml
