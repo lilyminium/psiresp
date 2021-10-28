@@ -7,20 +7,21 @@ channels:
 dependencies:
   - ipython
   - jupyter
+  - mdanalysis
+  - numpy>=1.20.0
+  - pandas
   - pip
   - psi4>=1.4
   - python==3.8
+  - qcelemental==0.22.0
+  - qcfractal
   - rdkit
+  - scipy
   # Pip-only installs
   - pip:
       - autodoc_pydantic
       - duecredit
-      - mdanalysis
       - myst-parser
-      - numpy>=1.20.0
-      - pandas
-      - qcelemental==0.22.0
-      - scipy
       - sphinx>2.0
       - sphinx_rtd_theme
       - sphinxcontrib-bibtex<2.0.0
