@@ -1,14 +1,13 @@
 name: psiresp-docs
 channels:
   - psi4
-  - rdkit
   - conda-forge
 
 dependencies:
   - ipython
   - jupyter
   - pip
-  - psi4
+  - psi4>=1.4
   - python==3.8
   - rdkit
   # Pip-only installs
