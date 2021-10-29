@@ -121,7 +121,7 @@ class SparseGlobalConstraintMatrix(base.Model):
                          exclude_hydrogens=True):
         a = scipy.sparse.csr_matrix(surface_constraints.a)
         b = surface_constraints.b
-        
+
         if charge_constraints.n_constraints:
             a_block = scipy.sparse.hstack([
                 scipy.sparse.coo_matrix(dense)
@@ -139,7 +139,7 @@ class SparseGlobalConstraintMatrix(base.Model):
 
         n_structure_array = np.concatenate(
             [[mol.n_orientations] * mol.n_atoms
-            for mol in charge_constraints.molecules]
+             for mol in charge_constraints.molecules]
         )
 
         symbols = np.concatenate(
@@ -151,7 +151,6 @@ class SparseGlobalConstraintMatrix(base.Model):
             mask[np.where(symbols == "H")[0]] = False
 
         return cls(a=a, b=b, n_structure_array=n_structure_array, mask=mask)
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -185,6 +184,9 @@ class SparseGlobalConstraintMatrix(base.Model):
             self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
         except RuntimeError as e:  # TODO: this could be slow?
             self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
+        else:
+            if np.isnan(self._charges[0]):
+                self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
 
     def _iter_solve(self, resp_a, resp_b):
         increment = (resp_a * self.n_structure_array)[self._array_indices]

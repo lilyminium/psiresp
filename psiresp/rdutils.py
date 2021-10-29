@@ -1,5 +1,6 @@
 
 import itertools
+import logging
 from typing import TYPE_CHECKING, Set, Tuple
 
 from typing_extensions import Literal
@@ -17,6 +18,8 @@ BONDTYPES = {
     2: Chem.BondType.DOUBLE,
     3: Chem.BondType.TRIPLE,
 }
+
+logger = logging.getLogger(__name__)
 
 
 def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
@@ -160,18 +163,21 @@ def compute_electrostatic_energy(rdmol: "rdkit.Chem.Mol",
 
     conformers = np.array([c.GetPositions() for c in rdmol.GetConformers()])
     distances = compute_distance_matrix(conformers)
+    print(distances)
     inverse_distances = np.reciprocal(distances,
                                       out=np.zeros_like(distances),
                                       where=~np.isclose(distances, 0))
 
     charges = np.abs(compute_mmff_charges(rdmol)).reshape(-1, 1)
     charge_products = charges @ charges.T
+    print(charge_products)
 
     excl_i, excl_j = zip(*get_exclusions(rdmol))
     charge_products[(excl_i, excl_j)] = 0.0
     charge_products[(excl_j, excl_i)] = 0.0
 
     energies = inverse_distances * charge_products
+    print(energies)
     return 0.5 * energies.sum(axis=(1, 2))
 
 
@@ -190,11 +196,11 @@ def compute_heavy_rms(rdmol: "rdkit.Chem.Mol",
 
 
 def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
-                             energy_window: float = 15,
+                             energy_window: float = 30,
                              limit: int = 10,
                              rms_tolerance: float = 0.05,
                              ):
-
+    import qcelemental as qcel
     n_conformers = rdmol.GetNumConformers()
     if n_conformers == 0:
         return
@@ -203,7 +209,12 @@ def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
     all_conformer_ids = [c.GetId() for c in rdmol.GetConformers()]
 
     sorting = np.argsort(energies)
-    upper_energy = energy_window + energies[sorting[0]]
+    window = qcel.constants.conversion_factor(
+        "(4 * pi * electric_constant) * kcal",
+        "e * e / angstrom",
+    )
+    window /= qcel.constants.get("avogadro constant")
+    upper_energy = window + energies[sorting[0]]
     cutoff = np.searchsorted(energies[sorting], upper_energy)
     conformer_ids = [all_conformer_ids[i] for i in sorting[:cutoff]]
     rms_matrix = compute_heavy_rms(rdmol, conformer_ids)
@@ -233,7 +244,7 @@ def select_elf_conformer_coordinates(rdmol: "rdkit.Chem.Mol",
 
 def generate_diverse_conformer_coordinates(molecule,
                                            n_conformer_pool: int = 4000,
-                                           energy_window: float = 15,
+                                           energy_window: float = 30,
                                            n_max_conformers: int = 10,
                                            rms_tolerance: float = 0.05,
                                            ):

@@ -1,17 +1,20 @@
+import sys
 import time
 import pathlib
-from typing import List, Callable, Optional, Dict
+import logging
+from typing import List, Optional, Dict
 
 import numpy as np
 from typing_extensions import Literal
 import qcelemental as qcel
-import qcengine as qcng
 import qcfractal.interface as ptl
 from qcfractal.interface.models.records import RecordStatusEnum
 from pydantic import Field
 
 from .base import Model
-from . import qcutils, psi4utils
+
+logger = logging.getLogger(__name__)
+# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
 METHODS = [
@@ -30,7 +33,7 @@ BASIS_SETS = [
     "aug-cc-pVXZ", "aug-cc-pV(D+d)Z", "heavy-aug-cc-pVXZ",
 ]
 
-SOLVENTS = ["water"]
+SOLVENTS = ["water", ]
 
 G_CONVERGENCES = [
     "qchem", "molpro", "turbomole", "cfour", "nwchem_loose",
@@ -119,24 +122,34 @@ class BaseQMOptions(Model):
             keywords.update(self.pcm_options.generate_keywords())
         return keywords
 
+    def _generate_spec(self, client, **kwargs):
+        keywords = self.generate_keywords()
+        kwset = ptl.models.KeywordSet(values=keywords)
+        kwid = client.add_keywords([kwset])[0]
+        logger.debug(f"Added {kwset} with ID {kwid}")
+
+        spec = dict(
+            program="psi4",
+            method=self.method,
+            basis=self.basis,
+            driver=self.driver,
+            keywords=kwid,
+            protocols=self.protocols,
+            **kwargs
+        )
+        return spec
+
     def add_compute(self,
                     client: ptl.FractalClient,
                     qcmols: List[qcel.models.Molecule] = [],
                     **kwargs
                     ) -> ptl.models.ComputeResponse:
 
-        keywords = self.generate_keywords()
-        kwset = ptl.models.KeywordSet(values=keywords)
-        kwid = client.add_keywords([kwset])[0]
-
-        return client.add_compute(program="psi4",
-                                  method=self.method,
-                                  basis=self.basis,
-                                  driver=self.driver,
-                                  keywords=kwid,
-                                  molecule=qcmols,
-                                  protocols=self.protocols,
-                                  **kwargs)
+        spec = self._generate_spec(client, **kwargs)
+        logger.debug(f"Submitting specification {spec} for {len(qcmols)} molecules to {client}")
+        response = client.add_compute(molecule=qcmols, **spec)
+        logger.debug(f"Received response {response} with ids {response.ids}")
+        return response
 
     def add_compute_and_wait(self,
                              client: ptl.FractalClient,
@@ -191,6 +204,17 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
                      "N means to compute every N steps."),
     )
 
+    def add_compute(self,
+                    client: ptl.FractalClient,
+                    qcmols: List[qcel.models.Molecule] = [],
+                    **kwargs
+                    ) -> ptl.models.ComputeResponse:
+        spec = dict(qc_spec=self._generate_spec(client, **kwargs), keywords=None)
+        logger.debug(f"Submitting specification {spec} for {len(qcmols)} molecules to {client}")
+        response = client.add_procedure("optimization", "geometric", spec, qcmols)
+        logger.debug(f"Received response {response} with ids {response.ids}")
+        return response
+
     def generate_keywords(self):
         return {
             "geom_maxiter": self.max_iter,
@@ -228,6 +252,11 @@ def wait(client, response_ids=[], query_interval=20, query_target="results",
                            else s
                            for s in status])
         n_incomplete = (status == "INCOMPLETE").sum()
+        n_complete = (status == "COMPLETE").sum()
+        n_error = (status == "ERROR").sum()
+        logger.debug(f"{n_incomplete} incomplete, "
+                     f"{n_error} errored, "
+                     f"{n_complete} complete {query_target} out of {len(response_ids)}")
 
         if working_directory:
             for i in np.where(status == "COMPLETE")[0]:

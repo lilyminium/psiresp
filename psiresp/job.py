@@ -120,7 +120,7 @@ class Job(base.Model):
             results = self.qm_optimization_options.wait_for_results(client,
                                                                     response_ids=ids)
             for conf, record in zip(conformers, results):
-                conf.molecule.geometry = record.get_final_molecule().geometry
+                conf.set_optimized_geometry(record.get_final_molecule().geometry, units="bohr")
 
         elif len(conformers):
             import sys

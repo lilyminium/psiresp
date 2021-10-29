@@ -31,9 +31,7 @@ as an example.
 .. ipython:: python
 
     import qcfractal.interface as ptl
-    from qcfractal import FractalSnowflakeHandler, FractalSnowflake
     from psiresp.testing import FractalSnowflake
-
 
 
 Calculating charges of one molecule with a temporary server
@@ -68,7 +66,7 @@ when the PsiRESP molecule is first created.
     import psiresp
     off_dmso.generate_conformers(n_conformers=1)
     qc_dmso = off_dmso.to_qcschema()
-    dmso = psiresp.Molecule(qcmol=qc_dmso, optimize_geometry=False)
+    dmso = psiresp.Molecule(qcmol=qc_dmso, optimize_geometry=True)
     print(dmso.conformers)
 
 
@@ -77,19 +75,16 @@ canonical RESP: a 2-stage restrained fit, where hydrogens are
 excluded from the restraint, and the scale factors for the asymptote
 limits of the hyperbola restraint are 0.0005 and 0.001 for the first
 and second stage respectively. The typical method and basis set are
-"HF/6-31G*", but we go with "b3lyp/sto-3g" here to save time.
+"hg/6-31g*", but we go with "b3lyp/sto-3g" here to save time.
 
 Below, we create a temporary server and client for this job, and then
 compute charges with the default options.
 
 .. ipython:: python
+    :okwarning:
 
     geometry_options = psiresp.QMGeometryOptimizationOptions(
-        method="b3lyp", basis="sto-3g",
-        g_convergence="nwchem_loose",
-        max_iter=1,
-        full_hess_every=0,
-    )
+        method="b3lyp", basis="sto-3g")
     esp_options = psiresp.QMEnergyOptions(
         method="b3lyp", basis="sto-3g",
     )
@@ -97,13 +92,10 @@ compute charges with the default options.
                     qm_optimization_options=geometry_options,
                     qm_esp_options=esp_options,
                     )
-    with FractalSnowflakeHandler(ncores=4) as server:
-        client = ptl.FractalClient(server)
-        print(client)
+    with FractalSnowflake() as server:
+        client = ptl.FractalClient(server, verify=False)
         job.run(client=client)
-        print(job.charges)
-        server.stop()
-
+    print(job.charges)
 
 
 ----------------------
@@ -113,3 +105,4 @@ On a computing cluster
 The quantum chemistry computations in PsiRESP are by far and away the
 most computationally expensive parts of PsiRESP. Fortunately, they are
 also largely independent of each other and can be run in parallel.
+

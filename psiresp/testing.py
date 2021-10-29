@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 import tempfile
 import pathlib
 import shutil
@@ -7,6 +7,7 @@ import subprocess
 from qcfractal.postgres_harness import find_port, FractalConfig, atexit
 from qcfractal.postgres_harness import PostgresHarness as QCPostgresHarness
 from qcfractal.testing import TemporaryPostgres as QCTemporaryPostgres
+from qcfractal import FractalSnowflake as QCFractalSnowflake
 
 
 class PostgresHarness(QCPostgresHarness):
@@ -97,3 +98,23 @@ class TemporaryPostgres(QCTemporaryPostgres):
         # self.psql.start()
 
         atexit.register(self.stop)
+
+
+class FractalSnowflake(QCFractalSnowflake):
+
+    def __init__(self, max_workers: Optional[int] = 2,
+                 storage_project_name: str = "temporary_snowflake",
+                 max_active_services: int = 20,
+                 logging: Union[bool, str] = False,
+                 start_server: bool = True,
+                 reset_database: bool = False,):
+        storage = TemporaryPostgres(database_name=storage_project_name)
+        storage_uri = storage.database_uri(safe=False, database="")
+        super().__init__(max_workers=max_workers,
+                         max_active_services=max_active_services,
+                         storage_uri=storage_uri,
+                         storage_project_name=storage_project_name,
+                         logging=logging,
+                         start_server=start_server,
+                         reset_database=reset_database)
+        self._storage = storage

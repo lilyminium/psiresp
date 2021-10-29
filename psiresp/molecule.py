@@ -3,55 +3,13 @@ import functools
 import logging
 
 import numpy as np
-import qcelemental as qcel
 from pydantic import Field
 
-from . import base, rdutils, orutils
-from .conformer import Conformer
+from . import base, orutils
+from .conformer import Conformer, ConformerGenerationOptions
 from .moleculebase import BaseMolecule
 
 logger = logging.getLogger(__name__)
-
-
-class ConformerGenerationOptions(base.Model):
-    """Options for generating conformers"""
-
-    n_conformer_pool: int = Field(
-        default=4000,
-        description="Number of initial conformers to generate"
-    )
-    n_max_conformers: int = Field(
-        default=0,
-        description="Maximum number of conformers to keep"
-    )
-    rms_tolerance: float = Field(
-        default=0.05,
-        description="RMS tolerance for pruning conformers"
-    )
-    energy_window: float = Field(
-        default=15,
-        description=("Energy window within which to keep conformers. "
-                     "This is the range from the lowest energetic conformer"),
-    )
-    keep_original_conformer: bool = Field(
-        default=True,
-        description="Whether to keep the original conformer in the molecule"
-    )
-
-    def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:
-        """Generate conformer coordinates in angstrom"""
-        original = np.array([qcmol.geometry])
-        original *= qcel.constants.conversion_factor("bohr", "angstrom")
-        if not self.n_max_conformers:
-            return original
-
-        rdkwargs = self.dict()
-        keep = rdkwargs.pop("keep_original_conformer")
-        coords = rdutils.generate_diverse_conformer_coordinates(qcmol,
-                                                                **rdkwargs)
-        if keep:
-            coords = np.concatenate([original, coords])
-        return coords
 
 
 class Molecule(BaseMolecule):
@@ -74,7 +32,7 @@ class Molecule(BaseMolecule):
     )
     conformers: List[Conformer] = Field(
         default_factory=list,
-        description="List of `psiresp.conformer.Conformer`s of the molecule"
+        description="List of psiresp.conformer.Conformers of the molecule"
     )
     conformer_generation_options: ConformerGenerationOptions = Field(
         default_factory=ConformerGenerationOptions,
@@ -108,7 +66,11 @@ class Molecule(BaseMolecule):
 
     keep_original_orientation: bool = Field(
         default=False,
-        description="Whether to use the original orientation of the conformer."
+        description=("Whether to use the original orientation of the conformer. "
+                     "If `keep_original_orientation=False` but "
+                     "generate_orientations() is called without specifying "
+                     "specific reorientations, rotations, or translations, "
+                     "this is ignored and the original conformer geometry is used.")
     )
     reorientations: List[Tuple[int, int, int]] = Field(
         default_factory=list,
@@ -165,6 +127,10 @@ class Molecule(BaseMolecule):
             self.rotations.extend(combinations[:n_rotations])
             self.reorientations.extend(combinations[:n_reorientations])
         self.translations.extend((np.random.rand(n_translations, 3) - 0.5) * 10)
+
+    @property
+    def n_conformers(self):
+        return len(self.conformers)
 
     @property
     def transformations(self):

@@ -1,15 +1,17 @@
 name: test
 channels:
-  - psi4
   - conda-forge
   - defaults
 
 dependencies:
+  - geometric
+  - h5py<3.2
   - mdanalysis
   - numpy>=1.20.0
   - pandas
   - pip
-  - psi4>=1.4
+  - psi4::psi4>=1.4
+  - psi4::dftd3
   - python==3.8
   - qcelemental==0.22.0
   - qcfractal
