@@ -1,4 +1,3 @@
-import sys
 import time
 import pathlib
 import logging

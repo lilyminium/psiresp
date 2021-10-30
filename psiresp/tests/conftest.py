@@ -4,7 +4,8 @@ import pytest
 
 import numpy as np
 import qcfractal.interface as ptl
-from psiresp.testing import TemporaryPostgres, FractalSnowflake
+from psiresp.testing import TemporaryPostgres
+from qcfractal import FractalSnowflake
 
 from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
 

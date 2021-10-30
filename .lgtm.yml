@@ -1,6 +1,7 @@
 # Configure LGTM for this package
 queries:
   - exclude:  py/procedure-return-value-used  # blame duecredit
+  - exclude:  py/missing-equals  # subclasses of Model tend to trigger this
 extraction:
   python:  # Configure Python
     python_setup:  # Configure the setup

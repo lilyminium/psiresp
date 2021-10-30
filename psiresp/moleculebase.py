@@ -84,7 +84,7 @@ class BaseMolecule(base.Model):
 
     def __hash__(self):
         dct = self.dict()
-        mol = dct.pop("qcmol")
+        dct.pop("qcmol")
         return hash((self.qcmol.get_hash(), base._to_immutable(dct)))
 
     def __eq__(self, other):
@@ -119,7 +119,6 @@ class BaseMolecule(base.Model):
         map_list = sorted(index_to_map, key=index_to_map.get)
         full_matches = rdmol.GetSubstructMatches(query, uniquify=True,
                                                  useChirality=True)
-        matches = [tuple(match[i] for i in map_list) for match in full_matches]
         if not map_list:
             return full_matches
         else:

@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Optional, Union, no_type_check
+from typing import Any, Optional, Type, Union, no_type_check
 
 import numpy as np
 from pydantic import BaseModel
@@ -40,14 +40,20 @@ class Model(BaseModel):
             super().__setattr__(attr, value)
         except ValueError as e:
             setters = inspect.getmembers(self.__class__, predicate=_is_settable)
-            for propname, setter in setters:
+            for propname, _ in setters:
                 if propname == attr:
                     return object.__setattr__(self, propname, value)
-            else:
-                raise e
+            raise e
 
     def __hash__(self):
         return hash(_to_immutable(self.dict()))
+
+    def __eq__(self, other):
+        try:
+            other_hash = hash(other)
+        except TypeError:
+            other_hash = hash(_to_immutable(other))
+        return hash(self) == other_hash
 
     @classmethod
     @no_type_check
