@@ -1,7 +1,7 @@
 from typing import Optional
 
 import numpy as np
-from pydantic import Field, PrivateAttr  # , validator, root_validator
+from pydantic import Field  # , PrivateAttr, validator, root_validator
 import qcelemental as qcel
 
 from psiresp import psi4utils

@@ -20,13 +20,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: [3.7]
+        os: [ubuntu-latest, macOS-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         codecov: [true]
-        include:
-          - name: macOS
-            os: macOS-latest
-            python-version: 3.7
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
@@ -61,8 +57,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
           channel-priority: flexible
-          channels: conda-forge, psi4
+          channels: defaults, conda-forge
           add-pip-as-python-dependency: true
+          mamba-version: "*"
           architecture: x64
           environment-file: devtools/conda-envs/test_env.yaml
           activate-environment: test

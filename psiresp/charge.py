@@ -2,14 +2,11 @@ import functools
 from typing import List, Dict, Set, Tuple
 from collections import defaultdict
 
-import qcelemental as qcel
-import scipy.sparse
 import numpy as np
-from pydantic import Field, validator
+from pydantic import Field
 
 from psiresp import base, psi4utils, rdutils
 from psiresp.molecule import Atom, Molecule
-from psiresp.constraint import SparseGlobalConstraintMatrix
 
 
 @functools.total_ordering

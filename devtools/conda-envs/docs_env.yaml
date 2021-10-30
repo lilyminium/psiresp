@@ -20,7 +20,7 @@ dependencies:
   - numpy
   - openff-toolkit-base
   - pip
-  # - python<=3.7
+  - python<=3.7
   - qcelemental==0.22.0
   - qcengine
   - qcfractal

@@ -39,7 +39,7 @@ def fractal_server(postgres_server):
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
-        start_server=True,
+        start_server=False,
     ) as server:
         yield server
 
