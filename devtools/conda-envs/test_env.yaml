@@ -12,7 +12,7 @@ dependencies:
   # other qm
   - geometric
 
-  # - h5py<3.2
+  - h5py<3.2
 
   # docs
   - ipython
