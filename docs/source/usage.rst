@@ -141,6 +141,7 @@ have the same charge.
 
 
 .. ipython:: python
+    :okwarning:
 
     job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
                             charge_constraints=constraints,

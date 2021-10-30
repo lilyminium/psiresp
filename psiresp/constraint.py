@@ -182,6 +182,8 @@ class SparseGlobalConstraintMatrix(base.Model):
         self._previous_charges = self._charges
         try:
             self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
+        except Warning:
+            breakpoint()
         except RuntimeError as e:  # TODO: this could be slow?
             self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
         else:

@@ -20,7 +20,7 @@ dependencies:
   - numpy
   - openff-toolkit-base
   - pip
-  - python<=3.7
+  - postgresql >= 13.0
   - qcelemental==0.22.0
   - qcengine
   - qcfractal
@@ -30,6 +30,9 @@ dependencies:
   - scipy
   # Pip-only installs
   - pip:
+      - pytest
+      - pytest-cov
+      - pytest-xdist
       - autodoc_pydantic
       - duecredit
       - importlib_resources
