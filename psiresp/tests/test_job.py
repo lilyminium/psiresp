@@ -149,8 +149,8 @@ class TestMultiRespFast:
             for conf in mol.conformers:
                 for orient in conf.orientations:
                     assert orient._rdmol is not None
-        print(job_multi.charges[0])
-        print(job_multi.molecules[0].to_smiles())
-        print(job_multi.charges[1])
-        print(job_multi.molecules[1].to_smiles())
-        assert False
+        # print(job_multi.charges[0])
+        # print(job_multi.molecules[0].to_smiles())
+        # print(job_multi.charges[1])
+        # print(job_multi.molecules[1].to_smiles())
+        # assert False

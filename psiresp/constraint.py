@@ -195,5 +195,7 @@ class SparseGlobalConstraintMatrix(base.Model):
         increment /= np.sqrt(self._charges ** 2 + resp_b ** 2)[self._array_indices]
 
         self.a = self._original_a.copy()
+
+        print(self._array_mask[0].shape, increment.shape)
         self.a[self._array_mask] += increment
         self._solve()

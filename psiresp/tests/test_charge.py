@@ -65,7 +65,7 @@ def test_options_setup():
     constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
 
     h_smiles = "C([C:1]([H:2])([H:2])([H:2]))([C:1]([H:2])([H:2])([H:2]))"
-    h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)
+    h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
     constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
     assert len(constraints.charge_sum_constraints) == 2

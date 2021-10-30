@@ -18,7 +18,7 @@ dependencies:
   - ipython
   - jupyter
   - numpy
-  - openff-toolkit-base
+  # - openff-toolkit-base
   - pip
   - postgresql >= 13.0
   - qcelemental==0.22.0
