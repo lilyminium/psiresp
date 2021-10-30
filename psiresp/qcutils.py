@@ -95,12 +95,6 @@ def reconstruct_density(qcrecord):
     return density[reverse_ao_map[:, None], reverse_ao_map]
 
 
-def qcmol_with_coordinates(qcmol, coordinates, units="angstrom"):
-    dct = qcmol.dict()
-    dct["geometry"] = coordinates * qcel.constants.conversion_factor(units, "bohr")
-    return qcel.models.Molecule(**dct)
-
-
 class QCWaveFunction(BaseMolecule):
     qc_wavefunction: qcel.models.results.WavefunctionProperties
     n_alpha: int
@@ -115,7 +109,7 @@ class QCWaveFunction(BaseMolecule):
         #     dct[k] = qcrecord.wavefunction["return_map"][k]
         dct.update(qcrecord.wavefunction["return_map"])
         qcwfn = qcel.models.results.WavefunctionProperties(**dct)
-        
+
         return cls(qc_wavefunction=qcwfn, qcmol=qcrecord.get_molecule(),
                    n_alpha=qcrecord.properties.calcinfo_nalpha,
                    basis=qcrecord.basis,

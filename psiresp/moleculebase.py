@@ -5,7 +5,7 @@ import numpy as np
 import qcelemental as qcel
 from rdkit import Chem
 
-from . import base, qcutils, rdutils
+from . import base, rdutils
 
 
 def generate_atom_combinations(symbols: List[str]):
@@ -70,7 +70,9 @@ class BaseMolecule(base.Model):
         self.qcmol.__dict__["extras"] = extras
 
     def qcmol_with_coordinates(self, coordinates, units="angstrom"):
-        return qcutils.qcmol_with_coordinates(self.qcmol, coordinates, units=units)
+        dct = self.qcmol.dict()
+        dct["geometry"] = coordinates * qcel.constants.conversion_factor(units, "bohr")
+        return qcel.models.Molecule(**dct)
 
     @property
     def n_atoms(self):
