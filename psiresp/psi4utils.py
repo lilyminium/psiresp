@@ -2,7 +2,6 @@ from typing import List, Dict
 
 import psi4
 import numpy as np
-import qcelemental as qcel
 
 
 psi4.core.be_quiet()

@@ -4,8 +4,21 @@ from typing import Any, Optional, Union, no_type_check
 import numpy as np
 from pydantic import BaseModel
 
+
 def _is_settable(member):
     return isinstance(member, property) and member.fset is not None
+
+
+def _to_immutable(obj):
+    if isinstance(obj, np.ndarray):
+        obj = obj.tolist()
+    if isinstance(obj, set):
+        return frozenset(obj)
+    elif isinstance(obj, list):
+        return tuple(_to_immutable(x) for x in obj)
+    elif isinstance(obj, dict):
+        return tuple((k, _to_immutable(v)) for k, v in sorted(obj.items()))
+    return obj
 
 
 class Model(BaseModel):
@@ -33,6 +46,9 @@ class Model(BaseModel):
             else:
                 raise e
 
+    def __hash__(self):
+        return hash(_to_immutable(self.dict()))
+
     @classmethod
     @no_type_check
     def _get_value(
@@ -50,4 +66,3 @@ class Model(BaseModel):
         if isinstance(v, set):
             v = list(v)
         return super()._get_value(v, to_dict, by_alias, include, exclude, exclude_unset, exclude_defaults, exclude_none)
-

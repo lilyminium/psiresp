@@ -1,19 +1,12 @@
-import shutil
 import glob
-from pkg_resources import resource_filename
-
 import pytest
 
 
 import numpy as np
 import qcfractal.interface as ptl
-import qcelemental as qcel
-from qcfractal import FractalSnowflake, FractalSnowflakeHandler
-from psiresp.testing import TemporaryPostgres
-from psiresp.molecule import Molecule
+from psiresp.testing import TemporaryPostgres, FractalSnowflake
 
-from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, DMSO, ESP_PATH, GRID_PATH
-from psiresp.tests.utils import load_gamess_esp
+from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
 
 pytest_plugins = [
     "psiresp.tests.fixtures.qcmols",
@@ -51,7 +44,8 @@ def fractal_client(fractal_server):
 
 @pytest.fixture(scope="function")
 def empty_client():
-    return FractalSnowflakeHandler().client()
+    server = FractalSnowflake()
+    return ptl.FractalClient(server)
 
 
 @pytest.fixture

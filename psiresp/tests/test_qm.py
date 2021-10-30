@@ -1,7 +1,6 @@
 import pytest
 
 from numpy.testing import assert_allclose
-from qcfractal import FractalSnowflakeHandler
 
 from psiresp.qm import QMEnergyOptions
 

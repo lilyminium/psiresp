@@ -83,7 +83,9 @@ class BaseMolecule(base.Model):
         return self.qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
 
     def __hash__(self):
-        return hash((type(self), self.qcmol.get_hash()))
+        dct = self.dict()
+        mol = dct.pop("qcmol")
+        return hash((mol.get_hash(), base._to_immutable(dct)))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
