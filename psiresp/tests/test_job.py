@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 
+import psiresp
 from psiresp.job import Job
 from psiresp.resp import RespOptions
 
@@ -109,3 +110,47 @@ class TestMultiRespFast:
         assert_allclose(charges[18], charges[22])
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
+
+    def test_run_with_empty(self, empty_client):
+        nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O", optimize_geometry=False)
+        assert nme2ala2._rdmol is not None
+        methylammonium = psiresp.Molecule.from_smiles("C[NH3+]", optimize_geometry=False)
+        assert methylammonium._rdmol is not None
+        constraints = psiresp.ChargeConstraintOptions()
+        nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
+        nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
+        print(nme_indices)
+        constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+                                                           charge=0,
+                                                           indices=nme_indices[0])
+        methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
+        ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
+        constraint_atoms = methyl_atoms[0] + ace_atoms[0]
+        constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
+
+        h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
+        h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
+        print(len(h_atoms))
+        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+
+        geometry_options = psiresp.QMGeometryOptimizationOptions(
+            method="b3lyp", basis="sto-3g")
+        esp_options = psiresp.QMEnergyOptions(
+            method="b3lyp", basis="sto-3g",
+        )
+
+        job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
+                                charge_constraints=constraints,
+                                qm_optimization_options=geometry_options,
+                                qm_esp_options=esp_options,)
+        job_multi.run(client=empty_client)
+
+        for mol in job_multi.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    assert orient._rdmol is not None
+        print(job_multi.charges[0])
+        print(job_multi.molecules[0].to_smiles())
+        print(job_multi.charges[1])
+        print(job_multi.molecules[1].to_smiles())
+        assert False

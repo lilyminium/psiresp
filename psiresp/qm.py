@@ -163,7 +163,8 @@ class BaseQMOptions(Model):
         raise NotImplementedError
 
     def write_input(self, qcmol, working_directory="."):
-        cwd = pathlib.Path(working_directory) / self._generate_id(qcmol)
+        name = qcmol.name if qcmol.name else qcmol.get_molecular_formula()
+        cwd = pathlib.Path(working_directory) / name
         cwd.mkdir(exist_ok=True, parents=True)
 
         compute = qcel.models.AtomicInput(
@@ -175,16 +176,35 @@ class BaseQMOptions(Model):
             molecule=qcmol,
         )
 
-        infile = cwd / "data.msgpack"
-
+        infile = cwd / f"{self.filename}_{self._generate_id(qcmol)}.msgpack"
         with infile.open() as f:
             f.write(compute.serialize("msgpack-ext"))
 
+    def read_input(self, qcmol, working_directory="."):
+        name = qcmol.name if qcmol.name else qcmol.get_molecular_formula()
+        cwd = pathlib.Path(working_directory) / name
+        infile = cwd / f"{self.filename}_{self._generate_id(qcmol)}.msgpack"
+
     def _generate_id(self, qcmol):
-        return hash(qcmol.get_hash(), self)
+        return hash(qcmol.get_hash(), self._generate_spec_hash())
+
+    def _generate_spec_hash(self):
+        kw_str = [k.lower() + str(v).lower() for k, v in self.generate_keywords().items()]
+        prot_str = [k.lower() + str(v).lower() for k, v in self.protocols.items()]
+
+        spec_hash = hash((
+            self.method.lower(),
+            self.basis.lower(),
+            self.driver.lower(),
+            tuple(sorted(kw_str)),
+            tuple(sorted(prot_str))
+        ))
+        return spec_hash
 
 
 class QMGeometryOptimizationOptions(BaseQMOptions):
+
+    filename = "optimization"
 
     g_convergence: QMGConvergence = "gau_tight"
     driver: str = "gradient"
@@ -232,6 +252,8 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
 
 
 class QMEnergyOptions(BaseQMOptions):
+    filename = "single_point"
+
     def wait_for_results(self, client, response_ids=[]):
         results = wait(client, response_ids=response_ids,
                        query_interval=self.query_interval,

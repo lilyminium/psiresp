@@ -47,6 +47,34 @@ def test_charge_equivalence_constraint(dmso):
     assert_allclose(row, reference)
 
 
+def test_options_setup():
+    nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O")
+    methylammonium = psiresp.Molecule.from_smiles("C[NH3+]")
+    constraints = psiresp.ChargeConstraintOptions()
+    nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
+    nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
+    constraints.add_charge_sum_constraint_for_molecule(nme2ala2, charge=0,
+                                                       indices=nme_indices[0])
+    methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
+    assert len(methyl_atoms) == 1
+    assert len(methyl_atoms[0]) == 4
+    ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
+    assert len(ace_atoms) == 1
+    assert len(ace_atoms[0]) == 8
+    constraint_atoms = methyl_atoms[0] + ace_atoms[0]
+    constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
+
+    h_smiles = "C([C:1]([H:2])([H:2])([H:2]))([C:1]([H:2])([H:2])([H:2]))"
+    h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)
+    constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+
+    assert len(constraints.charge_sum_constraints) == 2
+    assert len(constraints.charge_equivalence_constraints) == 1
+
+    assert len(constraints.charge_sum_constraints[0]) == 6
+    assert len(constraints.charge_sum_constraints[1]) == 12
+
+
 class TestMoleculeChargeConstraints:
 
     # @pytest.mark.slow

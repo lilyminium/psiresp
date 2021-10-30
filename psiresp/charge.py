@@ -7,7 +7,7 @@ import scipy.sparse
 import numpy as np
 from pydantic import Field, validator
 
-from psiresp import base, psi4utils
+from psiresp import base, psi4utils, rdutils
 from psiresp.molecule import Atom, Molecule
 from psiresp.constraint import SparseGlobalConstraintMatrix
 
@@ -89,7 +89,6 @@ class ChargeSumConstraint(BaseChargeConstraint):
         row[0, indices] = 1
         return row
 
-
     def __hash__(self):
         return hash((frozenset(self.atoms), self.charge))
 
@@ -133,7 +132,7 @@ class BaseChargeConstraintOptions(base.Model):
     def n_constraints(self):
         return (len(self.charge_sum_constraints)
                 + len(self.charge_equivalence_constraints))
-    
+
     def iter_constraints(self):
         yield from self.charge_sum_constraints
         yield from self.charge_equivalence_constraints
@@ -229,14 +228,11 @@ class BaseChargeConstraintOptions(base.Model):
     def clean_charge_sum_constraints(self):
         self.charge_sum_constraints = sorted(set(self.charge_sum_constraints))
         self._remove_redundant_charge_constraints()
-        
 
 
 class ChargeConstraintOptions(BaseChargeConstraintOptions):
     symmetric_methyls: bool = True
     symmetric_methylenes: bool = True
-
-
 
 
 class MoleculeChargeConstraints(BaseChargeConstraintOptions):
@@ -248,16 +244,17 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     _molecule_increments: Dict[int, int]
     _edges: List[Tuple[int, int]]
 
-
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.clean_charge_sum_constraints()
+        self.clean_charge_equivalence_constraints()
+
         n_atoms = [mol.n_atoms for mol in self.molecules]
         self._n_atoms = sum(n_atoms)
         self._n_molecule_atoms = np.cumsum(np.r_[0, n_atoms])
         self._molecule_increments = {}
         for mol, i in zip(self.molecules, self._n_molecule_atoms):
-            self._molecule_increments[hash(mol)] = i #dict(zip(self.molecules, self._n_molecule_atoms))
+            self._molecule_increments[hash(mol)] = i  # dict(zip(self.molecules, self._n_molecule_atoms))
         self._edges = list(zip(self._n_molecule_atoms[:-1],
                                self._n_molecule_atoms[1:]))
 
@@ -292,11 +289,10 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         return [constr.to_row_constraint(n_dim=self._n_atoms + len(self.molecules),
                                          molecule_increments=self._molecule_increments).T
                 for constr in self.iter_constraints()]
-    
+
     def to_b_constraints(self):
         b = [constr.charge for constr in self.charge_sum_constraints]
         return np.array(b)
-
 
     def add_constraints_from_charges(self, charges):
         unconstrained_atoms = [atom
@@ -304,7 +300,6 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                                for atom in eqv.atoms]
         unconstrained_atoms += self.unconstrained_atoms
 
-        mol = list(self._molecule_increments.keys())[0]
         unconstrained_indices = [a.index + self._molecule_increments[hash(a.molecule)]
                                  for a in unconstrained_atoms]
 
@@ -318,7 +313,6 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
 
         self.clean_charge_sum_constraints()
         self.clean_charge_equivalence_constraints()
-
 
     def add_charge_sum_constraint_from_indices(self, charge, indices=[]):
         atoms = [self._atom_from_index(i) for i in indices]
@@ -338,7 +332,10 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         """
         """
         for mol in self.molecules:
-            ch_groups = psi4utils.get_sp3_ch_indices(mol.qcmol)
+            try:
+                ch_groups = rdutils.get_sp3_ch_indices(mol._rdmol)
+            except:
+                ch_groups = psi4utils.get_sp3_ch_indices(mol.qcmol)
             for c, hs in ch_groups.items():
                 if len(hs) in accepted_n_hs:
                     atoms = [Atom(molecule=mol, index=i) for i in hs]

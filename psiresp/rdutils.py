@@ -21,10 +21,30 @@ BONDTYPES = {
 
 logger = logging.getLogger(__name__)
 
+OFF_SMILES_ATTRIBUTE = "canonical_isomeric_explicit_hydrogen_mapped_smiles"
+
+
+def rdmol_from_smiles(smiles):
+    smiles_parser = Chem.rdmolfiles.SmilesParserParams()
+    smiles_parser.removeHs = False
+    rdmol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    return rdmol
+
+
+def rdmol_to_smiles(rdmol, mapped=True):
+    rdmol = Chem.Mol(rdmol)
+    if not any(at.GetAtomMapNum() for at in rdmol.GetAtoms()) and mapped:
+        for i, at in enumerate(rdmol.GetAtoms(), 1):
+            at.SetAtomMapNum(i)
+
+    return Chem.MolToSmiles(rdmol, allBondsExplicit=True, allHsExplicit=True)
+
 
 def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
                            guess_connectivity: bool = True):
-
+    smiles = qcmol.dict().get("extras", {}).get(OFF_SMILES_ATTRIBUTE)
+    if smiles:
+        return rdmol_from_smiles(smiles)
     if guess_connectivity:
         import psi4
         psi4str = qcmol.to_string(dtype="psi4")
@@ -32,14 +52,48 @@ def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
         rdmol = rdmol_from_psi4(psi4mol)
     else:
         rdmol = _rdmol_from_qcelemental(qcmol)
-    Chem.SanitizeMol(rdmol)
+    # Chem.SanitizeMol(rdmol)
     return rdmol
 
 
 def rdmol_from_psi4(psi4mol):
     molstr = psi4mol.format_molecule_for_mol()
-    rdmol = Chem.MolFromMolBlock(molstr, removeHs=False, sanitize=True)
+    rdmol = Chem.MolFromMolBlock(molstr, removeHs=False, sanitize=False)
     return rdmol
+
+
+def get_connectivity(rdmol):
+    return np.array([
+        [bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), bond.GetBondTypeAsDouble()]
+        for bond in rdmol.GetBonds()
+    ])
+
+
+def rdmol_to_qcelemental(rdmol, multiplicity=1):
+    import qcelemental as qcel
+    rdmol = Chem.AddHs(rdmol)
+    if not rdmol.GetNumConformers():
+        Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True)
+
+    connectivity = get_connectivity(rdmol)
+
+    for i, atom in enumerate(rdmol.GetAtoms(), 1):
+        atom.SetAtomMapNum(i)
+    extras = {}
+    extras[OFF_SMILES_ATTRIBUTE] = Chem.MolToSmiles(rdmol,
+                                                    allBondsExplicit=True,
+                                                    allHsExplicit=True,
+                                                    )
+    geometry = np.array(rdmol.GetConformer(0).GetPositions())
+    schema = dict(symbols=[a.GetSymbol() for a in rdmol.GetAtoms()],
+                  geometry=geometry * qcel.constants.conversion_factor("angstrom", "bohr"),
+                  connectivity=connectivity if len(connectivity) else None,
+                  molecular_charge=Chem.GetFormalCharge(rdmol),
+                  molecular_multiplicity=multiplicity,
+                  extras=extras
+                  )
+    qcmol = qcel.models.Molecule.from_data(schema)
+    return qcmol
 
 
 def _rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
@@ -98,6 +152,7 @@ def generate_conformers(rdmol: "rdkit.Chem.Mol",
     rms_tolerance: float (optional)
         RMSD threshold used to prune new conformers
     """
+    Chem.SanitizeMol(rdmol)
     AllChem.EmbedMultipleConfs(rdmol, numConfs=n_conformers,
                                pruneRmsThresh=rms_tolerance,
                                useRandomCoords=True,
@@ -163,21 +218,18 @@ def compute_electrostatic_energy(rdmol: "rdkit.Chem.Mol",
 
     conformers = np.array([c.GetPositions() for c in rdmol.GetConformers()])
     distances = compute_distance_matrix(conformers)
-    print(distances)
     inverse_distances = np.reciprocal(distances,
                                       out=np.zeros_like(distances),
                                       where=~np.isclose(distances, 0))
 
     charges = np.abs(compute_mmff_charges(rdmol)).reshape(-1, 1)
     charge_products = charges @ charges.T
-    print(charge_products)
 
     excl_i, excl_j = zip(*get_exclusions(rdmol))
     charge_products[(excl_i, excl_j)] = 0.0
     charge_products[(excl_j, excl_i)] = 0.0
 
     energies = inverse_distances * charge_products
-    print(energies)
     return 0.5 * energies.sum(axis=(1, 2))
 
 
@@ -190,8 +242,8 @@ def compute_heavy_rms(rdmol: "rdkit.Chem.Mol",
     n_conformers = len(conformer_ids)
 
     rms = np.zeros((n_conformers, n_conformers))
-    for i, j in itertools.combinations(conformer_ids, 2):
-        rms[i, j] = rms[j, i] = AllChem.GetBestRMS(rdmol, rdmol, i, j)
+    for i, j in itertools.combinations(np.arange(n_conformers), 2):
+        rms[i, j] = rms[j, i] = AllChem.GetBestRMS(rdmol, rdmol, conformer_ids[i], conformer_ids[j])
     return rms
 
 
@@ -209,11 +261,11 @@ def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
     all_conformer_ids = [c.GetId() for c in rdmol.GetConformers()]
 
     sorting = np.argsort(energies)
-    window = qcel.constants.conversion_factor(
+    conversion = qcel.constants.conversion_factor(
         "(4 * pi * electric_constant) * kcal",
         "e * e / angstrom",
     )
-    window /= qcel.constants.get("avogadro constant")
+    window = energy_window * conversion / qcel.constants.get("avogadro constant")
     upper_energy = window + energies[sorting[0]]
     cutoff = np.searchsorted(energies[sorting], upper_energy)
     conformer_ids = [all_conformer_ids[i] for i in sorting[:cutoff]]
@@ -259,3 +311,18 @@ def generate_diverse_conformer_coordinates(molecule,
                                             energy_window=energy_window,
                                             limit=n_max_conformers,
                                             rms_tolerance=rms_tolerance)
+
+
+def get_sp3_ch_indices(rdmol):
+    symbols = np.array([at.GetSymbol() for at in rdmol.GetAtoms()])
+    bonds = get_connectivity(rdmol)
+    single_bonds = np.isclose(bonds[:, 2], np.ones_like(bonds[:, 2]))
+
+    groups = {}
+    for i in np.where(symbols == "C")[0]:
+        contains_index = np.any(bonds[:, :2] == i, axis=1)
+        c_bonds = bonds[contains_index & single_bonds][:, :2]
+        c_partners = c_bonds[c_bonds != i]
+        if len(c_partners) == 4:
+            groups[i] = c_partners[symbols[c_partners] == "H"]
+    return groups

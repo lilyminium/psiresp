@@ -1,10 +1,11 @@
 import itertools
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 import numpy as np
 import qcelemental as qcel
+from rdkit import Chem
 
-from . import base, qcutils
+from . import base, qcutils, rdutils
 
 
 def generate_atom_combinations(symbols: List[str]):
@@ -57,6 +58,16 @@ def generate_atom_combinations(symbols: List[str]):
 
 class BaseMolecule(base.Model):
     qcmol: qcel.models.Molecule
+    _rdmol: Optional[Chem.Mol] = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._rdmol = rdutils.rdmol_from_qcelemental(self.qcmol)
+        extras = self.qcmol.__dict__["extras"]
+        if extras is None:
+            extras = {}
+        extras[rdutils.OFF_SMILES_ATTRIBUTE] = rdutils.rdmol_to_smiles(self._rdmol)
+        self.qcmol.__dict__["extras"] = extras
 
     def qcmol_with_coordinates(self, coordinates, units="angstrom"):
         return qcutils.qcmol_with_coordinates(self.qcmol, coordinates, units=units)
@@ -85,3 +96,31 @@ class BaseMolecule(base.Model):
             return atoms
 
         return [next(atoms) for i in range(n_combinations)]
+
+    def get_smarts_matches(self, smiles):
+        if self._rdmol is None:
+            raise ValueError("Could not create a valid RDKit molecule from QCElemental molecule")
+        rdmol = Chem.Mol(self._rdmol)
+        Chem.SanitizeMol(rdmol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_SETAROMATICITY)
+        Chem.SetAromaticity(rdmol, Chem.AromaticityModel.AROMATICITY_MDL)
+
+        query = Chem.MolFromSmarts(smiles)
+        if query is None:
+            raise ValueError(f"RDKit could not parse SMARTS {smiles}")
+
+        index_to_map = {i: atom.GetAtomMapNum()
+                        for i, atom in enumerate(query.GetAtoms())
+                        if atom.GetAtomMapNum()}
+
+        map_list = sorted(index_to_map, key=index_to_map.get)
+        full_matches = rdmol.GetSubstructMatches(query, uniquify=True,
+                                                 useChirality=True)
+        matches = [tuple(match[i] for i in map_list) for match in full_matches]
+        if not map_list:
+            return full_matches
+        else:
+            matches = [tuple(match[i] for i in map_list) for match in full_matches]
+            return matches
+
+    def to_smiles(self, mapped=True):
+        return rdutils.rdmol_to_smiles(self._rdmol, mapped=mapped)

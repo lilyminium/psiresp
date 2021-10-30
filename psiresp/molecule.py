@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from pydantic import Field
 
-from . import base, orutils
+from . import base, orutils, rdutils
 from .conformer import Conformer, ConformerGenerationOptions
 from .moleculebase import BaseMolecule
 
@@ -93,6 +93,20 @@ class Molecule(BaseMolecule):
                                                                "x-axis, and the third atom defines a plane parallel to the"
                                                                "xy plane. This is indexed from 0.")
                                                   )
+
+    @classmethod
+    def from_smiles(cls, smiles, **kwargs):
+        rdmol = rdutils.rdmol_from_smiles(smiles)
+        return cls.from_rdkit(rdmol, **kwargs)
+
+    @classmethod
+    def from_rdkit(cls, molecule, **kwargs):
+        qcmol = rdutils.rdmol_to_qcelemental(molecule)
+        kwargs = dict(**kwargs)
+        kwargs["qcmol"] = qcmol
+        obj = cls(**kwargs)
+        obj._rdmol = molecule
+        return obj
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -212,6 +226,10 @@ class Molecule(BaseMolecule):
             if not len(conf.orientations):
                 conf.add_orientation_with_coordinates(conf.coordinates)
 
+    def get_atoms_from_smarts(self, smiles):
+        indices = self.get_smarts_matches(smiles)
+        return [Atom.from_molecule(self, indices=ix) for ix in indices]
+
 
 @functools.total_ordering
 class Atom(base.Model):
@@ -224,6 +242,18 @@ class Atom(base.Model):
         if not isinstance(indices, (list, tuple, np.ndarray)):
             indices = [indices]
         return [cls(molecule=molecule, index=i) for i in indices]
+
+    @property
+    def symbol(self):
+        return self.molecule.qcmol.symbols[self.index]
+
+    @property
+    def position(self):
+        return self.molecule.qcmol.geometry[self.index]
+
+    @property
+    def atomic_number(self):
+        return self.molecule.qcmol.atomic_numbers[self.index]
 
     def __hash__(self):
         return hash((self.molecule, self.index))
