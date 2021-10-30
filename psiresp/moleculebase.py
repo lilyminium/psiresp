@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional  # , TYPE_CHECKING
 
 import numpy as np
 import qcelemental as qcel
@@ -85,7 +85,7 @@ class BaseMolecule(base.Model):
     def __hash__(self):
         dct = self.dict()
         mol = dct.pop("qcmol")
-        return hash((mol.get_hash(), base._to_immutable(dct)))
+        return hash((self.qcmol.get_hash(), base._to_immutable(dct)))
 
     def __eq__(self, other):
         return hash(self) == hash(other)

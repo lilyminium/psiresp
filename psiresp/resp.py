@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -124,14 +124,13 @@ class RespCharges(BaseRespOptions):
     # def symbols(self):
     #     return np.concatenate([m.qcmol.symbols
     #                            for m in self.molecules])
-    
-    
+
     def solve(self):
         self._matrix._solve()
         self._unrestrained_charges = self._matrix._charges.flatten()
         if not self.restrained_fit or not self.resp_a:
             return
-        
+
         n_iter = 0
         while (self._matrix.charge_difference > self.convergence_tolerance
                and n_iter < self.max_iter):
@@ -143,7 +142,6 @@ class RespCharges(BaseRespOptions):
                           f"convergence_tolerance={self.convergence_tolerance} "
                           f"with max_iter={self.max_iter}")
         self._restrained_charges = self._matrix._charges.flatten()
-
 
     @property
     def restrained_charges(self):
@@ -166,5 +164,3 @@ class RespCharges(BaseRespOptions):
     @property
     def charges(self):
         return self.charge_constraints._index_array(self._charges)
-
-    

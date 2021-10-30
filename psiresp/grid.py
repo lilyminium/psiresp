@@ -18,7 +18,7 @@ from scipy.spatial import distance as spdist
 from pydantic import Field
 import qcelemental as qcel
 
-from . import vdwradii, base, psi4utils
+from . import vdwradii, base
 
 if TYPE_CHECKING:  # pragma: no cover
     import qcelemental
@@ -238,7 +238,7 @@ class GridOptions(base.Model):
                                      "QCElemental molecule, "
                                      "QCFractal ResultRecord, "
                                      "or OpenFF Toolkit Molecule.")
-        
+
         bohr2angstrom = qcel.constants.conversion_factor("bohr", "angstrom")
         coordinates = molecule.geometry * bohr2angstrom
         grid = self._generate_vdw_grid(molecule.symbols, coordinates)

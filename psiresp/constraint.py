@@ -5,9 +5,6 @@ import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
 
-from numpy.testing import assert_allclose
-import qcelemental as qcel
-
 from . import base
 
 

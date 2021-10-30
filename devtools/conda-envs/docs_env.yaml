@@ -18,7 +18,7 @@ dependencies:
   - ipython
   - jupyter
   - numpy
-  - openff-toolkit-base
+  # - openff-toolkit-base
   - pip
   - python<=3.7
   - qcelemental==0.22.0

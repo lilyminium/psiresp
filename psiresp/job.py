@@ -4,7 +4,7 @@ import itertools
 import logging
 
 import tqdm
-from pydantic import Field, validator, root_validator
+from pydantic import Field  # , validator, root_validator
 import numpy as np
 import scipy.linalg
 
