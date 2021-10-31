@@ -193,6 +193,6 @@ class SparseGlobalConstraintMatrix(base.Model):
 
         self.a = self._original_a.copy()
 
-        print(self._array_mask[0].shape, increment.shape)
-        self.a[self._array_mask] += increment.flatten()
+        a_shape = self.a[self._array_mask].shape
+        self.a[self._array_mask] += increment.reshape(a_shape)
         self._solve()
