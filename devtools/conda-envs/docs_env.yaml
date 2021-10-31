@@ -25,7 +25,7 @@ dependencies:
 
   # deps
   - rdkit
-  - scipy
+  - scipy >= 1.4
 
   # weird mamba mismatch
   - h5py<3.2

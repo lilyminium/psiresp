@@ -27,8 +27,8 @@ class TestSingleResp:
                  -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]]
         esp_2 = [[-0.39199538, 0.15716631, 0.15716631, 0.15716631, 0.35743529,
                  -0.5085439, -0.43701446, 0.16953984, 0.16953984, 0.16953984]]
-        assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1)
-        assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2)
+        assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
+        assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
 
     # @pytest.mark.slow
     def test_restrained(self, dmso, fractal_client):
@@ -98,8 +98,8 @@ class TestMultiRespFast:
             for conf in mol.conformers:
                 for orient in conf.orientations:
                     fname = orient.qcmol.get_hash()
-                    assert_allclose(orient.grid, job_grids[fname])
-                    assert_allclose(orient.esp, job_esps[fname])
+                    assert_allclose(orient.grid, job_grids[fname], atol=1e-7)
+                    assert_allclose(orient.esp, job_esps[fname], atol=1e-7)
 
         job.compute_charges()
         charges = np.concatenate(job.charges)
