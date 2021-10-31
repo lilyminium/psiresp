@@ -26,10 +26,16 @@ class Orientation(BaseMolecule):
     qc_wavefunction: Optional[QCWaveFunction] = None
     grid: Optional[np.ndarray] = None
     esp: Optional[np.ndarray] = None
-    energy: Optional[float] = None
 
     _constraint_matrix: Optional[ESPSurfaceConstraintMatrix] = None
     _qc_id: Optional[int] = None
+
+    @property
+    def energy(self):
+        try:
+            return self.qc_wavefunction.energy
+        except AttributeError:
+            return None
 
     def compute_grid(self, grid_options: GridOptions = GridOptions()):
         self.grid = grid_options.generate_grid(self.qcmol)
@@ -41,7 +47,6 @@ class Orientation(BaseMolecule):
     def compute_esp_from_record(self, record):
         self.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
         self.compute_esp()
-        self.energy = record.properties.return_energy
 
     @property
     def constraint_matrix(self):

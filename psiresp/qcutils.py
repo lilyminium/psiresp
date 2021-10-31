@@ -39,7 +39,6 @@ def reconstruct_wavefunction(qcrecord):
     WFN_PROPS = ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
     dct = qcrecord.get_wavefunction(WFN_PROPS)
     dct.update(qcrecord.wavefunction["return_map"])
-    print(dct)
     qcwfn = WavefunctionProperties(**dct)
     return qcwfn
 
@@ -100,6 +99,14 @@ class QCWaveFunction(BaseMolecule):
     n_alpha: int
     energy: float
     basis: str
+
+    @classmethod
+    def from_atomicresult(cls, result):
+        return cls(qc_wavefunction=result.wavefunction,
+                   qcmol=result.molecule,
+                   n_alpha=result.properties.calcinfo_nalpha,
+                   basis=result.model.basis,
+                   energy=result.properties.return_energy)
 
     @classmethod
     def from_qcrecord(cls, qcrecord):

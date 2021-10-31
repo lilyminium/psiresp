@@ -76,6 +76,7 @@ and second stage respectively. The typical method and basis set are
 "hg/6-31g*", but we go with "b3lyp/sto-3g" here to save time.
 
 .. ipython:: python
+    :okwarning:
 
     geometry_options = psiresp.QMGeometryOptimizationOptions(
         method="b3lyp", basis="sto-3g")
@@ -209,4 +210,14 @@ needs the address of the server: ::
 Running QM jobs manually
 ------------------------
 
-sdf
+However, it may not always be possible to keep a server running;
+for example, you may have low walltime limits, or may not be able
+to communicate between nodes, or may simply not have the resources
+to do all the computation on one machine. In that case, PsiRESP
+will write out job inputs for you.
+
+To trigger this behaviour, pass ``client=None`` into the job. ::
+
+    job.run()
+
+

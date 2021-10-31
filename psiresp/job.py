@@ -49,7 +49,7 @@ class Job(base.Model):
     )
 
     working_directory: str = Field(
-        default="working_directory",
+        default="psiresp_working_directory",
         description="Working directory for saving intermediate files"
     )
 
@@ -106,30 +106,22 @@ class Job(base.Model):
             clear = not mol.keep_original_orientation
             mol.generate_orientations(clear_existing_orientations=clear)
 
-    def optimize_geometries(self, client=None):
+    def optimize_geometries(self, client=None, **kwargs):
         """Compute optimized geometries"""
         conformers = [conformer
                       for mol in self.molecules
                       for conformer in mol.conformers
                       if mol.optimize_geometry and not conformer.is_optimized]
-        if client is not None:
-            qcmols = [conf.qcmol for conf in conformers]
-            ids = self.qm_optimization_options.add_compute(client, qcmols).ids
-            for conf, id_ in zip(conformers, ids):
-                conf._qc_id = id_
-            results = self.qm_optimization_options.wait_for_results(client,
-                                                                    response_ids=ids)
-            for conf, record in zip(conformers, results):
-                conf.set_optimized_geometry(record.get_final_molecule().geometry, units="bohr")
+        qcmols = [conf.qcmol for conf in conformers]
 
-        elif len(conformers):
-            import sys
-            for conf in conformers:
-                self.qm_optimization_options.write_psi4_input(conf.qcmol,
-                                                              working_directory=self.working_directory)
-            sys.exit()
+        results = self.qm_optimization_options.run(client=client,
+                                                   qcmols=qcmols,
+                                                   working_directory=self.working_directory,
+                                                   **kwargs)
+        for conf, geometry in zip(conformers, results):
+            conf.set_optimized_geometry(geometry)
 
-    def compute_orientation_energies(self, client=None):
+    def compute_orientation_energies(self, client=None, **kwargs):
         """Compute wavefunction for each orientation"""
         orientations = [orientation
                         for mol in self.molecules
@@ -137,18 +129,12 @@ class Job(base.Model):
                         for orientation in conformer.orientations
                         if orientation.qc_wavefunction is None]
         qcmols = [o.qcmol for o in orientations]
-        if client is not None:
-            ids = self.qm_esp_options.add_compute(client, qcmols).ids
-            for orientation, id_ in zip(orientations, ids):
-                orientation._qc_id = int(id_)
-
-            results = self.qm_esp_options.wait_for_results(client, response_ids=ids)
-            # set up progress bar
-            tqorientations = tqdm.tqdm(orientations,
-                                       desc="qcwavefunction-construction")
-            for orient, record in zip(tqorientations, results):
-                orient.energy = record.properties.return_energy
-                orient.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
+        results = self.qm_esp_options.run(client=client,
+                                          qcmols=qcmols,
+                                          working_directory=self.working_directory,
+                                          **kwargs)
+        for orient, wfn in zip(orientations, results):
+            orient.qc_wavefunction = wfn
 
     def compute_esps(self):
         """Compute ESP on a grid for each orientation in a multiprocessing pool"""

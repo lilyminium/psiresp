@@ -11,6 +11,7 @@ from qcfractal.interface.models.records import RecordStatusEnum
 from pydantic import Field
 
 from .base import Model
+from .qcutils import QCWaveFunction
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -41,7 +42,8 @@ G_CONVERGENCES = [
 
 QMMethod = Literal[(*METHODS,)]
 QMBasisSet = Literal[(*BASIS_SETS,)]
-QMSolvent = Optional[Literal[(*SOLVENTS,)]]
+Solvent = Literal[(*SOLVENTS,)]
+QMSolvent = Optional[Solvent]
 QMGConvergence = Literal[(*G_CONVERGENCES,)]
 
 
@@ -161,12 +163,36 @@ class BaseQMOptions(Model):
     def wait_for_results(self, client, response_ids=[]):
         raise NotImplementedError
 
-    def write_input(self, qcmol, working_directory="."):
-        name = qcmol.name if qcmol.name else qcmol.get_molecular_formula()
-        cwd = pathlib.Path(working_directory) / name
-        cwd.mkdir(exist_ok=True, parents=True)
+    def run(self,
+            client: Optional[ptl.FractalClient] = None,
+            qcmols: List[qcel.models.Molecule] = [],
+            working_directory=".",
+            **kwargs):
+        if not qcmols:
+            return []
+        if not client:
+            results = self.manage_external_output(qcmols, working_directory, **kwargs)
+            return self.postprocess_atomic_results(results)
+        records = self.add_compute_and_wait(client, qcmols=qcmols, **kwargs)
+        return self.postprocess_qcrecords(records)
 
-        compute = qcel.models.AtomicInput(
+    def postprocess_atomic_results(self, results=[]):
+        return [self._postprocess_result(r) for r in results]
+
+    def postprocess_qcrecords(self, records=[]):
+        return [self._postprocess_record(r) for r in records]
+
+    def _postprocess_result(self, result):
+        raise NotImplementedError
+
+    def _postprocess_record(self, record):
+        raise NotImplementedError
+
+    def write_input(self, qcmol, working_directory=".", **kwargs):
+        infile = self.get_job_file_for_molecule(qcmol,
+                                                working_directory=working_directory,
+                                                make_directory=True)
+        spec = dict(
             model=dict(method=self.method,
                        basis=self.basis),
             driver=self.driver,
@@ -174,18 +200,91 @@ class BaseQMOptions(Model):
             protocols=self.protocols,
             molecule=qcmol,
         )
+        spec.update(kwargs)
 
-        infile = cwd / f"{self.filename}_{self._generate_id(qcmol)}.msgpack"
+        compute = qcel.models.AtomicInput(**spec)
         with infile.open() as f:
             f.write(compute.serialize("msgpack-ext"))
+        logger.debug(f"Wrote to {infile}")
+        return infile
 
-    def read_input(self, qcmol, working_directory="."):
+    def manage_external_output(self, qcmols: List[qcel.models.Molecule],
+                               working_directory=".", **kwargs):
+        results = []
+        to_execute = []
+        errors = []
+        for qcmol in qcmols:
+            try:
+                result, path = self.read_output(qcmol,
+                                                working_directory=working_directory,
+                                                return_path=True)
+            except FileNotFoundError:
+                path = self.write_input(qcmol, working_directory, **kwargs)
+                to_execute.append(path)
+            else:
+                if not result.get("success"):
+                    error_data = result.get("error")
+                    if error_data:
+                        error_message = error_data.get("error_message", error_data)
+                        error_type = error_data.get("error_type", "Nonspecific")
+                        errors.append(f"{error_type} error for {path}: {error_message}")
+                    else:
+                        to_execute.append(path)
+                else:
+                    results.append(result)
+        if to_execute:
+            logger.debug(f"{len(to_execute)} calculations remaining")
+            lines = [f"psi4 --qcschema {path}" for path in to_execute]
+            runfile = self.get_run_file(working_directory)
+            with runfile.open() as f:
+                f.write("\n".join(lines))
+            logger.debug(f"Wrote to {runfile}")
+
+        if errors:
+            raise ValueError(f"Found {len(errors)} errors", *errors)
+
+        if to_execute:
+            raise SystemExit("Exiting to allow running QM computations; "
+                             f"commands are in {runfile}")
+        return results
+
+    def read_output(self, qcmol, working_directory=".",
+                    return_path=False):
+        infile = self.get_job_file_for_molecule(qcmol,
+                                                working_directory=working_directory,
+                                                make_directory=False)
+        if not infile.exists():
+            raise FileNotFoundError(f"Expected file not found: {infile}")
+        with infile.open() as f:
+            content = f.read()
+        data = qcel.util.deserialize(content, "msgpack")
+        if data["model"]["basis"] == "":
+            data["model"]["basis"] = None
+        if "provenance" not in data:
+            data["provenance"] = {}
+        for kw in ("memory", "nthreads"):
+            if kw in data:
+                data["provenance"][kw] = data[kw]
+        data.pop("return_output", None)
+        result = qcel.models.AtomicResult(**data)
+        if return_path:
+            return result, infile
+        return result
+
+    def get_job_file_for_molecule(self, qcmol, working_directory=".",
+                                  make_directory=False):
+        cwd = pathlib.Path(working_directory) / self.jobname
+        if make_directory:
+            cwd.mkdir(exist_ok=True, parents=True)
+
         name = qcmol.name if qcmol.name else qcmol.get_molecular_formula()
-        cwd = pathlib.Path(working_directory) / name
-        infile = cwd / f"{self.filename}_{self._generate_id(qcmol)}.msgpack"
+        id_ = hash(qcmol.get_hash(), self._generate_spec_hash())
+        filename = f"{name}_{id_}.msgpack"
+        return cwd / filename
 
-    def _generate_id(self, qcmol):
-        return hash(qcmol.get_hash(), self._generate_spec_hash())
+    def get_run_file(self, working_directory="."):
+        cwd = pathlib.Path(working_directory) / self.jobname
+        return cwd / f"run_{self.jobname}.sh"
 
     def _generate_spec_hash(self):
         kw_str = [k.lower() + str(v).lower() for k, v in self.generate_keywords().items()]
@@ -203,7 +302,7 @@ class BaseQMOptions(Model):
 
 class QMGeometryOptimizationOptions(BaseQMOptions):
 
-    filename = "optimization"
+    jobname = "optimization"
 
     g_convergence: QMGConvergence = "gau_tight"
     driver: str = "gradient"
@@ -249,15 +348,27 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
                        working_directory=working_directory)
         return results
 
+    def _postprocess_result(self, result):
+        return result.return_result
+
+    def _postprocess_record(self, record):
+        return record.get_final_molecule().geometry
+
 
 class QMEnergyOptions(BaseQMOptions):
-    filename = "single_point"
+    jobname = "single_point"
 
     def wait_for_results(self, client, response_ids=[]):
         results = wait(client, response_ids=response_ids,
                        query_interval=self.query_interval,
                        query_target="results")
         return results
+
+    def _postprocess_result(self, result):
+        return QCWaveFunction.from_atomicresult(result)
+
+    def _postprocess_record(self, record):
+        return QCWaveFunction.from_qcrecord(record)
 
 
 def wait(client, response_ids=[], query_interval=20, query_target="results",

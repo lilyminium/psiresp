@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Optional, Type, Union, no_type_check
+from typing import Any, Optional, Union, no_type_check
 
 import numpy as np
 from pydantic import BaseModel
