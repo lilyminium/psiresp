@@ -1,7 +1,7 @@
 name: test
 channels:
-  - defaults
   - conda-forge
+  - defaults
   - psi4
 
 dependencies:
