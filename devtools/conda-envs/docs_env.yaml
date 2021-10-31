@@ -12,13 +12,14 @@ dependencies:
   # other qm
   - geometric
 
-  # - h5py<3.2
+  - h5py<3.2
 
   # docs
   - ipython
   - jupyter
   - numpy
   # - openff-toolkit-base
+  - postgresql >= 13.0
   - pip
   - python<=3.7
   - qcelemental==0.22.0

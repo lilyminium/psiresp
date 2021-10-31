@@ -103,7 +103,7 @@ class TestMoleculeChargeConstraints:
         assert len(constraints.charge_sum_constraints) == 2
         assert len(constraints.charge_equivalence_constraints) == 2
 
-        surface_constraints = job.construct_molecule_constraint_matrix()
+        surface_constraints = job.construct_surface_constraint_matrix()
         matrix = SparseGlobalConstraintMatrix.from_constraints(surface_constraints,
                                                                constraints)
 

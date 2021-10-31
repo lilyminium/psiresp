@@ -20,7 +20,7 @@ dependencies:
   - numpy
   # - openff-toolkit-base
   - pip
-  # - postgresql >= 13.0
+  - postgresql >= 13.0
   - qcelemental==0.22.0
   - qcengine
   - qcfractal
