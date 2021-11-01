@@ -29,6 +29,7 @@ and the Automated Topology Builder.
    usage
    examples/README
    molecule
+   charge_constraints
    hpc
    api
    references

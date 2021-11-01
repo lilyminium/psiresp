@@ -153,19 +153,18 @@ class TestMultiRespFast:
                 for orient in conf.orientations:
                     assert orient._rdmol is not None
 
-        print(job_multi.charges)
-
-        methylammonium_charges = [-0.0776282, -0.2124033, 0.1114198, 0.1114198,
-                                  0.1114198, 0.3200194, 0.3180008, 0.3177518]
-        nme2ala2_charges = [-0.57857742, 0.63225115, -0.38323469, -0.6404039, 0.60611331,
-                            -0.48575704, -0.52428381, 0.18483012, -0.14657340, -0.30167182,
-                            -0.28333847, 0.1454854, 0.14548537, 0.14548537, 0.27687737,
-                            0.12651121, 0.12651121, 0.12651121, 0.12651121, 0.12651121,
-                            0.12651121, 0.18205462, 0.08873020, 0.08873020, 0.08873020]
+        methylammonium_charges = [-0.06001345, -0.22979250, 0.10515992, 0.10515992,
+                                  0.10515992, 0.32376068, 0.32504629, 0.32551918]
+        nme2ala2_charges = [-0.53927345, 0.65999748, -0.40616484, -0.65799321,
+                            0.43723864, -0.51094749, -0.50473798, 0.42208482,
+                            -0.31599851, -0.41240110, -0.34369158, 0.13563889,
+                            0.13563889, 0.13563889, 0.281051, 0.12591998,
+                            0.12591998, 0.12591998, 0.12591998, 0.12591998,
+                            0.12591998, 0.27903047, 0.14978971, 0.14978971, 0.14978971]
         assert_allclose(job_multi.charges[0],
-                        methylammonium_charges, atol=5e-2)
+                        methylammonium_charges, atol=1e-7)
         assert_allclose(job_multi.charges[1],
-                        nme2ala2_charges, atol=5e-2)
+                        nme2ala2_charges, atol=1e-7)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
         nme2ala2.optimize_geometry = True

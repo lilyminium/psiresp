@@ -1,13 +1,13 @@
 """
-VdW grid options --- :mod:`psiresp.mixins.grid`
+VdW grid options --- :mod:`psiresp.grid`
 ===============================================
 
 This module contains options and code for generating van der Waals'
 Connolly shells around the molecule. Users should not typically
 interact with the methods on this class themselves, but instead simply
-set the options and call :meth:`psiresp.resp.Resp.run`.
+set the options and call :meth:`psiresp.job.Job.run`.
 
-.. autoclass:: piresp.mixins.grid.GridOptions
+.. autoclass:: psiresp.grid.GridOptions
     :members:
 """
 

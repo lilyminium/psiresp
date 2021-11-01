@@ -11,7 +11,12 @@ from psiresp.molecule import Atom, Molecule
 
 @functools.total_ordering
 class BaseChargeConstraint(base.Model):
-    atoms: Set[Atom] = set()
+    """Base class for charge constraints"""
+
+    atoms: Set[Atom] = Field(
+        default_factory=set,
+        description="Atoms involved in the constraint"
+    )
 
     @classmethod
     def from_molecule(cls, molecule, indices=[], **kwargs):
@@ -60,6 +65,12 @@ class BaseChargeConstraint(base.Model):
 
 
 class ChargeSumConstraint(BaseChargeConstraint):
+    """Constrain a group of atoms to a specified charge.
+
+    If this constraint is applied, then the sum of the partial atomic
+    charges of the specified atoms must sum to the given charge.
+    """
+
     charge: float = Field(default=0,
                           description="Specified charge")
 
@@ -91,20 +102,10 @@ class ChargeSumConstraint(BaseChargeConstraint):
 
 
 class ChargeEquivalenceConstraint(BaseChargeConstraint):
+    """Constrain a group of atoms to each have equivalent charge.
 
-    # @functools.lru_cache
-    # def to_sparse_row_constraint(self, n_dim: int,
-    #                              molecule_increments: Dict[Molecule, int] = {}):
-    #     n_items = len(self) - 1
-    #     ones = np.ones(n_items)
-    #     row = np.tile(np.arange(n_items, dtype=int), 2)
-    #     indices = self.get_atom_indices(molecule_increments)
-    #     col = np.concatenate([indices[:-1], indices[1:]])
-
-    #     return scipy.sparse.coo_matrix(
-    #         (np.concatenate([-ones, ones]), (row, col)),
-    #         shape=(n_items, n_dim)
-    #     )
+    This must contain at least 2 atoms or it doesn't make sense.
+    """
 
     def to_row_constraint(self, n_dim: int,
                           molecule_increments: Dict[Molecule, int] = {}):
@@ -228,8 +229,17 @@ class BaseChargeConstraintOptions(base.Model):
 
 
 class ChargeConstraintOptions(BaseChargeConstraintOptions):
-    symmetric_methyls: bool = True
-    symmetric_methylenes: bool = True
+    """Options for setting charge constraints and charge equivalence constraints."""
+    symmetric_methyls: bool = Field(
+        default=True,
+        description=("Whether to constrain methyl hydrogens around "
+                     "an sp3 carbon to equivalent charge")
+    )
+    symmetric_methylenes: bool = Field(
+        default=True,
+        description=("Whether to constrain methylene hydrogens around "
+                     "a carbon to equivalent charge")
+    )
 
 
 class MoleculeChargeConstraints(BaseChargeConstraintOptions):
@@ -251,7 +261,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         self._n_molecule_atoms = np.cumsum(np.r_[0, n_atoms])
         self._molecule_increments = {}
         for mol, i in zip(self.molecules, self._n_molecule_atoms):
-            self._molecule_increments[hash(mol)] = i  # dict(zip(self.molecules, self._n_molecule_atoms))
+            self._molecule_increments[hash(mol)] = i
         self._edges = list(zip(self._n_molecule_atoms[:-1],
                                self._n_molecule_atoms[1:]))
 
@@ -291,7 +301,17 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         b = [constr.charge for constr in self.charge_sum_constraints]
         return np.array(b)
 
-    def add_constraints_from_charges(self, charges):
+    def add_constraints_from_charges(self, charges: np.ndarray):
+        """Add ChargeSumConstraints restraining atoms to the given charges,
+        if they are not in existing charge equivalence constraints,
+        and not in ``self.unconstrained_atoms``.
+
+        Parameters
+        ----------
+        charges: np.ndarray of floats
+            Charges of atoms. This should be at least as long as the
+            total number of atoms in ``self.molecules``
+        """
         unconstrained_atoms = [atom
                                for eqv in self.charge_equivalence_constraints
                                for atom in eqv.atoms]
@@ -325,8 +345,17 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     def _index_array(self, array):
         return [array[i:j] for i, j in self._edges]
 
-    def add_sp3_equivalences(self, accepted_n_hs=(2, 3)):
+    def add_sp3_equivalences(self, accepted_n_hs: Tuple[int, ...] = (2, 3)):
         """
+        Add ChargeEquivalenceConstraints for the hydrogens attached to sp3 carbons
+
+        This will add methyls if 2 is in ``accepted_n_hs``, and
+        and methylenes if 3 is in ``accepted_n_hs``.
+
+        Parameters
+        ----------
+        accepted_n_hs:
+            Number of Hs around a carbon to symmetrize
         """
         for mol in self.molecules:
             try:
