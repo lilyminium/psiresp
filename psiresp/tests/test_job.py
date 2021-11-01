@@ -136,9 +136,10 @@ class TestMultiRespFast:
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
         geometry_options = psiresp.QMGeometryOptimizationOptions(
-            method="b3lyp", basis="sto-3g")
+            # method="b3lyp", basis="sto-3g",
+        )
         esp_options = psiresp.QMEnergyOptions(
-            method="b3lyp", basis="sto-3g",
+            # method="b3lyp", basis="sto-3g",
         )
 
         job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
@@ -151,6 +152,8 @@ class TestMultiRespFast:
             for conf in mol.conformers:
                 for orient in conf.orientations:
                     assert orient._rdmol is not None
+
+        print(job_multi.charges)
 
         methylammonium_charges = [-0.0776282, -0.2124033, 0.1114198, 0.1114198,
                                   0.1114198, 0.3200194, 0.3180008, 0.3177518]
