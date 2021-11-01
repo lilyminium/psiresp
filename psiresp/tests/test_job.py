@@ -136,10 +136,10 @@ class TestMultiRespFast:
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
         geometry_options = psiresp.QMGeometryOptimizationOptions(
-            # method="b3lyp", basis="sto-3g",
+            method="b3lyp", basis="sto-3g",
         )
         esp_options = psiresp.QMEnergyOptions(
-            # method="b3lyp", basis="sto-3g",
+            method="b3lyp", basis="sto-3g",
         )
 
         job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],

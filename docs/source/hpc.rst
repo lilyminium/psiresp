@@ -138,7 +138,7 @@ as the job will look there for files. The filenames should
 also not be changed; they are formatted ``{name}_{molecular_hash}_{qm_hash}``,
 where the ``name`` is either the name assigned to the QCElemental molecule
 or its molecular formula; ``molecular_hash`` is the deterministic
-and geometry-dependent ``QCElemental hash``_ ; and ``qm_hash`` is the
+and geometry-dependent `QCElemental hash`_ ; and ``qm_hash`` is the
 deterministic hash of the QM options used for the calculation. 
 
 .. _`QCElemental hash`: https://docs.qcarchive.molssi.org/projects/QCElemental/en/stable/model_molecule.html#molecular-hash
