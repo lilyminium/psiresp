@@ -1,6 +1,7 @@
 from typing import Optional, List
 import multiprocessing
 import itertools
+import pathlib
 import logging
 
 import tqdm
@@ -49,7 +50,7 @@ class Job(base.Model):
     )
 
     working_directory: str = Field(
-        default="psiresp_working_directory",
+        default=pathlib.Path("psiresp_working_directory"),
         description="Working directory for saving intermediate files"
     )
 
@@ -92,6 +93,15 @@ class Job(base.Model):
     @property
     def n_conformers(self):
         return sum(len(mol.conformers) for mol in self.molecules)
+
+    def iter_conformers(self):
+        for mol in self.molecules:
+            yield from mol.conformers
+
+    def iter_orientations(self):
+        for mol in self.molecules:
+            for conf in mol.conformers:
+                yield from conf.orientations
 
     def generate_conformers(self):
         """Generate conformers for every molecule"""

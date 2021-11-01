@@ -1,35 +1,18 @@
 
-
-import pytest
-import numpy as np
 import qcelemental as qcel
 from numpy.testing import assert_allclose
 
-from psiresp.tests.datafiles import (DMSO, DMSO_ESP, DMSO_RINV,
-                                     DMSO_O1, DMSO_O1_ESP, DMSO_O1_RINV,
-                                     DMSO_O2, DMSO_O2_ESP, DMSO_O2_RINV,
-                                     )
-# from psiresp.tests.base import (coordinates_from_xyzfile,
-#                                 psi4mol_from_xyzfile,
-#                                 orientation_from_psi4mol,
-#                                 esp_from_gamess_file
-#                                 )
+from psiresp.tests.datafiles import DMSO, DMSO_ESP
 
 from psiresp.orientation import Orientation
 from psiresp.qm import QMEnergyOptions
 from psiresp.tests.utils import load_gamess_esp
 
 
-# @pytest.mark.slow
-@pytest.mark.parametrize("coord_file, esp_file", [
-    (DMSO, DMSO_ESP),
-    # (DMSO_O1, DMSO_O1_ESP),
-    # (DMSO_O2, DMSO_O2_ESP),
-])
-def test_compute_esp(coord_file, esp_file, fractal_client):
+def test_compute_esp_regression(fractal_client):
     # setup
-    qcmol = qcel.models.Molecule.from_file(coord_file)
-    ref = load_gamess_esp(esp_file)
+    qcmol = qcel.models.Molecule.from_file(DMSO)
+    ref = load_gamess_esp(DMSO_ESP)
     ref_grid = ref[:, 1:]
     ref_esp = ref[:, 0]
     orientation = Orientation(qcmol=qcmol, grid=ref_grid)
@@ -45,3 +28,16 @@ def test_compute_esp(coord_file, esp_file, fractal_client):
     orientation.compute_esp_from_record(record)
     assert_allclose(orientation.esp, ref_esp, atol=1e-07)
     assert orientation.energy < 0
+
+
+def test_compute_esp(methylammonium, fractal_client, job_grids, job_esps):
+    orientation = methylammonium.conformers[0].orientations[0]
+    mol_ids = fractal_client.add_molecules([orientation.qcmol])
+    record = fractal_client.query_results(id=mol_ids)[0]
+
+    fname = orientation.qcmol.get_hash()
+    orientation.compute_grid()
+    assert_allclose(orientation.grid, job_grids[fname])
+
+    orientation.compute_esp_from_record(record)
+    assert_allclose(orientation.esp, job_esps[fname])

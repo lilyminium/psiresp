@@ -1,4 +1,6 @@
 import inspect
+import hashlib
+import json
 from typing import Any, Optional, Union, no_type_check
 
 import numpy as np
@@ -45,8 +47,13 @@ class Model(BaseModel):
                     return object.__setattr__(self, propname, value)
             raise e
 
+    def get_hash(self):
+        mash = hashlib.sha1()
+        mash.update(self.json().encode("utf-8"))
+        return mash.hexdigest()
+
     def __hash__(self):
-        return hash(_to_immutable(self.dict()))
+        return hash(self.get_hash())
 
     def __eq__(self, other):
         try:

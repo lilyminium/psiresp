@@ -27,10 +27,10 @@ and the Automated Topology Builder.
 
    installation
    usage
+   examples/README
    molecule
    hpc
    api
-   io
    references
    
 

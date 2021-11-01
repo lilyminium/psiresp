@@ -172,6 +172,7 @@ class GridOptions(base.Model):
         spheres = self.generate_connolly_spheres(radii)
         shell = spheres + coordinates.reshape((-1, 1, 3))  # n_atoms, n_points, 3
         shell_points = np.concatenate(shell)
+        # shell_points = shell_points[~np.isnan(shell_points)]
 
         # we want to ignore self-to-self false negatives
         # so we mask all distances calculated from an atom's sphere to the atom
@@ -182,6 +183,7 @@ class GridOptions(base.Model):
         x = np.arange(len(shell_points))
 
         distances = spdist.cdist(shell_points, coordinates)  # n_points, n_atoms
+        distances[np.isnan(distances)] = -1
         within_bounds = (distances >= inner_bound) & (distances <= outer_bound)
         within_bounds[(x, y)] = True
         inside = np.all(within_bounds, axis=1)

@@ -112,8 +112,6 @@ class QCWaveFunction(BaseMolecule):
     def from_qcrecord(cls, qcrecord):
         WFN_PROPS = ["scf_eigenvalues_a", "scf_orbitals_a", "basis", "restricted"]
         dct = qcrecord.get_wavefunction(WFN_PROPS)
-        # for k in ["orbitals_a", "eigenvalues_a"]:
-        #     dct[k] = qcrecord.wavefunction["return_map"][k]
         dct.update(qcrecord.wavefunction["return_map"])
         qcwfn = qcel.models.results.WavefunctionProperties(**dct)
 

@@ -188,11 +188,12 @@ class Molecule(BaseMolecule):
 
     def generate_conformers(self):
         """Generate conformers"""
-        coords = self.conformer_generation_options.generate_coordinates(self.qcmol)
-        for coord in coords:
-            self.add_conformer_with_coordinates(coord)
         if not self.conformers:
-            self.add_conformer_with_coordinates(self.coordinates)
+            coords = self.conformer_generation_options.generate_coordinates(self.qcmol)
+            for coord in coords:
+                self.add_conformer_with_coordinates(coord)
+            if not self.conformers:
+                self.add_conformer_with_coordinates(self.coordinates)
 
     def add_conformer(self, conformer=None, **kwargs):
         if conformer is not None and isinstance(conformer, Conformer):

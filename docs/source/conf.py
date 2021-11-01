@@ -18,6 +18,7 @@
 import psiresp
 import os
 import sys
+from ipywidgets.embed import DEFAULT_EMBED_REQUIREJS_URL
 
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -37,7 +38,6 @@ release = '0.1-unstable'
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -54,10 +54,11 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx_sitemap',
     'sphinx_rtd_theme',
-    'myst_parser',
+    # 'myst_parser',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'sphinxcontrib.autodoc_pydantic',
+    'nbsphinx'
 ]
 
 mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
@@ -186,13 +187,17 @@ texinfo_documents = [
 
 # -- Extension configuration -------------------------------------------------
 
-intersphinx_mapping = {'https://docs.python.org/': None,
-                       'https://docs.scipy.org/doc/numpy/': None,
+intersphinx_mapping = {'https://docs.python.org/3': None,
+                       'https://numpy.org/doc/stable/': None,
                        'https://docs.scipy.org/doc/scipy/reference/': None,
                        'https://matplotlib.org': None,
                        'https://www.rdkit.org/docs/': None,
                        'https://docs.mdanalysis.org/stable/': None,
-                       'https://www.psicode.org/psi4manual/master/': None,
+                       'https://psicode.org/psi4manual/master/': None,
+                       'https://networkx.org/documentation/stable/': None,
+                       'https://www.rdkit.org/docs/': None,
+                       'https://docs.qcarchive.molssi.org/projects/QCFractal/en/stable/': None,
+                       'https://docs.qcarchive.molssi.org/projects/QCElemental/en/stable/': None,
                        }
 
 ipython_warning_is_error = False
@@ -213,3 +218,5 @@ nbsphinx_prolog = r"""
     <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
     <script>require=requirejs;</script>
 """
+
+html_js_files = []

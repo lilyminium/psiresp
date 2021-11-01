@@ -1,0 +1,49 @@
+# these are the general settings
+# they can be overwritten for each molecule
+# please see the Resp documentation for
+# explanation of each of the options
+
+# the file does not need to be in any particular order
+# but has been organized in conceptual groups
+name: dmso
+
+# IO options
+load_input: false
+save_output: true
+
+# QM options
+qm_method: hf
+qm_basis_set: 6-31g*
+solvent: null
+execute_qm: true
+
+# ESP grid options
+grid_rmin: 0
+grid_rmax: -1
+use_radii: msk
+vdw_scale_factors: [1.4, 1.6, 1.8, 2.0]
+vdw_point_density: 1.0
+
+# RESP fit options
+restrained: true
+hyp_a1: 0.0005
+hyp_a2: 0.001
+hyp_b: 0.1
+stage_2: true
+ihfree: true
+
+# molecule options
+molfile: dmso_opt_c1.xyz
+charge: 0
+multiplicity: 1
+max_generated_conformers: 8
+min_conformer_rmsd: 1.5
+minimize_conformer_geometries: true
+keep_original_resp_geometry: false
+
+conformer_options:
+  optimize_geometry: true
+  n_reorientations: 8 # creates 8 rigid-body-reorientations automatically
+  rotations: # creates 2 rigid-body-rotations as specified
+    - [1, 5, 6]
+    - [6, 5, 1]

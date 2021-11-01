@@ -38,3 +38,17 @@ def test_smarts_unlabeled():
     assert len(methyl_atoms[0]) == 4
     symbols = [at.symbol for at in methyl_atoms[0]]
     assert_equal(symbols, ["C", "H", "H", "H"])
+
+
+@pytest.mark.parametrize("insmiles, outsmiles", [
+    ("C[NH3+]", "[C:1](-[N+:2](-[H:6])(-[H:7])-[H:8])(-[H:3])(-[H:4])-[H:5]"),
+    ("CC(=O)NC(C)(C)C(NC)=O", ("[C:1](-[C:2](=[O:3])-[N:4](-[C:5]"
+                               "(-[C:6](-[H:16])(-[H:17])-[H:18])"
+                               "(-[C:7](-[H:19])(-[H:20])-[H:21])-"
+                               "[C:8](-[N:9](-[C:10](-[H:23])(-[H:24])"
+                               "-[H:25])-[H:22])=[O:11])-[H:15])(-[H:12])"
+                               "(-[H:13])-[H:14]"))
+])
+def to_smiles(insmiles, outsmiles):
+    mol = psiresp.Molecule.from_smiles(insmiles)
+    assert mol.to_smiles() == outsmiles

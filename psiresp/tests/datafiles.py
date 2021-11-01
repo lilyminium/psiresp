@@ -1,32 +1,32 @@
 from pkg_resources import resource_filename
 
-# from .utils import datafile
+# from .utils import datapath
 
 
-def datafile(path):
+def datapath(path):
     return resource_filename(__name__, f"data/{path}")
 
 
-POSTGRES_SERVER_BACKUP = datafile("database.psql")
+POSTGRES_SERVER_BACKUP = datapath("database.psql")
 
-DMSO = datafile("molecules/dmso_opt_c1.xyz")
-DMSO_O1 = datafile("molecules/dmso_opt_c1_o1.xyz")
-DMSO_O2 = datafile("molecules/dmso_opt_c1_o2.xyz")
-DMSO_O3 = datafile("molecules/dmso_opt_c1_o3.xyz")
-DMSO_O4 = datafile("molecules/dmso_opt_c1_o4.xyz")
+DMSO = datapath("molecules/dmso_opt_c1.xyz")
+DMSO_O1 = datapath("molecules/dmso_opt_c1_o1.xyz")
+DMSO_O2 = datapath("molecules/dmso_opt_c1_o2.xyz")
+DMSO_O3 = datapath("molecules/dmso_opt_c1_o3.xyz")
+DMSO_O4 = datapath("molecules/dmso_opt_c1_o4.xyz")
 
-DMSO_GRID = datafile("surfaces/dmso_opt_c1_grid.npy")
-DMSO_O1_GRID = datafile("surfaces/dmso_opt_c1_o1_grid.npy")
-DMSO_O2_GRID = datafile("surfaces/dmso_opt_c1_o2_grid.npy")
+DMSO_GRID = datapath("surfaces/dmso_opt_c1_grid.npy")
+DMSO_O1_GRID = datapath("surfaces/dmso_opt_c1_o1_grid.npy")
+DMSO_O2_GRID = datapath("surfaces/dmso_opt_c1_o2_grid.npy")
 
 
-METHYLAMMONIUM_OPT = datafile("molecules/methylammonium_opt_c1.xyz")
+METHYLAMMONIUM_OPT = datapath("molecules/methylammonium_opt_c1.xyz")
 
-UNIT_SPHERE_3 = datafile("surfaces/surface_n3.dat")
-UNIT_SPHERE_64 = datafile("surfaces/surface_n64.dat")
+UNIT_SPHERE_3 = datapath("surfaces/surface_n3.dat")
+UNIT_SPHERE_64 = datapath("surfaces/surface_n64.dat")
 
-NME2ALA2_OPT_C1 = datafile("molecules/nme2ala2_opt_c1.xyz")
-NME2ALA2_OPT_C2 = datafile("molecules/nme2ala2_opt_c2.xyz")
+NME2ALA2_OPT_C1 = datapath("molecules/nme2ala2_opt_c1.xyz")
+NME2ALA2_OPT_C2 = datapath("molecules/nme2ala2_opt_c2.xyz")
 
 
 DMSO_ESP = resource_filename(__name__, "data/dmso_opt_c1.esp")
@@ -39,6 +39,8 @@ DMSO_STAGE_2_B = resource_filename(__name__, "data/stage_2_constraints_b.dat")
 
 ESP_PATH = resource_filename(__name__, "data/esps/*_esp.dat")
 GRID_PATH = resource_filename(__name__, "data/esps/*_grid.dat")
+
+MANUAL_JOBS_WKDIR = resource_filename(__name__, "data/manual_jobs/psiresp_working_directory")
 
 # DMSO_RESPA2_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA2.dat")
 # DMSO_RESPA1_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA1.dat")
@@ -115,12 +117,12 @@ ETHANOL_RESP2_C2 = resource_filename(__name__, "data/molecules/ethanol_resp2_opt
 # TEST_RESP2_DATA = resource_filename(__name__, "data/test_resp2")
 # TEST_MULTIRESP2_DATA = resource_filename(__name__, "data/test_multiresp2")
 
-# # ETOH_PDB = datafile("ethanol.pdb")
-# # ETOH_MOL2 = datafile("ethanol.mol2")
-# # ETOH_GRO = datafile("ethanol.gro")
-# # ETOH_XYZ = datafile("ethanol.xyz")
+# # ETOH_PDB = datapath("ethanol.pdb")
+# # ETOH_MOL2 = datapath("ethanol.mol2")
+# # ETOH_GRO = datapath("ethanol.gro")
+# # ETOH_XYZ = datapath("ethanol.xyz")
 
-# # ABMAT = datafile("nme2ala2_abmat.dat")
+# # ABMAT = datapath("nme2ala2_abmat.dat")
 
 # # ETOH_RESP2_GAS_C1_GRID = resource_filename(__name__, "data/test_resp2/resp2_ethanol_gas_c001_o001_grid.dat")
 

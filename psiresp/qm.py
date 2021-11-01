@@ -8,7 +8,7 @@ from typing_extensions import Literal
 import qcelemental as qcel
 import qcfractal.interface as ptl
 from qcfractal.interface.models.records import RecordStatusEnum
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from .base import Model
 from .qcutils import QCWaveFunction
@@ -203,7 +203,7 @@ class BaseQMOptions(Model):
         spec.update(kwargs)
 
         compute = qcel.models.AtomicInput(**spec)
-        with infile.open() as f:
+        with infile.open("wb") as f:
             f.write(compute.serialize("msgpack-ext"))
         logger.debug(f"Wrote to {infile}")
         return infile
@@ -218,13 +218,14 @@ class BaseQMOptions(Model):
                 result, path = self.read_output(qcmol,
                                                 working_directory=working_directory,
                                                 return_path=True)
-            except FileNotFoundError:
+            except (FileNotFoundError, ValidationError):
                 path = self.write_input(qcmol, working_directory, **kwargs)
                 to_execute.append(path)
             else:
-                if not result.get("success"):
-                    error_data = result.get("error")
+                if not result.success:
+                    error_data = result.error
                     if error_data:
+                        error_data = result.dict()["error"]
                         error_message = error_data.get("error_message", error_data)
                         error_type = error_data.get("error_type", "Nonspecific")
                         errors.append(f"{error_type} error for {path}: {error_message}")
@@ -234,9 +235,9 @@ class BaseQMOptions(Model):
                     results.append(result)
         if to_execute:
             logger.debug(f"{len(to_execute)} calculations remaining")
-            lines = [f"psi4 --qcschema {path}" for path in to_execute]
+            lines = ["#!/usr/bin/env bash"] + [f"psi4 --qcschema {path.name}" for path in to_execute]
             runfile = self.get_run_file(working_directory)
-            with runfile.open() as f:
+            with runfile.open("w") as f:
                 f.write("\n".join(lines))
             logger.debug(f"Wrote to {runfile}")
 
@@ -255,7 +256,7 @@ class BaseQMOptions(Model):
                                                 make_directory=False)
         if not infile.exists():
             raise FileNotFoundError(f"Expected file not found: {infile}")
-        with infile.open() as f:
+        with infile.open("rb") as f:
             content = f.read()
         data = qcel.util.deserialize(content, "msgpack")
         if data["model"]["basis"] == "":
@@ -271,6 +272,9 @@ class BaseQMOptions(Model):
             return result, infile
         return result
 
+    def get_working_directory(self, working_directory="."):
+        return pathlib.Path(working_directory) / self.jobname
+
     def get_job_file_for_molecule(self, qcmol, working_directory=".",
                                   make_directory=False):
         cwd = pathlib.Path(working_directory) / self.jobname
@@ -278,8 +282,7 @@ class BaseQMOptions(Model):
             cwd.mkdir(exist_ok=True, parents=True)
 
         name = qcmol.name if qcmol.name else qcmol.get_molecular_formula()
-        id_ = hash(qcmol.get_hash(), self._generate_spec_hash())
-        filename = f"{name}_{id_}.msgpack"
+        filename = f"{name}_{qcmol.get_hash()}_{self.get_hash()}.msgpack"
         return cwd / filename
 
     def get_run_file(self, working_directory="."):
@@ -290,13 +293,14 @@ class BaseQMOptions(Model):
         kw_str = [k.lower() + str(v).lower() for k, v in self.generate_keywords().items()]
         prot_str = [k.lower() + str(v).lower() for k, v in self.protocols.items()]
 
-        spec_hash = hash((
+        fields = (
             self.method.lower(),
             self.basis.lower(),
             self.driver.lower(),
             tuple(sorted(kw_str)),
             tuple(sorted(prot_str))
-        ))
+        )
+        spec_hash = hash(fields)
         return spec_hash
 
 
@@ -349,7 +353,7 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
         return results
 
     def _postprocess_result(self, result):
-        return result.return_result
+        return result.molecule.geometry
 
     def _postprocess_record(self, record):
         return record.get_final_molecule().geometry
