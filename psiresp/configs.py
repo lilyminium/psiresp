@@ -13,8 +13,6 @@ from .utils import update_dictionary
 def configure(**configuration):
     def wrapper(cls):
         class ConfiguredJob(Job):
-            __doc__ = cls.__doc__
-            __name__ = cls.__name__
 
             def __init__(self, *args, **kwargs):
                 obj = Job(*args, **kwargs)
@@ -26,7 +24,11 @@ def configure(**configuration):
                             for name, value in option_config.items():
                                 update_dictionary(objdct[field], name, value)
                 super().__init__(**objdct)
+
+        ConfiguredJob.__name__ = cls.__name__
+        ConfiguredJob.__doc__ = cls.__doc__
         return ConfiguredJob
+
     return wrapper
 
 

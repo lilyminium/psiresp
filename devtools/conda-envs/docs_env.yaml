@@ -34,6 +34,8 @@ dependencies:
   - ipython
   - jupyter
   - nglview
+  - nbsphinx
+  - sphinx > 2.0
 
   # Pip-only installs
   - pip:
@@ -42,8 +44,8 @@ dependencies:
       - importlib_resources
       - mdanalysis>=2.0
       - myst-parser
-      - nbsphinx
-      - sphinx<4.0
+      # - nbsphinx
+      # - sphinx<4.0
       - sphinx_rtd_theme
       - sphinxcontrib-bibtex<2.0.0
       - sphinx-sitemap
