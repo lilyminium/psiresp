@@ -155,14 +155,18 @@ class TestMultiRespFast:
                 for orient in conf.orientations:
                     assert orient._rdmol is not None
 
-        methylammonium_charges = [-0.06001345, -0.22979250, 0.10515992, 0.10515992,
-                                  0.10515992, 0.32376068, 0.32504629, 0.32551918]
+        methylammonium_charges = [-0.15563, -0.157263,  0.129643,  0.129643,
+                                  0.129643,  0.307222, 0.307561,  0.30918]
         nme2ala2_charges = [-0.53927345, 0.65999748, -0.40616484, -0.65799321,
                             0.43723864, -0.51094749, -0.50473798, 0.42208482,
                             -0.31599851, -0.41240110, -0.34369158, 0.13563889,
                             0.13563889, 0.13563889, 0.281051, 0.12591998,
                             0.12591998, 0.12591998, 0.12591998, 0.12591998,
                             0.12591998, 0.27903047, 0.14978971, 0.14978971, 0.14978971]
+
+        import numpy as np
+        np.set_printoptions(precision=6)
+        print(job_multi.charges[1])
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-7)
         assert_allclose(job_multi.charges[1],
