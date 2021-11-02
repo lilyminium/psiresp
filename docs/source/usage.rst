@@ -35,7 +35,7 @@ Please see :ref:`manual_qm` for more information.
 For now, if using a `FractalSnowflake`, it is recommended to use the
 patched version in :class:`psiresp.testing.FractalSnowflake`.
 
-.. ipython::
+.. code-block:: ipython
 
     In [1]: import qcfractal.interface as ptl
     In [2]: from psiresp.testing import FractalSnowflake
@@ -75,7 +75,6 @@ simply replace `Job` with the particular chosen configuration:
     import psiresp
     dmso = psiresp.Molecule.from_smiles("CS(=O)C")
     esp_a1 = psiresp.EspA1(molecules=[dmso])
-    print(esp_a1.qm_esp_options)
     print(esp_a1.resp_options)
 
-And use `run()` to run the job, as usual.
+And use :meth:`~psiresp.configs.EspA1.run()` to run the job, as usual.

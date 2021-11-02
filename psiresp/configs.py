@@ -1,4 +1,5 @@
 import pathlib
+import functools
 from typing import List, Optional
 
 from pydantic import Field
@@ -10,6 +11,7 @@ from .utils import update_dictionary
 
 
 def configure(**configuration):
+    @functools.wraps
     def wrapper(cls):
         class ConfiguredJob(cls):
             def __init__(self, *args, **kwargs):
