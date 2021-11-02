@@ -73,6 +73,8 @@ QCFractal's documentation for more, but you are able to specify
 ``max_workers`` for the ``ProcessPoolExecutor`` to spin up.
 
 
+.. _manual_qm:
+
 Running QM jobs manually
 ------------------------
 

@@ -23,8 +23,24 @@ constructing and interacting with charge constraints.
    psiresp.molecule.Atom
    psiresp.charge.ChargeSumConstraint
    psiresp.charge.ChargeEquivalenceConstraint
+
+.. _preconfigured_classes:
+
+Pre-configured classes
+----------------------
+
+.. autosummary::
+   :toctree: _autosummary
+   
+   psiresp.configs.RespA1
+   psiresp.configs.RespA2
+   psiresp.configs.EspA1
+   psiresp.configs.EspA2
+   psiresp.configs.ATBResp
+   psiresp.configs.Resp2
    
 
+.. _option_classes:
 
 Options for customizing RESP
 ----------------------------

@@ -28,6 +28,10 @@ a Python script. Within a Python script, QCFractal recommends a
 :class:`qcfractal.snowflake.FractalSnowflake`; within a Jupyter notebook,
 :class:`qcfractal.snowflake.FractalSnowflakeHandler`.
 
+Alternatively, you may not want to use a server at all, but to run the
+QM computations yourselves. In that case, pass ``client=None``.
+Please see :ref:`manual_qm` for more information.
+
 For now, if using a `FractalSnowflake`, it is recommended to use the
 patched version in :class:`psiresp.testing.FractalSnowflake`.
 
@@ -52,74 +56,26 @@ patched version in :class:`psiresp.testing.FractalSnowflake`.
     [C:1](-[S:2](=[O:3])-[C:4](-[H:8])(-[H:9])-[H:10])(-[H:5])(-[H:6])-[H:7]
 
 
+-----------------------------------
+Customising RESP charge computation
+-----------------------------------
 
-----------------------
-On a computing cluster
-----------------------
+Each of the aspects of computing RESP charges can be customised to correspond
+to the implementations used by :cite:p:`Bayly1993`, :cite:p:`Singh1984`,
+:cite:p:`Malde2011`, :cite:p:`Schauperl2020`, and so on. These require setting options
+for grid generation, the QM computation, and the hyperbolic restraints themselves;
+please see :ref:`option_classes` for the specific options.
 
-The quantum chemistry computations in PsiRESP are by far and away the
-most computationally expensive parts of PsiRESP. Fortunately, they are
-also largely independent of each other and can be run in parallel.
+However, for ease of use, PsiRESP also provides pre-configured classes.
+A full list is available at :ref:`preconfigured_classes`. In order to use these,
+simply replace `Job` with the particular chosen configuration:
 
-Using QCFractal
----------------
+.. ipython:: python
 
-One way to do this is to use a persistent
-:class:`qcfractal.server.FractalServer` rather than a Snowflake version.
-On a supercomputer, the process should go:
+    import psiresp
+    dmso = psiresp.Molecule.from_smiles("CS(=O)C")
+    esp_a1 = psiresp.EspA1(molecules=[dmso])
+    print(esp_a1.qm_esp_options)
+    print(esp_a1.resp_options)
 
-**1. Submit a cheap, single-core job starting up the QCFractal server**
-
-This can be cheap but should be long-lasting, as the server needs
-to manage the job queue. A folder should be given to host the server files.
-Below, I give an example of commands to initialize and start a server
-for a Slurm job.
-
-.. code-block:: bash
-
-    qcfractal-server init --base-folder "/tmp/${SLURM_JOBID}" --port 7777 \
-        --max-active-services 300 --query-limit 100000
-    qcfractal-server start --base-folder "/tmp/${SLURM_JOBID}"
-
-**2. Submit jobs for queue managers to compute the tasks**
-
-These are the processes that actually run the computations, so
-should include everything necessary -- GPU nodes, multiple cores, etc.
-Below is an example of starting a manager in a job that has requested
-12 cpus. ``$NODE`` should be the IP address of the node that the server
-has been started on in step 1.
-
-.. code-block:: bash
-
-    NODE="hpc3-l18-01"
-    qcfractal-manager --verbose --fractal-uri "${NODE}:7777" --verify False \
-        --tasks-per-worker 3 --cores-per-worker 4 --memory-per-worker 160 \
-        --update-frequency 5
-
-
-**Submit your Python script**
-
-Within your Python script, you no longer need to create a server;
-that has been done in step 1. Instead, the client created in the script
-needs the address of the server: ::
-
-    import qcfractal.interface as ptl
-    NODE = "hpc3-l18-01"
-    PORT = 7777
-    client = ptl.FractalClient(f"{NODE}:{PORT}")
-
-
-Running QM jobs manually
-------------------------
-
-However, it may not always be possible to keep a server running;
-for example, you may have low walltime limits, or may not be able
-to communicate between nodes, or may simply not have the resources
-to do all the computation on one machine. In that case, PsiRESP
-will write out job inputs for you.
-
-To trigger this behaviour, pass ``client=None`` into the job. ::
-
-    job.run()
-
-
+And use `run()` to run the job, as usual.
