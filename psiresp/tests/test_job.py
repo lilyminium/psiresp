@@ -117,10 +117,12 @@ class TestMultiRespFast:
     def test_run_with_empty(self, empty_client):
         random.seed(0)
         nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
-                                                optimize_geometry=False)
+                                                optimize_geometry=False,
+                                                random_seed=0)
         assert nme2ala2._rdmol is not None
         methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
-                                                      optimize_geometry=False)
+                                                      optimize_geometry=False,
+                                                      random_seed=0)
         assert methylammonium._rdmol is not None
         constraints = psiresp.ChargeConstraintOptions()
         nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"

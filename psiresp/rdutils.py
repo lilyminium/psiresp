@@ -69,11 +69,12 @@ def get_connectivity(rdmol):
     ])
 
 
-def rdmol_to_qcelemental(rdmol, multiplicity=1):
+def rdmol_to_qcelemental(rdmol, multiplicity=1, random_seed=-1):
     import qcelemental as qcel
     rdmol = Chem.AddHs(rdmol)
     if not rdmol.GetNumConformers():
-        Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True)
+        Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True,
+                                      randomSeed=random_seed)
 
     connectivity = get_connectivity(rdmol)
 
@@ -138,7 +139,8 @@ def add_conformer_from_coordinates(rdmol: "rdkit.Chem.Mol",
 
 def generate_conformers(rdmol: "rdkit.Chem.Mol",
                         n_conformers: int = 0,
-                        rms_tolerance: float = 1.5):
+                        rms_tolerance: float = 1.5,
+                        random_seed=-1):
     """Generate conformers for an RDKit molecule.
 
     This does not clear existing conformers.
@@ -157,6 +159,7 @@ def generate_conformers(rdmol: "rdkit.Chem.Mol",
                                pruneRmsThresh=rms_tolerance,
                                useRandomCoords=True,
                                clearConfs=False,
+                               randomSeed=random_seed,
                                ignoreSmoothingFailures=True)
 
 

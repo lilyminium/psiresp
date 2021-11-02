@@ -100,8 +100,8 @@ class Molecule(BaseMolecule):
         return cls.from_rdkit(rdmol, **kwargs)
 
     @classmethod
-    def from_rdkit(cls, molecule, **kwargs):
-        qcmol = rdutils.rdmol_to_qcelemental(molecule)
+    def from_rdkit(cls, molecule, random_seed=-1, **kwargs):
+        qcmol = rdutils.rdmol_to_qcelemental(molecule, random_seed=random_seed)
         kwargs = dict(**kwargs)
         kwargs["qcmol"] = qcmol
         obj = cls(**kwargs)

@@ -32,15 +32,6 @@ def test_config_multiresp(nme2ala2, methylammonium,
 
     job.compute_charges()
     charges = np.concatenate(job.charges)
-    # print(charges)
-    # print(methylammonium_nme2ala2_charge_constraints)
-    print(hash(methylammonium), hash(job.molecules[0]))
-    print(hash(nme2ala2), hash(job.molecules[1]))
-    print("IN")
-    print(methylammonium)
-    print("\n==OUT==")
-    print(job.molecules[0])
-    # print(job.stage_1_charges)
 
     assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
     assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
