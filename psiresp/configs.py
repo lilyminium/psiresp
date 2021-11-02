@@ -11,9 +11,11 @@ from .utils import update_dictionary
 
 
 def configure(**configuration):
-    @functools.wraps
     def wrapper(cls):
-        class ConfiguredJob(cls):
+        class ConfiguredJob(Job):
+            __doc__ = cls.__doc__
+            __name__ = cls.__name__
+
             def __init__(self, *args, **kwargs):
                 obj = Job(*args, **kwargs)
                 objdct = obj.dict()
