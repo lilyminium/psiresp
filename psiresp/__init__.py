@@ -6,3 +6,4 @@ from psiresp.job import Job
 from psiresp.charge import ChargeConstraintOptions
 from psiresp.resp import RespOptions, RespCharges
 from psiresp.grid import GridOptions
+from psiresp.configs import *

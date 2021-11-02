@@ -2,6 +2,7 @@ import pytest
 import pathlib
 import glob
 import shutil
+import random
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -114,6 +115,7 @@ class TestMultiRespFast:
             assert_allclose(calculated, reference, atol=1e-3)
 
     def test_run_with_empty(self, empty_client):
+        random.seed(0)
         nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
                                                 optimize_geometry=False)
         assert nme2ala2._rdmol is not None

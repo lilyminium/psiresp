@@ -49,7 +49,7 @@ class Job(base.Model):
         description="Charge constraints"
     )
 
-    working_directory: str = Field(
+    working_directory: pathlib.Path = Field(
         default=pathlib.Path("psiresp_working_directory"),
         description="Working directory for saving intermediate files"
     )

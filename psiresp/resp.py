@@ -49,6 +49,7 @@ class RespOptions(BaseRespOptions):
 
 
 class RespCharges(BaseRespOptions):
+    """Self-contained class to solve RESP charges with charge constraints"""
     resp_a: float = Field(default=0.0005,
                           description="scale factor of asymptote limits of hyperbola")
 

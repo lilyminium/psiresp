@@ -308,7 +308,11 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
 
     jobname = "optimization"
 
-    g_convergence: QMGConvergence = "gau_tight"
+    g_convergence: QMGConvergence = Field(
+        default="gau_tight",
+        description="Criteria for concluding geometry optimization",
+    )
+
     driver: str = "gradient"
 
     max_iter: int = Field(

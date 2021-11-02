@@ -82,13 +82,19 @@ class BaseMolecule(base.Model):
     def coordinates(self):
         return self.qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
 
-    def __hash__(self):
-        dct = self.dict()
-        dct.pop("qcmol")
-        return hash((self.qcmol.get_hash(), base._to_immutable(dct)))
+    # def __hash__(self):
+    #     dct = self.dict()
+    #     dct.pop("qcmol")
+    #     return hash((self.qcmol.get_hash(), base._to_immutable(dct)))
+
+    # def __eq__(self, other):
+    #     return hash(self) == hash(other)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.qcmol.get_hash())
 
     def _get_qcmol_repr(self):
         qcmol_attrs = [f"{x}={getattr(self.qcmol, x)}" for x in ["name"]]
