@@ -1,7 +1,7 @@
 import time
 import pathlib
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any, Union
 
 import numpy as np
 from typing_extensions import Literal
@@ -14,9 +14,9 @@ from .base import Model
 from .qcutils import QCWaveFunction
 
 logger = logging.getLogger(__name__)
-# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
+#: A limited list of QM methods in Psi4
 METHODS = [
     # TODO: can I get this dynamically from Psi4?
     "scf", "hf", "b3lyp", "pw6b95",
@@ -25,6 +25,7 @@ METHODS = [
     "m06-2x", "pw6b95-d3bj",
 ]
 
+#: A limited list of basis sets in Psi4
 BASIS_SETS = [
     "sto-3g", "3-21g",
     "6-31g", "6-31+g", "6-31++g",
@@ -33,8 +34,10 @@ BASIS_SETS = [
     "aug-cc-pVXZ", "aug-cc-pV(D+d)Z", "heavy-aug-cc-pVXZ",
 ]
 
+#: A list of supported and tested solvents in Psi4
 SOLVENTS = ["water", ]
 
+#: Optimization convergence options in Psi4
 G_CONVERGENCES = [
     "qchem", "molpro", "turbomole", "cfour", "nwchem_loose",
     "gau", "gau_loose", "gau_tight", "interfrag_tight", "gau_verytight",
@@ -56,7 +59,8 @@ class PCMOptions(Model):
     cavity_area: float = 0.3
     cavity_mode: Literal["Implicit"] = "Implicit"
 
-    def to_psi4_string(self):
+    def to_psi4_string(self) -> str:
+        """Generate an input string for Psi4's PCM input"""
         return f"""
         Units = Angstrom
         Medium {{
@@ -73,7 +77,8 @@ class PCMOptions(Model):
         }}
         """
 
-    def generate_keywords(self):
+    def generate_keywords(self) -> Dict[str, str]:
+        """Generate QCSchema-compatible set of keywords specifying PCM solvent options"""
         keywords = {
             "pcm": "true",
             "pcm_scf_type": "total",
@@ -83,6 +88,7 @@ class PCMOptions(Model):
 
 
 class BaseQMOptions(Model):
+    """Base class for QM computations"""
     method: QMMethod = Field(
         default="hf",
         description="QM method for optimizing geometry and calculating ESPs",
@@ -118,6 +124,7 @@ class BaseQMOptions(Model):
         return self.pcm_options.medium_solvent
 
     def generate_keywords(self):
+        """Generate QCSchema-compatible set of keywords specifying job options"""
         keywords = self._generate_keywords()
         if self.solvent:
             keywords.update(self.pcm_options.generate_keywords())
@@ -145,7 +152,7 @@ class BaseQMOptions(Model):
                     qcmols: List[qcel.models.Molecule] = [],
                     **kwargs
                     ) -> ptl.models.ComputeResponse:
-
+        """Add compute specification to the client"""
         spec = self._generate_spec(client, **kwargs)
         logger.debug(f"Submitting specification {spec} for {len(qcmols)} molecules to {client}")
         response = client.add_compute(molecule=qcmols, **spec)
@@ -156,7 +163,13 @@ class BaseQMOptions(Model):
                              client: ptl.FractalClient,
                              qcmols: List[qcel.models.Molecule] = [],
                              **kwargs
-                             ) -> ptl.models.ComputeResponse:
+                             ) -> List[Any]:
+        """
+        Add compute specification to the client and
+        return post-processed results upon completion.
+
+        See ``wait_for_results`` for more detail.
+        """
         response = self.add_compute(client, qcmols=qcmols, **kwargs)
         return self.wait_for_results(client, response_ids=response.ids)
 
@@ -167,7 +180,22 @@ class BaseQMOptions(Model):
             client: Optional[ptl.FractalClient] = None,
             qcmols: List[qcel.models.Molecule] = [],
             working_directory=".",
-            **kwargs):
+            **kwargs) -> List[Any]:
+        """Run the QM computation and return post-processed results.
+
+        If a ``client`` is given, the computations are submitted to
+        the server. After all computations have completed, the records
+        are returned and post-processed.
+
+        If a ``client`` is not given, the workflow passes to
+        :meth:`~psiresp.qm.BaseQMOptions.manage_external_output`. In
+        this workflow, Psi4 input files are written out to be executed
+        separately and a SystemExit is raised.
+        When the job is run again, the workflow checks the
+        files to see if the program has successfully executed. If
+        an error is found, an error is raised. If all computations
+        have completed, the job continues.
+        """
         if not qcmols:
             return []
         if not client:
@@ -176,10 +204,10 @@ class BaseQMOptions(Model):
         records = self.add_compute_and_wait(client, qcmols=qcmols, **kwargs)
         return self.postprocess_qcrecords(records)
 
-    def postprocess_atomic_results(self, results=[]):
+    def postprocess_atomic_results(self, results=[]) -> List[Any]:
         return [self._postprocess_result(r) for r in results]
 
-    def postprocess_qcrecords(self, records=[]):
+    def postprocess_qcrecords(self, records=[]) -> List[Any]:
         return [self._postprocess_record(r) for r in records]
 
     def _postprocess_result(self, result):
@@ -188,7 +216,23 @@ class BaseQMOptions(Model):
     def _postprocess_record(self, record):
         raise NotImplementedError
 
-    def write_input(self, qcmol, working_directory=".", **kwargs):
+    def write_input(self, qcmol: qcel.models.Molecule,
+                    working_directory: Union[str, pathlib.Path] = ".",
+                    **kwargs) -> pathlib.Path:
+        """Write a Psi4 input file.
+
+        Parameters
+        ----------
+        qcmol: qcelemental.models.Molecule
+            QCElemental molecule
+        working_directory: Union[str, pathlib.Path]
+            Directory to save input files within
+
+        Returns
+        -------
+        pathlib.Path
+            The path of the input file
+        """
         infile = self.get_job_file_for_molecule(qcmol,
                                                 working_directory=working_directory,
                                                 make_directory=True)
@@ -209,7 +253,8 @@ class BaseQMOptions(Model):
         return infile
 
     def manage_external_output(self, qcmols: List[qcel.models.Molecule],
-                               working_directory=".", **kwargs):
+                               working_directory: Union[str, pathlib.Path] = ".",
+                               **kwargs) -> List[Any]:
         results = []
         to_execute = []
         errors = []

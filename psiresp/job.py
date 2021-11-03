@@ -171,6 +171,7 @@ class Job(base.Model):
         if errors:
             raise ValueError(*errors)
         for orientation, o2 in zip(orientations, results):
+            # TODO: fix this, it's clumsy
             orientation.esp = o2.esp
             orientation.grid = o2.grid
 

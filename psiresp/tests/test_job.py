@@ -128,17 +128,28 @@ class TestMultiRespFast:
                                                       optimize_geometry=False,
                                                       conformer_generation_options=conformer_options)
         assert methylammonium._rdmol is not None
+
+        # add constraints
+        # nme to 0
         constraints = psiresp.ChargeConstraintOptions()
         nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
         nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
         constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
                                                            charge=0,
                                                            indices=nme_indices[0])
+        # inter-aa to 0
         methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
         ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
         constraint_atoms = methyl_atoms[0] + ace_atoms[0]
         constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
 
+        # constrain particular atoms
+        co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
+        assert len(co_atoms) == 2
+        constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[:1])
+        constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[1:])
+
+        # equivalent hs
         h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
         h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
@@ -155,11 +166,11 @@ class TestMultiRespFast:
                                 qm_optimization_options=geometry_options,
                                 qm_esp_options=esp_options,)
         job_multi.run(client=empty_client)
+        import numpy as np
+        np.set_printoptions(precision=7)
+        print(job_multi.charges)
 
-        for mol in job_multi.molecules:
-            for conf in mol.conformers:
-                for orient in conf.orientations:
-                    assert orient._rdmol is not None
+        assert_allclose(nme2ala2.stage_2_restrained_charges[nme_indices[0]].sum(), 0)
 
         methylammonium_charges = [-0.1746829, -0.0660754, 0.1269830, 0.1269830,
                                   0.1269830, 0.2877924, 0.2873742, 0.2846426]
