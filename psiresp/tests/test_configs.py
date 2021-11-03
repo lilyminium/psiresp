@@ -4,7 +4,6 @@ from numpy.testing import assert_allclose
 
 import qcelemental as qcel
 import psiresp
-from psiresp.tests.conftest import empty_client, fractal_client
 
 from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA2_CHARGES,
@@ -23,7 +22,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
     (psiresp.configs.RespA2, DMSO_RESPA2_CHARGES),
 
 ], indirect=['red_charges'])
-def test_config_resp(config_class, red_charges, empty_client, dmso):
+def test_config_resp(config_class, red_charges, fractal_client, dmso):
     qcdmso = qcel.models.Molecule.from_file(DMSO_O1, fix_com=True,
                                             fix_orientation=True)
     qcdmso2 = qcel.models.Molecule.from_file(DMSO_O2, fix_com=True,

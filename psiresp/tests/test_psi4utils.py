@@ -34,8 +34,8 @@ def test_get_sp3_ch_indices(dmso_qcmol):
 @pytest.mark.xfail(reason="fix qcrecord lookup and server")
 @pytest.mark.parametrize("qcrecord, reference_grid, reference_esp", [
     (DMSO, DMSO_ESP, DMSO_ESP),
-    # (DMSO_O1, DMSO_O1_ESP, DMSO_O1_ESP),
-    # (DMSO_O2, DMSO_O2_ESP, DMSO_O2_ESP),
+    (DMSO_O1, DMSO_O1_ESP, DMSO_O1_ESP),
+    (DMSO_O2, DMSO_O2_ESP, DMSO_O2_ESP),
 ], indirect=True)
 def test_compute_esp(qcrecord, reference_grid, reference_esp):
     esp = psi4utils.compute_esp(qcrecord, reference_grid)

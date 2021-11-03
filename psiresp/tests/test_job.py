@@ -79,7 +79,7 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
