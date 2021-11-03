@@ -42,9 +42,9 @@ GRID_PATH = resource_filename(__name__, "data/esps/*_grid.dat")
 
 MANUAL_JOBS_WKDIR = resource_filename(__name__, "data/manual_jobs/psiresp_working_directory")
 
-# DMSO_RESPA2_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA2.dat")
-# DMSO_RESPA1_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA1.dat")
-# DMSO_ESPA1_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_espA1.dat")
+DMSO_RESPA2_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA2.dat")
+DMSO_RESPA1_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_respA1.dat")
+DMSO_ESPA1_CHARGES = resource_filename(__name__, "data/charges/dmso_c1_o2_espA1.dat")
 
 
 # DMSO_QMRA = resource_filename(__name__, "data/molecules/dmso_opt_c1_qmra.xyz")

@@ -176,7 +176,7 @@ class SparseGlobalConstraintMatrix(base.Model):
         return self._charges[self._array_indices]
 
     def _solve(self):
-        self._previous_charges = self._charges
+        self._previous_charges = copy.deepcopy(self._charges)
         try:
             self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
         except Warning:
@@ -187,9 +187,10 @@ class SparseGlobalConstraintMatrix(base.Model):
             if np.isnan(self._charges[0]):
                 self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
 
-    def _iter_solve(self, resp_a, resp_b):
-        increment = (resp_a * self.n_structure_array)[self._array_indices]
-        increment /= np.sqrt(self._charges ** 2 + resp_b ** 2)[self._array_indices]
+    def _iter_solve(self, resp_a, resp_b, b2):
+        hyp_a = (resp_a * self.n_structure_array)[self._array_indices]
+        increment = hyp_a / np.sqrt(self._charges[self._array_indices] ** 2 + b2)
+        # increment /= np.sqrt(self._charges[self._array_indices] ** 2 + resp_b ** 2)
 
         self.a = self._original_a.copy()
 

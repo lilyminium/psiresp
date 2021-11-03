@@ -22,7 +22,7 @@ def postgres_server():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
     yield storage.psql
-    # storage.psql.backup_database(POSTGRES_SERVER_BACKUP)
+    # storage.psql.backup_database(POSTGRES_SERVER_BACKUP + "_backup")
     storage.stop()
 
 

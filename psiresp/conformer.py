@@ -19,8 +19,8 @@ class Conformer(BaseMolecule):
     is_optimized: bool = False
     _qc_id: Optional[int] = None
 
-    def add_orientation_with_coordinates(self, coordinates):
-        qcmol = self.qcmol_with_coordinates(coordinates)
+    def add_orientation_with_coordinates(self, coordinates, units="angstrom"):
+        qcmol = self.qcmol_with_coordinates(coordinates, units=units)
         self.orientations.append(Orientation(qcmol=qcmol))
 
     def set_optimized_geometry(self, coordinates, units="bohr"):
