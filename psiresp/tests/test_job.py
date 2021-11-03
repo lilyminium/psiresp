@@ -116,13 +116,17 @@ class TestMultiRespFast:
 
     def test_run_with_empty(self, empty_client):
         random.seed(0)
+        conformer_options = psiresp.ConformerGenerationOptions(
+            n_max_conformers=1,
+            keep_original_conformer=False
+        )
         nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
                                                 optimize_geometry=False,
-                                                random_seed=0)
+                                                conformer_generation_options=conformer_options)
         assert nme2ala2._rdmol is not None
         methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
                                                       optimize_geometry=False,
-                                                      random_seed=0)
+                                                      conformer_generation_options=conformer_options)
         assert methylammonium._rdmol is not None
         constraints = psiresp.ChargeConstraintOptions()
         nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
@@ -164,6 +168,8 @@ class TestMultiRespFast:
                             -0.306161, 0.141135, 0.141135, 0.141135, 0.216738,
                             0.159836, 0.159836, 0.159836, 0.159836, 0.159836,
                             0.159836, 0.24004, 0.150741, 0.150741, 0.150741]
+
+        print(job_multi.charges)
 
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-6)
