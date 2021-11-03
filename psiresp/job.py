@@ -14,7 +14,6 @@ from psiresp.charge import MoleculeChargeConstraints
 from psiresp.resp import RespCharges
 from psiresp.orientation import Orientation
 from psiresp.constraint import ESPSurfaceConstraintMatrix
-from psiresp.qcutils import QCWaveFunction
 
 logger = logging.getLogger(__name__)
 
