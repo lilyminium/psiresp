@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   # core
-  - python
+  - python=3.8
   - pip
 
   # qm
