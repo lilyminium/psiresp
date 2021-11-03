@@ -54,17 +54,18 @@ class ConfiguredJob(Job):
 )
 class RespA1(ConfiguredJob):
     """RespA1 config"""
-    _configuration = dict(qm_options=dict(method="hf",
-                                          basis="6-31g*"
-                                          ),
-                          grid_options=dict(use_radii="msk"),
-                          resp_options=dict(resp_a1=0.0005,
-                                            resp_a2=0.001,
-                                            resp_b=0.1,
-                                            stage_2=True,
-                                            exclude_hydrogens=True,
-                                            restrained_fit=True),
-                          )
+    _configuration: ClassVar[dict] = dict(
+        qm_options=dict(method="hf",
+                        basis="6-31g*"
+                        ),
+        grid_options=dict(use_radii="msk"),
+        resp_options=dict(resp_a1=0.0005,
+                          resp_a2=0.001,
+                          resp_b=0.1,
+                          stage_2=True,
+                          exclude_hydrogens=True,
+                          restrained_fit=True),
+    )
 
 
 @due.dcite(

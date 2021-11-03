@@ -145,9 +145,10 @@ class TestMultiRespFast:
 
         # constrain particular atoms
         co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
-        assert len(co_atoms) == 2
-        constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[:1])
-        constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[1:])
+        assert len(co_atoms) == 1
+        assert len(co_atoms[0]) == 2
+        constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[0][:1])
+        constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[0][1:])
 
         # equivalent hs
         h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
