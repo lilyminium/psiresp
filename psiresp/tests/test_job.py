@@ -154,7 +154,7 @@ class TestMultiRespFast:
         h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
         h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
-        h_smiles = "[N+](H)(H)(H)"
+        h_smiles = "[N+]([H])([H])([H])"
         h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
@@ -175,15 +175,15 @@ class TestMultiRespFast:
         print(job_multi.charges)
 
         nme_charges = job_multi.molecules[1].stage_2_restrained_charges
-        assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0)
+        assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
 
-        methylammonium_charges = [-0.0408648, -0.2206196,  0.0998281,  0.0998281,
-                                  0.0998281, 0.323705,  0.3197784,  0.3185167]
-        nme2ala2_charges = [-0.4223706,  0.4497492, -0.3638246, -0.6170615,  0.6141354,
-                            -0.4453762, -0.4369407,  0.6163, -0.3028913, -0.214256,
-                            -0.5722,  0.1128262,  0.1128262,  0.1128262,  0.3564094,
-                            0.0804502,  0.0804502,  0.0804502,  0.0804502,  0.0804502,
-                            0.0804502,  0.2267383,  0.096803,  0.096803,  0.096803]
+        methylammonium_charges = [0.0170511, 0.1974141, 0.0644309, 0.0644309,
+                                  0.0644309, 0.1974141, 0.1974141, 0.1974141]
+        nme2ala2_charges = [0.068301,  0.4023641, -0.3391542, -0.6331304,  0.513399,
+                            -0.5161129, -0.5058586,  0.6163, -0.2803777, -0.2974645,
+                            -0.5722, -0.0165115, -0.0165115, -0.0165115,  0.3408103,
+                            0.1124694,  0.1124694,  0.1124694,  0.1124694,  0.1124694,
+                            0.1124694,  0.2028342,  0.1250027,  0.1250027,  0.1250027]
 
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-5)
