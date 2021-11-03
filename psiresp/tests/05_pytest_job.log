@@ -1,0 +1,478 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.12, pytest-6.2.4, py-1.10.0, pluggy-0.13.1
+rootdir: /dfs6/pub/lilyw7/pydev/psiresp, configfile: pyproject.toml
+plugins: qcfractal-0.15.6, requests-mock-1.9.3
+collected 10 items
+
+test_job.py .....sssF.                                                   [100%]
+
+=================================== FAILURES ===================================
+____________________ TestMultiRespFast.test_run_with_empty _____________________
+
+self = <test_job.TestMultiRespFast object at 0x7f803c6547f0>
+empty_client = FractalClient(server_name='QCFractal Snowflake Instance', address='http://localhost:53608/', username='None')
+
+    def test_run_with_empty(self, empty_client):
+        random.seed(0)
+        nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
+                                                optimize_geometry=False,
+                                                random_seed=0)
+        assert nme2ala2._rdmol is not None
+        methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
+                                                      optimize_geometry=False,
+                                                      random_seed=0)
+        assert methylammonium._rdmol is not None
+        constraints = psiresp.ChargeConstraintOptions()
+        nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
+        nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
+        constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+                                                           charge=0,
+                                                           indices=nme_indices[0])
+        methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
+        ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
+        constraint_atoms = methyl_atoms[0] + ace_atoms[0]
+        constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
+    
+        h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
+        h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+    
+        geometry_options = psiresp.QMGeometryOptimizationOptions(
+            method="b3lyp", basis="sto-3g",
+        )
+        esp_options = psiresp.QMEnergyOptions(
+            method="b3lyp", basis="sto-3g",
+        )
+    
+        job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
+                                charge_constraints=constraints,
+                                qm_optimization_options=geometry_options,
+                                qm_esp_options=esp_options,)
+        job_multi.run(client=empty_client)
+    
+        for mol in job_multi.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    assert orient._rdmol is not None
+    
+        methylammonium_charges = [-0.159693, -0.204556,  0.133935,  0.133935,
+                                  0.133935,  0.31824, 0.318735,  0.32547]
+        nme2ala2_charges = [-0.561372, 0.644321, -0.388168, -0.577036, 0.429494,
+                            -0.579042, -0.623843, 0.362648, -0.290239, -0.402024,
+                            -0.306161, 0.141135, 0.141135, 0.141135, 0.216738,
+                            0.159836, 0.159836, 0.159836, 0.159836, 0.159836,
+                            0.159836, 0.24004, 0.150741, 0.150741, 0.150741]
+    
+>       assert_allclose(job_multi.charges[0],
+                        methylammonium_charges, atol=1e-6)
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-07, atol=1e-06
+E       
+E       Mismatched elements: 8 / 8 (100%)
+E       Max absolute difference: 0.1344112670898641
+E       Max relative difference: 0.6570878736867365
+E        x: array([-0.198061, -0.070145,  0.136798,  0.136798,  0.136798,  0.28515 ,
+E               0.283448,  0.289213])
+E        y: array([-0.159693, -0.204556,  0.133935,  0.133935,  0.133935,  0.31824 ,
+E               0.318735,  0.32547 ])
+
+test_job.py:168: AssertionError
+------------------------------ Captured log setup ------------------------------
+INFO     SQLAlcehmySocket:sqlalchemy_socket.py:200 SQLAlchemy attempt to connect to postgresql+psycopg2://localhost:38530/temporary_snowflake.
+INFO     SQLAlcehmySocket:sqlalchemy_socket.py:209 Connected SQLAlchemy to DB dialect postgresql with driver psycopg2
+INFO     SQLAlcehmySocket:sqlalchemy_socket.py:217 DB versions: {'created_on': datetime.datetime(2021, 11, 3, 5, 8, 45, 72515), 'elemental_version': 'v0.22.0', 'fractal_version': 'v0.15.6', 'engine_version': 'v0.19.0'}
+WARNING  tornado.general:autoreload.py:129 tornado.autoreload started more than once in the same process
+INFO     tornado.application:server.py:315 FractalServer:
+INFO     tornado.application:server.py:316     Name:          QCFractal Snowflake Instance
+INFO     tornado.application:server.py:317     Version:       v0.15.6
+INFO     tornado.application:server.py:318     Address:       http://localhost:53608/
+INFO     tornado.application:server.py:319     Database URI:  postgresql://localhost:38530/
+INFO     tornado.application:server.py:320     Database Name: temporary_snowflake
+INFO     tornado.application:server.py:321     Query Limit:   1000000
+
+WARNING  tornado.application:snowflake.py:146 Warning! This is a temporary instance, data will be lost upon shutdown. For information about how to set up a permanent QCFractal instance, see http://docs.qcarchive.molssi.org/projects/qcfractal/en/latest/setup_quickstart.html
+INFO     tornado.application:server.py:637 Waiting on queue_manager to build.
+INFO     tornado.application:server.py:414 FractalServer successfully started.
+
+INFO     tornado.application:web_handlers.py:146 GET: Information
+INFO     tornado.access:web.py:2239 200 GET /information (::1) 1.76ms
+INFO     tornado.application:web_handlers.py:146 GET: Information
+----------------------------- Captured stderr call -----------------------------
+generate-conformers:   0%|          | 0/2 [00:00<?, ?it/s]generate-conformers: 100%|██████████| 2/2 [00:00<00:00, 1296.74it/s]
+compute-esp:   0%|          | 0/2 [00:00<?, ?it/s]compute-esp:  50%|█████     | 1/2 [00:00<00:00,  1.48it/s]compute-esp: 100%|██████████| 2/2 [00:00<00:00,  2.84it/s]
+forrtl: error (78): process killed (SIGTERM)
+Image              PC                Routine            Line        Source             
+libgdma.so         00007F80AD52710F  for__signal_handl     Unknown  Unknown
+libpthread-2.17.s  00007F80DF42A630  Unknown               Unknown  Unknown
+libpthread-2.17.s  00007F80DF428F0D  sem_post              Unknown  Unknown
+_multiprocessing.  00007F80B7CD8751  Unknown               Unknown  Unknown
+python3.8          000056458EB5283D  Unknown               Unknown  Unknown
+python3.8          000056458EBF16A6  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CCA8  Unknown               Unknown  Unknown
+python3.8          000056458EB52440  Unknown               Unknown  Unknown
+python3.8          000056458EBEDC01  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE3754  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBCF318  Unknown               Unknown  Unknown
+python3.8          000056458EB470C8  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0940  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBCF45A  Unknown               Unknown  Unknown
+python3.8          000056458EB470C8  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0E5A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CCA8  Unknown               Unknown  Unknown
+python3.8          000056458EB4D819  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB74797  _PyObject_FastCal     Unknown  Unknown
+python3.8          000056458EBAABBB  Unknown               Unknown  Unknown
+python3.8          000056458EB4725F  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0E5A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEBF0F  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB74797  _PyObject_FastCal     Unknown  Unknown
+python3.8          000056458EBAABBB  Unknown               Unknown  Unknown
+python3.8          000056458EB4D95D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB74797  _PyObject_FastCal     Unknown  Unknown
+python3.8          000056458EBAABBB  Unknown               Unknown  Unknown
+python3.8          000056458EB4725F  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0E5A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB74797  _PyObject_FastCal     Unknown  Unknown
+python3.8          000056458EBAABBB  Unknown               Unknown  Unknown
+python3.8          000056458EB4725F  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0E5A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB4D57D  PyObject_Call         Unknown  Unknown
+python3.8          000056458EBED823  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE2CEF  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBECF67  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB7CBDE  Unknown               Unknown  Unknown
+python3.8          000056458EBF09D1  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE37B4  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EB74797  _PyObject_FastCal     Unknown  Unknown
+python3.8          000056458EBAABBB  Unknown               Unknown  Unknown
+python3.8          000056458EB4725F  _PyObject_MakeTpC     Unknown  Unknown
+python3.8          000056458EBF0E5A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBDDAE7  Unknown               Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE33D7  _PyFunction_Vecto     Unknown  Unknown
+python3.8          000056458EBEC16A  _PyEval_EvalFrame     Unknown  Unknown
+python3.8          000056458EBE21F0  _PyEval_EvalCodeW     Unknown  Unknown
+python3.8          000056458EBE3AA3  PyEval_EvalCode       Unknown  Unknown
+python3.8          000056458EC57382  Unknown               Unknown  Unknown
+python3.8          000056458EC68202  Unknown               Unknown  Unknown
+python3.8          000056458EC6B3AB  Unknown               Unknown  Unknown
+python3.8          000056458EC6B58F  PyRun_SimpleFileE     Unknown  Unknown
+python3.8          000056458EC6BA69  Py_RunMain            Unknown  Unknown
+python3.8          000056458EC6BC69  Py_BytesMain          Unknown  Unknown
+libc-2.17.so       00007F80DF06F555  __libc_start_main     Unknown  Unknown
+python3.8          000056458EC0D427  Unknown               Unknown  Unknown
+------------------------------ Captured log call -------------------------------
+INFO     tornado.application:managers.py:226 QueueManager:
+INFO     tornado.application:managers.py:227     Version:         v0.15.6
+
+INFO     tornado.application:managers.py:235     Queue Adapter:
+INFO     tornado.application:managers.py:236         <ExecutorAdapter client=<ProcessPoolExecutor max_workers=2>>
+
+INFO     tornado.access:web.py:2239 200 GET /information (::1) 24.78ms
+INFO     tornado.application:handlers.py:383 QueueManager: New active manager FractalServer-hpc3-22-04-e8ff0eff-2ee3-41a9-b5fb-b346c25c2bdb detected.
+INFO     tornado.access:web.py:2239 200 PUT /queue_manager (::1) 24.10ms
+INFO     tornado.application:web_handlers.py:307 POST: Keywords - 1 inserted.
+INFO     tornado.access:web.py:2239 200 POST /keyword (::1) 9.85ms
+INFO     tornado.application:managers.py:347 QueueManager successfully started.
+
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:46 POST: TaskQueue -  Added 2 tasks.
+INFO     tornado.access:web.py:2239 200 POST /task_queue (::1) 42.01ms
+INFO     tornado.application:handlers.py:332 QueueManager: Served 2 tasks.
+INFO     tornado.application:managers.py:697 Acquired 2 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 22.27ms
+INFO     tornado.access:web.py:2239 200 PUT /queue_manager (::1) 25.49ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 8.92ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 8.62ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 8.93ms
+INFO     tornado.application:managers.py:679 Task statistics unavailable until first tasks return
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.17ms
+INFO     tornado.application:handlers.py:218 QueueManager: Received completed tasks from FractalServer-hpc3-22-04-e8ff0eff-2ee3-41a9-b5fb-b346c25c2bdb.
+INFO     tornado.application:handlers.py:219               Task ids: 1
+INFO     tornado.application:handlers.py:289 QueueManager: Found 1 complete tasks (1 successful, 0 failed).
+INFO     tornado.application:handlers.py:361 QueueManager: Inserted 1 complete tasks.
+INFO     tornado.access:web.py:2239 200 POST /queue_manager (::1) 39.49ms
+INFO     tornado.application:managers.py:622 Processed 1 tasks: 1 succeeded / 0 failed).
+INFO     tornado.application:managers.py:623 Task ids, submission status, calculation status below
+INFO     tornado.application:managers.py:625     Task 1 : sent / success
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 41.71%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 8.15ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 34.68%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.80ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 29.79%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.73ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 26.11%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.29ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 23.24%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.96ms
+INFO     tornado.application:web_handlers.py:432 GET: Results - 2 pulls.
+INFO     tornado.access:web.py:2239 200 GET /result (::1) 5.89ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 20.94%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.87ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 19.06%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.65ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=1, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 17.48%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.37ms
+INFO     tornado.application:handlers.py:218 QueueManager: Received completed tasks from FractalServer-hpc3-22-04-e8ff0eff-2ee3-41a9-b5fb-b346c25c2bdb.
+INFO     tornado.application:handlers.py:219               Task ids: 2
+INFO     tornado.application:handlers.py:289 QueueManager: Found 1 complete tasks (1 successful, 0 failed).
+INFO     tornado.application:handlers.py:361 QueueManager: Inserted 1 complete tasks.
+INFO     tornado.application:managers.py:622 Processed 1 tasks: 1 succeeded / 0 failed).
+INFO     tornado.application:managers.py:623 Task ids, submission status, calculation status below
+INFO     tornado.application:managers.py:625     Task 2 : sent / success
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.01, Core Usage Efficiency: 63.71%
+INFO     tornado.access:web.py:2239 200 POST /queue_manager (::1) 53.23ms
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 14.48ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 59.06%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 18.20ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 55.08%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 25.19ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 51.63%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 15.04ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 48.62%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 26.11ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 45.92%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 22.24ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 43.50%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 27.06ms
+INFO     tornado.application:web_handlers.py:432 GET: Results - 2 pulls.
+INFO     tornado.access:web.py:2239 200 GET /result (::1) 17.30ms
+INFO     tornado.application:web_handlers.py:432 GET: Results - 2 pulls.
+INFO     tornado.access:web.py:2239 200 GET /result (::1) 13.96ms
+INFO     tornado.application:web_handlers.py:206 GET: WavefunctionStore - 1 pull.
+INFO     tornado.access:web.py:2239 200 GET /wavefunctionstore (::1) 10.12ms
+INFO     tornado.application:web_handlers.py:245 GET: Molecule - 1 pulls.
+INFO     tornado.access:web.py:2239 200 GET /molecule (::1) 12.26ms
+INFO     tornado.application:web_handlers.py:206 GET: WavefunctionStore - 1 pull.
+INFO     tornado.access:web.py:2239 200 GET /wavefunctionstore (::1) 9.83ms
+INFO     tornado.application:web_handlers.py:245 GET: Molecule - 1 pulls.
+INFO     tornado.access:web.py:2239 200 GET /molecule (::1) 21.98ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 41.32%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 28.73ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 39.35%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 10.18ms
+INFO     tornado.application:managers.py:679 Task Stats: Processed=2, Failed=0, Success=100.00%
+INFO     tornado.application:managers.py:681 Worker Stats (est.): Core Hours Used=0.02, Core Usage Efficiency: 37.58%
+INFO     tornado.application:handlers.py:332 QueueManager: Served 0 tasks.
+INFO     tornado.application:managers.py:697 Acquired 0 new tasks.
+INFO     tornado.access:web.py:2239 200 GET /queue_manager (::1) 9.37ms
+=============================== warnings summary ===============================
+../../../../../../../data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/past/builtins/misc.py:45
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/past/builtins/misc.py:45: DeprecationWarning: the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses
+    from imp import reload
+
+psiresp/tests/test_job.py: 29 warnings
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcelemental/models/results.py:735: DeprecationWarning: ResultProtocols has been renamed to AtomicResultProtocols and will be removed in v0.13.0
+    warn(
+
+psiresp/tests/test_job.py: 20 warnings
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/qcelemental/models/results.py:724: DeprecationWarning: ResultProperties has been renamed to AtomicResultProperties and will be removed in v0.13.0
+    warn(
+
+psiresp/tests/test_job.py::TestSingleResp::test_unrestrained
+psiresp/tests/test_job.py::TestSingleResp::test_restrained
+psiresp/tests/test_job.py::TestMultiRespFast::test_given_esps[False-0.0-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_espA1.dat]
+psiresp/tests/test_job.py::TestMultiRespFast::test_given_esps[False-0.01-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA2.dat]
+psiresp/tests/test_job.py::TestMultiRespFast::test_given_esps[True-0.0005-/dfs6/pub/lilyw7/pydev/psiresp/psiresp/tests/data/charges/amm_dimethyl_respA1.dat]
+psiresp/tests/test_job.py::TestMultiRespFast::test_run_with_empty
+psiresp/tests/test_job.py::TestMultiRespFast::test_run_manual
+  /data/homezvol0/lilyw7/miniconda3/envs/psiresp-3.8/lib/python3.8/site-packages/numpy/matrixlib/defmatrix.py:1109: PendingDeprecationWarning: the matrix subclass is not the recommended way to represent matrices or deal with linear algebra (see https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html). Please adjust your code to use regular ndarray.
+    return matrix(concatenate(arr_rows, axis=0))
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+=========================== short test summary info ============================
+FAILED test_job.py::TestMultiRespFast::test_run_with_empty - AssertionError: 
+======= 1 failed, 6 passed, 3 skipped, 57 warnings in 193.10s (0:03:13) ========
