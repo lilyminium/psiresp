@@ -154,6 +154,9 @@ class TestMultiRespFast:
         h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
         h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+        h_smiles = "[N+](H)(H)(H)"
+        h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
         geometry_options = psiresp.QMGeometryOptimizationOptions(
             method="b3lyp", basis="sto-3g",
@@ -171,16 +174,16 @@ class TestMultiRespFast:
         np.set_printoptions(precision=7)
         print(job_multi.charges)
 
-        assert_allclose(nme2ala2.stage_2_restrained_charges[nme_indices[0]].sum(), 0)
+        nme_charges = job_multi.molecules[1].stage_2_restrained_charges
+        assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0)
 
-        methylammonium_charges = [-0.1746829, -0.0660754, 0.1269830, 0.1269830,
-                                  0.1269830, 0.2877924, 0.2873742, 0.2846426]
-        nme2ala2_charges = [-0.2732993, 0.4246007, -0.3465710, -0.4890090,
-                            0.2595477, -0.3606930, -0.3560697, 0.4401498,
-                            -0.2749590, -0.2789113, -0.3525787, 0.0775518,
-                            0.0775518, 0.0775518, 0.2453572, 0.0959850,
-                            0.0959850, 0.0959850, 0.0959850, 0.0959850,
-                            0.09598, 0.2292115, 0.1082196, 0.1082196, 0.1082196]
+        methylammonium_charges = [-0.0408648, -0.2206196,  0.0998281,  0.0998281,
+                                  0.0998281, 0.323705,  0.3197784,  0.3185167]
+        nme2ala2_charges = [-0.4223706,  0.4497492, -0.3638246, -0.6170615,  0.6141354,
+                            -0.4453762, -0.4369407,  0.6163, -0.3028913, -0.214256,
+                            -0.5722,  0.1128262,  0.1128262,  0.1128262,  0.3564094,
+                            0.0804502,  0.0804502,  0.0804502,  0.0804502,  0.0804502,
+                            0.0804502,  0.2267383,  0.096803,  0.096803,  0.096803]
 
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-5)
