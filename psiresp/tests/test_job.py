@@ -117,8 +117,9 @@ class TestMultiRespFast:
     def test_run_with_empty(self, empty_client):
         random.seed(0)
         conformer_options = psiresp.ConformerGenerationOptions(
-            n_max_conformers=1,
-            keep_original_conformer=False
+            n_max_conformers=2,
+            keep_original_conformer=False,
+            rms_tolerance=0.01,
         )
         nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
                                                 optimize_geometry=False,
@@ -180,13 +181,13 @@ class TestMultiRespFast:
         nme_charges = job_multi.molecules[1].stage_2_restrained_charges
         assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
 
-        methylammonium_charges = [0.0170511, 0.1974141, 0.0644309, 0.0644309,
-                                  0.0644309, 0.1974141, 0.1974141, 0.1974141]
-        nme2ala2_charges = [0.068301,  0.4023641, -0.3391542, -0.6331304,  0.513399,
-                            -0.5161129, -0.5058586,  0.6163, -0.2803777, -0.2974645,
-                            -0.5722, -0.0165115, -0.0165115, -0.0165115,  0.3408103,
-                            0.1124694,  0.1124694,  0.1124694,  0.1124694,  0.1124694,
-                            0.1124694,  0.2028342,  0.1250027,  0.1250027,  0.1250027]
+        methylammonium_charges = [-0.1877653,  0.209308,  0.1168444,  0.1168444,
+                                  0.1168444, 0.209308,  0.209308,  0.209308]
+        nme2ala2_charges = [-0.0618862,  0.3204358, -0.3301085, -0.4417232,  0.2600168,
+                            -0.3760215, -0.3760215,  0.6163, -0.1459195, -0.2604971,
+                            -0.5722,  0.0193033,  0.0193033,  0.0193033,  0.2926043,
+                            0.1017823,  0.1017823,  0.1017823,  0.1017823,  0.1017823,
+                            0.1017823,  0.0791553,  0.1090871,  0.1090871,  0.1090871]
 
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-5)
