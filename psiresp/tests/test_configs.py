@@ -51,7 +51,7 @@ def test_config_resp(config_class, red_charges, fractal_client, dmso):
     assert len(job.molecules[0].conformers) == 1
     assert len(job.molecules[0].conformers[0].orientations) == 2
 
-    job.compute_orientation_energies(client=None)
+    job.compute_orientation_energies(client=fractal_client)
     job.compute_esps()
     job.compute_charges()
     assert_allclose(job.charges, red_charges, atol=1e-3)
