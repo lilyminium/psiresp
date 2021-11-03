@@ -31,11 +31,24 @@ You can define your own conformers with QCElemental molecules:
 
 .. ipython:: python
 
-    from psiresp.tests.datafiles import DMSO
     import qcelemental as qcel
     import psiresp as sip
 
-    qcdmso = qcel.models.Molecule.from_file(DMSO, dtype="xyz")
+    dmso_spec = """\
+    10
+    ! from R.E.D. examples/2-Dimethylsulfoxide
+    C   3.7787218489   0.7099460365  -8.4358800149
+    H   3.7199547803   1.7353551063  -8.0912740044
+    H   3.3727951491   0.0324988805  -7.6949604622
+    H   3.2200309413   0.6050316563  -9.3564160613
+    S   5.4843687520   0.2699083657  -8.7873057009
+    O   5.4949906162  -1.1820495711  -9.0993845212
+    C   6.1255577314   0.4439602615  -7.1184894575
+    H   7.1686363815   0.1575024332  -7.1398743610
+    H   6.0389920737   1.4725205702  -6.7894907284
+    H   5.5889517256  -0.2186737389  -6.4509246884
+    """
+    qcdmso = qcel.models.Molecule.from_data(dmso_spec, dtype="xyz")
     dmso = sip.Molecule(qcmol=qcdmso)
     # No conformers are generated automatically
     assert dmso.n_conformers == 0
@@ -49,9 +62,20 @@ Or directly with coordinates:
 
 .. ipython:: python
 
-    from psiresp.tests.datafiles import DMSO_O1
-    dmso_o1 = qcel.models.Molecule.from_file(DMSO_O1, dtype="xyz")
-    dmso.add_conformer_with_coordinates(dmso_o1.geometry, units="bohr")
+    import numpy as np
+    coordinates = np.array([
+        [0.00000000,  0.00000000,  0.00000000],
+        -0.37443200, -1.01033397, -0.11267908],
+        -0.36445856,  0.63526149, -0.79767520],
+        -0.32471908,  0.40230888,  0.95038637],
+        1.79620837,  0.00000000, -0.00000000],
+        2.22305520,  1.42249416,  0.00000000],
+        2.03592873, -0.61092095, -1.67202714],
+        3.10077808, -0.62557805, -1.86283992],
+        1.63738124, -1.61401863, -1.76489819],
+        1.55810229,  0.05835618, -2.37659975],
+    ])
+    dmso.add_conformer_with_coordinates(coordinates, units="angstrom")
     assert dmso.n_conformers == 2
     print(dmso.conformers)
 
