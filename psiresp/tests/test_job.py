@@ -154,6 +154,9 @@ class TestMultiRespFast:
         h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
         h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+        c_smiles = "C([C:1]([H])([H])([H]))([C:1]([H])([H])([H]))"
+        c_atoms = nme2ala2.get_atoms_from_smarts(c_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=c_atoms)
         h_smiles = "[N+]([H])([H])([H])"
         h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
