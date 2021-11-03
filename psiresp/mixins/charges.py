@@ -107,6 +107,7 @@ class RespCharges(RespStage, ChargeConstraintOptions):
             q_last = charges.copy()
             a_iter = a_matrix.copy()
             increment = self.hyp_a / np.sqrt(charges[indices] ** 2 + b2) * n_structures
+            print("inc", increment)
             a_iter[ix] += increment  # .reshape((-1, 1))
             charges = self._solve_a_b(a_iter, b_matrix)
             delta = np.max(np.abs(charges - q_last)[:n_atoms])
@@ -116,6 +117,8 @@ class RespCharges(RespStage, ChargeConstraintOptions):
             warnings.warn("Charge fitting did not converge to "
                           f"resp_convergence_tol={self.resp_convergence_tol} "
                           f"with resp_max_iter={self.resp_max_iter}")
+
+        print("charges")
         return charges
 
     @staticmethod
@@ -141,7 +144,6 @@ class RespCharges(RespStage, ChargeConstraintOptions):
         -------
         numpy.ndarray
         """
-        
 
         a, b = self.get_constraint_matrix(a_matrix, b_matrix)
         q1 = self._solve_a_b(a, b)

@@ -71,6 +71,7 @@ def test_dmso_resp_config(config_class, charge_file, dmso_o1_psi4mol, dmso_o2_ps
 
     reference = charges_from_red_file(charge_file)
     assert_almost_equal(charges, reference, decimal=3)
+    raise ValueError
 
 
 @pytest.mark.parametrize("config_class, charge_file", [
