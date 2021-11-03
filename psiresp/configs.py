@@ -1,212 +1,261 @@
-"""
-Pre-configured classes --- :mod:`psiresp.configs`
-================================================
+import pathlib
+from typing import List, Optional, ClassVar
 
-This module provides pre-configured Resp and MultiResp classes
-that correspond to commonly used settings.
+from pydantic import Field
 
+from . import base, qm, grid, molecule, resp, charge
+from .job import Job
+from .due import due, Doi
+from .utils import update_dictionary
 
-"""
-
-from .mixins import RespOptions
-from .mixins.qm import QMMethod, QMBasisSet, QMSolvent
-from .vdwradii import VdwRadiiSet
-from .resp import Resp
-from .multiresp import MultiResp
-from .utils.due import due, Doi
-
-
-# class BaseRespConfig(RespOptions):
-#     qm_method: QMMethod = Field("hf", const=True)
-#     solvent: QMSolvent = Field(None, const=True)
-#     use_radii: VdwRadiiSet = Field("msk", const=True)
-#     ihfree: bool = Field(True, const=True)
-#     hyp_b: float = Field(0.1, const=True)
-
-# def configure(**kwargs):
-#     def wrapper(cls):
-#         new_defaults = [dict(QMOptions.__dict__),
-#                         dict(GridOptions.__dict__)]
-#         for name, field in cls.__fields__.items():
-#             for optcls, defaults in new_defaults.items():
-#                 if name in defaults["__fields__"]:
-#                     defaults["__fields__"][name] = field
-
-#         SubQMOptions = type("QMOptions", (QMOptions,), new_defaults[0])
-#         SubGridOptions = type("GridOptions", (GridOptions,), new_defaults[1])
-
-#         basecls = cls.__bases__[0]
-
-#         class Wrapper(basecls):
-#             __doc__ = cls.__doc__
-
-#             grid_options: GridOptions = Field(
-#                 default_factory=SubGridOptions,
-#                 description=basecls.__fields__["grid_options"].description,
-#             )
-
-#             qm_options: QMOptions = Field(
-#                 default_factory=SubQMOptions,
-#                 description=basecls.__fields__["qm_options"].description,
-#             )
+__all__ = [
+    "ConfiguredJob",
+    "RespA1",
+    "RespA2",
+    "EspA1",
+    "EspA2",
+    "ATBResp",
+    "Resp2"
+]
 
 
-# Let users override for now
-class BaseRespConfig(RespOptions):
-    qm_method: QMMethod = "hf"
-    solvent: QMSolvent = None
-    use_radii: VdwRadiiSet = "msk"
-    ihfree: bool = True
-    hyp_b: float = 0.1
+class ConfiguredJob(Job):
+
+    _configuration: ClassVar[dict] = {}
+
+    def __init__(self, *args, **kwargs):
+        obj = Job(*args, **kwargs)
+        objdct = obj.dict()
+        for option_name, option_config in self._configuration.items():
+            prefix = option_name.split("_")[0] + "_"
+            for field in objdct.keys():
+                if field.startswith(prefix):
+                    for name, value in option_config.items():
+                        update_dictionary(objdct[field], name, value)
+        super().__init__(**objdct)
 
 
 @due.dcite(
     Doi("10.1021/j100142a004"),
     description="RESP-A1 model",
-    path="psiresp.configs",
+    path="psiresp.configs.RespA1",
 )
-class RespA1(BaseRespConfig, Resp):
+class RespA1(ConfiguredJob):
     """RespA1 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = True
-    hyp_a1 = 0.0005
-    hyp_a2 = 0.001
-    restrained = True
-
-
-@due.dcite(
-    Doi("10.1021/j100142a004"),
-    description="RESP-A1 multi-molecule model",
-    path="psiresp.configs",
-)
-class MultiRespA1(BaseRespConfig, MultiResp):
-    """RespA1 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = True
-    hyp_a1 = 0.0005
-    hyp_a2 = 0.001
-    restrained = True
+    _configuration: ClassVar[dict] = dict(
+        qm_options=dict(method="hf",
+                        basis="6-31g*"
+                        ),
+        grid_options=dict(use_radii="msk"),
+        resp_options=dict(resp_a1=0.0005,
+                          resp_a2=0.001,
+                          resp_b=0.1,
+                          stage_2=True,
+                          exclude_hydrogens=True,
+                          restrained_fit=True),
+    )
 
 
 @due.dcite(
     Doi("10.1039/c0cp00111b"),
     description="RESP-A2 model",
-    path="psiresp.configs",
+    path="psiresp.configs.RespA2",
 )
-class RespA2(BaseRespConfig, Resp):
+class RespA2(ConfiguredJob):
     """RespA2 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = False
-    hyp_a1 = 0.01
-    hyp_a2 = 0.0
-    restrained = True
-
-
-@due.dcite(
-    Doi("10.1039/c0cp00111b"),
-    description="RESP-A2 multimolecule model",
-    path="psiresp.configs",
-)
-class MultiRespA2(BaseRespConfig, MultiResp):
-    """RespA2 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = False
-    hyp_a1 = 0.01
-    hyp_a2 = 0.0
-    restrained = True
-
-
-@due.dcite(
-    Doi("10.1002/jcc.540050204"),
-    description="ESP-A1 model",
-    path="psiresp.configs",
-)
-class EspA1(BaseRespConfig, Resp):
-    """EspA1 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    restrained = False
+    _configuration = dict(qm_options=dict(method="hf",
+                                          basis="6-31g*"
+                                          ),
+                          grid_options=dict(use_radii="msk"),
+                          resp_options=dict(resp_a1=0.01,
+                                            resp_a2=0.0,
+                                            resp_b=0.1,
+                                            stage_2=False,
+                                            exclude_hydrogens=True,
+                                            restrained_fit=True),
+                          )
 
 
 @due.dcite(
     Doi("10.1002/jcc.540050204"),
     description="ESP-A1 multimolecule model",
-    path="psiresp.configs",
+    path="psiresp.configs.EspA1",
 )
-class MultiEspA1(BaseRespConfig, MultiResp):
+class EspA1(ConfiguredJob):
     """EspA1 config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    restrained = False
+    _configuration = dict(qm_options=dict(method="hf",
+                                          basis="6-31g*"
+                                          ),
+                          grid_options=dict(use_radii="msk"),
+                          resp_options=dict(resp_a1=0.0,
+                                            resp_a2=0.0,
+                                            resp_b=0.1,
+                                            stage_2=False,
+                                            exclude_hydrogens=True,
+                                            restrained_fit=False),
+                          )
 
 
 @due.dcite(
     Doi("10.1002/jcc.540050204"),
     Doi("10.1039/c0cp00111b"),
     description="ESP-A2 model",
-    path="psiresp.configs",
+    path="psiresp.configs.EspA2",
 )
-class EspA2(BaseRespConfig, Resp):
+class EspA2(ConfiguredJob):
     """EspA2 config"""
-    qm_basis: QMBasisSet = "sto-3g"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    restrained = False
 
-
-@due.dcite(
-    Doi("10.1002/jcc.540050204"),
-    Doi("10.1039/c0cp00111b"),
-    description="ESP-A2 multimolecule model",
-    path="psiresp.configs",
-)
-class MultiEspA2(BaseRespConfig, MultiResp):
-    """EspA2 config"""
-    qm_basis: QMBasisSet = "sto-3g"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    restrained = False
+    _configuration = dict(qm_options=dict(method="hf",
+                                          basis="sto-3g"
+                                          ),
+                          grid_options=dict(use_radii="msk"),
+                          resp_options=dict(resp_a1=0.0,
+                                            resp_a2=0.0,
+                                            resp_b=0.1,
+                                            stage_2=False,
+                                            exclude_hydrogens=True,
+                                            restrained_fit=False),
+                          )
 
 
 @due.dcite(
     Doi("10.1021/ct200196m"),
     description="ATB model",
-    path="psiresp.configs",
+    path="psiresp.configs.ATBResp",
 )
-class ATBResp(Resp):
-    """ATBResp config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    qm_method: QMMethod = "b3lyp"
-    solvent: QMSolvent = "solvent"
-    use_radii: VdwRadiiSet = "msk"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    hyp_b = 0.1
-    restrained = False
-    ihfree = False
+class ATBResp(ConfiguredJob):
+    """ATB Resp config"""
+    _configuration = dict(qm_options=dict(method="b3lyp",
+                                          basis="6-31g*",
+                                          pcm_options=dict(
+                                              solvent="water"
+                                          )),
+                          grid_options=dict(use_radii="msk"),
+                          resp_options=dict(resp_a1=0.0,
+                                            resp_a2=0.0,
+                                            resp_b=0.1,
+                                            stage_2=False,
+                                            exclude_hydrogens=False,
+                                            restrained_fit=False),
+                          )
 
 
-@due.dcite(
-    Doi("10.1021/ct200196m"),
-    description="ATB multimolecule model",
-    path="psiresp.configs",
+@ due.dcite(
+    Doi("10.1038/s42004-020-0291-4"),
+    description="RESP2",
+    path="psiresp.resp2",
 )
-class MultiATBResp(MultiResp):
-    """ATBResp config"""
-    qm_basis: QMBasisSet = "6-31g*"
-    qm_method: QMMethod = "b3lyp"
-    solvent: QMSolvent = "solvent"
-    use_radii: VdwRadiiSet = "msk"
-    stage_2 = False
-    hyp_a1 = 0.0
-    hyp_a2 = 0.0
-    hyp_b = 0.1
-    restrained = False
-    ihfree = False
+class Resp2(base.Model):
+    """Class to manage Resp2 jobs"""
+    molecules: List[molecule.Molecule] = Field(
+        default_factory=list,
+        description="Molecules to use for the RESP job"
+    )
+    solvent_qm_optimization_options: qm.QMGeometryOptimizationOptions = Field(
+        default=qm.QMGeometryOptimizationOptions(
+            method="pw6b95",
+            basis="aug-cc-pV(D+d)Z",
+            pcm_options=qm.PCMOptions(solvent="water")
+        ),
+        description="QM options for geometry optimization"
+    )
+    solvent_qm_esp_options: qm.QMEnergyOptions = Field(
+        default=qm.QMEnergyOptions(
+            method="pw6b95",
+            basis="aug-cc-pV(D+d)Z",
+            pcm_options=qm.PCMOptions(medium_solvent="water")
+        ),
+        description="QM options for ESP computation"
+    )
+    grid_options: grid.GridOptions = Field(
+        default=grid.GridOptions(
+            use_radii="bondi",
+            vdw_point_density=2.5
+        ),
+        description="Options for generating grid for ESP computation"
+    )
+    resp_options: resp.RespOptions = Field(
+        default=resp.RespOptions(),
+        description="Options for fitting ESP for charges"
+    )
+    charge_constraints: charge.ChargeConstraintOptions = Field(
+        default=charge.ChargeConstraintOptions(),
+        description="Charge constraints"
+    )
+
+    working_directory: pathlib.Path = Field(
+        default=pathlib.Path("psiresp_working_directory"),
+        description="Working directory for saving intermediate files"
+    )
+
+    defer_errors: bool = Field(
+        default=False,
+        description=("Whether to raise an error immediately, "
+                     "or gather all errors during ESP computation "
+                     "and raise at the end")
+    )
+    temperature: float = Field(
+        default=298.15,
+        description="Temperature (in Kelvin) to use when Boltzmann-weighting conformers."
+    )
+
+    n_processes: Optional[int] = Field(
+        default=None,
+        description=("Number of processes to use in multiprocessing "
+                     "during ESP computation. `n_processes=None` uses "
+                     "the number of CPUs.")
+    )
+
+    vacuum: Optional[Job] = None
+    solvated: Optional[Job] = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        vacuum_opt = self.solvent_qm_optimization_options.copy(deep=True)
+        vacuum_opt.pcm_options = None
+        vacuum_esp = self.solvent_qm_esp_options.copy(deep=True)
+        vacuum_esp.pcm_options = None
+
+        self.vacuum = Job(molecules=[x.copy(deep=True) for x in self.molecules],
+                          qm_optimization_options=vacuum_opt,
+                          qm_esp_options=vacuum_esp,
+                          grid_options=self.grid_options,
+                          resp_options=self.resp_options,
+                          charge_constraints=self.charge_constraints,
+                          defer_errors=self.defer_errors,
+                          temperature=self.temperature,
+                          n_processes=self.n_processes,
+                          working_directory=self.working_directory / "vacuum")
+
+        self.solvated = Job(molecules=[x.copy(deep=True) for x in self.molecules],
+                            qm_optimization_options=self.solvent_qm_optimization_options,
+                            qm_esp_options=self.solvent_qm_esp_options,
+                            grid_options=self.grid_options,
+                            resp_options=self.resp_options,
+                            charge_constraints=self.charge_constraints,
+                            defer_errors=self.defer_errors,
+                            temperature=self.temperature,
+                            n_processes=self.n_processes,
+                            working_directory=self.working_directory / "solvated")
+
+    def run(self, client=None):
+        self.vacuum.run(client=client, update_molecules=False)
+        self.solvated.run(client=client, update_molecules=False)
+
+    @property
+    def charges(self):
+        try:
+            return self.get_charges()
+        except ValueError:
+            return None
+
+    def get_charges(self, delta=0.6):
+        if self.solvated.charges is None or self.vacuum.charges is None:
+            raise ValueError("Neither `self.solvated.charges` "
+                             "nor `self.vacuum.charges` should be `None`. "
+                             "Perhaps you need to call `.run()` ?")
+
+        return [
+            solv * delta + (1 - delta) * vac
+            for solv, vac in zip(self.solvated.charges, self.vacuum.charges)
+        ]

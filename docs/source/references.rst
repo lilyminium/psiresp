@@ -38,3 +38,8 @@ Do it in the BibTeX format, using:
 
 .. _duecredit: https://github.com/duecredit/duecredit
 
+
+Bibliography
+============
+
+.. bibliography::

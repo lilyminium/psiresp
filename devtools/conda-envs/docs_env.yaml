@@ -1,26 +1,51 @@
 name: psiresp-docs
 channels:
   - psi4
-  - rdkit
-  # - conda-forge
+  - defaults
+  - conda-forge
 
 dependencies:
+  # core
+  - python=3.8
+  - pip
+
+  # qm
+  - dftd3
+  - psi4 >= 1.3.0
+  - intel-openmp!=2019.5
+  - geometric
+
+  # qcstack
+  - postgresql >= 13.0
+  - qcelemental==0.22.0
+  - qcengine
+  - qcfractal
+  - qcfractal-core
+  - requests
+
+  # deps
+  - rdkit
+  - scipy >= 1.4
+
+  # weird mamba mismatch
+  - h5py<3.2
+
+  # docs
   - ipython
   - jupyter
-  - pip
-  - psi4
-  - python
-  - rdkit
+  - nglview
+  - nbsphinx
+  - sphinx > 2.0
+
   # Pip-only installs
   - pip:
+      - autodoc_pydantic
       - duecredit
-      - mdanalysis==2.0.0b0
+      - importlib_resources
+      - mdanalysis>=2.0
       - myst-parser
-      - numpy>=1.20.0
-      - pandas
-      - qcelemental
-      - scipy
-      - sphinx
+      # - nbsphinx
+      # - sphinx<4.0
       - sphinx_rtd_theme
       - sphinxcontrib-bibtex<2.0.0
       - sphinx-sitemap

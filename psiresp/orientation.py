@@ -1,102 +1,86 @@
 from typing import Optional
-import pathlib
-import logging
 
 import numpy as np
-from pydantic import PrivateAttr
+from pydantic import Field  # , PrivateAttr, validator, root_validator
+import qcelemental as qcel
 
-from . import mixins, utils
-from .utils.io import datafile
-
-logger = logging.getLogger(__name__)
-
-class BaseMoleculeChild(mixins.MoleculeMixin, mixins.ContainsQMandGridOptions):
-    _parent_path: pathlib.Path = PrivateAttr(default=".")
-
-    @property
-    def default_path(self):
-        return pathlib.Path(self._parent_path) / self.name
+from psiresp import psi4utils
+from psiresp.constraint import ESPSurfaceConstraintMatrix
+from psiresp.moleculebase import BaseMolecule
+from psiresp.grid import GridOptions
+from psiresp.qcutils import QCWaveFunction
 
 
-class Orientation(BaseMoleculeChild, mixins.OrientationOptions):
+class Orientation(BaseMolecule):
     """
     Class to manage one orientation of a conformer. This should
     not usually be created or interacted with by a user. Instead,
     users are expected to work primarily with
-    :class:`psiresp.conformer.Conformer` or :class:`psiresp.resp.Resp`.
-
-    Attributes
-    ----------
-    grid: numpy.ndarray
-        The grid of points on which to compute the ESP
-    esp: numpy.ndarray
-        The computed ESP at grid points
-    r_inv: numpy.ndarray
-        inverse distance from each grid point to each atom, in
-        atomic units.
+    :class:`psiresp.molecule.Molecule` or :class:`psiresp.job.Job`.
     """
 
-    # conformer: mixins.ConformerOptions = Field(description="The conformer that owns this orientation")
-    _grid: Optional[np.ndarray] = PrivateAttr(default=None)
-    _esp: Optional[np.ndarray] = PrivateAttr(default=None)
-    _r_inv: Optional[np.ndarray] = PrivateAttr(default=None)
+    weight: Optional[float] = Field(
+        default=1,
+        description="How much to weight this orientation in the ESP surface constraints"
+    )
+    qc_wavefunction: Optional[QCWaveFunction] = None
+    grid: Optional[np.ndarray] = None
+    esp: Optional[np.ndarray] = None
+
+    _constraint_matrix: Optional[ESPSurfaceConstraintMatrix] = None
+    _qc_id: Optional[int] = None
 
     @property
-    def grid(self):
-        if self._grid is None:
-            self._grid = self.compute_grid()
-        return self._grid
+    def energy(self):
+        try:
+            return self.qc_wavefunction.energy
+        except AttributeError:
+            return None
+
+    def compute_grid(self, grid_options: GridOptions = GridOptions()):
+        self.grid = grid_options.generate_grid(self.qcmol)
+
+    def compute_esp(self):
+        self.esp = psi4utils.compute_esp(self.qc_wavefunction, self.grid)
+        return self.esp
+
+    def compute_esp_from_record(self, record):
+        self.qc_wavefunction = QCWaveFunction.from_qcrecord(record)
+        self.compute_esp()
 
     @property
-    def esp(self):
-        if self._esp is None:
-            self._esp = self.compute_esp()
-        return self._esp
+    def constraint_matrix(self):
+        if self._constraint_matrix is None:
+            self.construct_constraint_matrix()
+        return self._constraint_matrix
 
-    @property
-    def r_inv(self):
-        if self._r_inv is None:
-            self._r_inv = self.compute_r_inv()
-        return self._r_inv
+    def get_weight(self, temperature: float = 298.15):
+        if self.weight is None:
+            return self.get_boltzmann_weight(temperature)
+        return self.weight
 
-    def compute_r_inv(self) -> np.ndarray:
-        """Get inverse r"""
-        points = self.grid.reshape((len(self.grid), 1, 3))
-        disp = self.coordinates - points
-        inverse = 1 / np.sqrt(np.einsum("ijk, ijk->ij", disp, disp))
-        return inverse * utils.BOHR_TO_ANGSTROM
+    def get_boltzmann_weight(self, temperature: float = 298.15):
+        joules = self.energy * qcel.constants.conversion_factor("hartree", "joules")
+        kb_jk = qcel.constants.Boltzmann_constant
+        return joules / (kb_jk * temperature)
 
-    def get_esp_mat_a(self) -> np.ndarray:
-        """Get A matrix for solving"""
-        return np.einsum("ij, ik->jk", self.r_inv, self.r_inv)
+    def get_weighted_matrix(self, temperature: float = 298.15):
+        weight = self.get_weight(temperature=temperature)
+        return self.constraint_matrix * (weight ** 2)
 
-    def get_esp_mat_b(self) -> np.ndarray:
-        """Get B matrix for solving"""
-        return np.einsum("i, ij->j", self.esp, self.r_inv)
+    def construct_constraint_matrix(self):
+        displacement = self.coordinates - self.grid.reshape((-1, 1, 3))
 
-    @datafile(filename="{self.name}_grid.dat")
-    def compute_grid(self, grid_options=None):
-        if grid_options is None:
-            grid_options = self.grid_options
-        grid = grid_options.generate_vdw_grid(self.symbols, self.coordinates)
-        self._grid = grid
-        return grid
+        # r_inv should be in bohr units, even though
+        # coordinates and displacement are in angstrom?
+        BOHR_TO_ANGSTROM = qcel.constants.conversion_factor("bohr", "angstrom")
+        r_inv = BOHR_TO_ANGSTROM / np.sqrt(
+            np.einsum("ijk, ijk->ij", displacement, displacement)
+        )
 
-    @datafile(filename="{self.name}_grid_esp.dat")
-    def compute_esp(self, qm_options=None):
-        if qm_options is None:
-            qm_options = self.qm_options
-        grid = self.grid
-        if self.psi4mol_geometry_in_bohr:
-            grid = grid * utils.ANGSTROM_TO_BOHR
-        with self.directory() as tmpdir:
-            # ... this dies unless you write out grid.dat
-            np.savetxt("grid.dat", grid)
-            infile = qm_options.write_esp_file(self.psi4mol,
-                                               name=self.name)
-            proc = qm_options.try_run_qm(infile, cwd=tmpdir)
-            logger.info(proc)
-            esp = np.loadtxt("grid_esp.dat")
-        self._esp = esp
-        # assert len(self._esp)
-        return esp
+        a = np.einsum("ij, ik->jk", r_inv, r_inv)
+        b = np.einsum("i, ij->j", self.esp, r_inv)
+
+        matrix = ESPSurfaceConstraintMatrix.from_a_and_b(a, b)
+        self._constraint_matrix = matrix
+        return matrix

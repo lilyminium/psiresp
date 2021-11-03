@@ -1,119 +1,88 @@
+import glob
 import pytest
-import psiresp
-from rdkit import Chem
-
-from .base import coordinates_from_xyzfile, psi4mol_from_xyzfile, data_dir
-from .datafiles import (DMSO, DMSO_O1, DMSO_O2, DMSO_O3, DMSO_O4, DMSO_TPL,
-                        NME2ALA2_C1, NME2ALA2_OPT_C1, NME2ALA2_OPT_C2,
-                        METHYLAMMONIUM_OPT,
-                        TEST_RESP_DATA, TEST_MULTIRESP_DATA,
-                        )
 
 
-@pytest.fixture()
-def dmso_coordinates():
-    return coordinates_from_xyzfile(DMSO)
+import numpy as np
+import qcfractal.interface as ptl
+from psiresp.testing import TemporaryPostgres
+from qcfractal import FractalSnowflake
+
+from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
+
+pytest_plugins = [
+    "psiresp.tests.fixtures.qcmols",
+    "psiresp.tests.fixtures.qcrecords",
+    "psiresp.tests.fixtures.molecules",
+    "psiresp.tests.fixtures.options",
+]
 
 
-@pytest.fixture()
-def dmso_psi4mol():
-    mol = psi4mol_from_xyzfile(DMSO)
-    mol.set_molecular_charge(0)
-    mol.set_multiplicity(1)
-    mol.update_geometry()
-    return mol
+@pytest.fixture(scope="session")
+def postgres_server():
+    storage = TemporaryPostgres(database_name="test_psiresp")
+    storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
+    yield storage.psql
+    storage.stop()
 
 
-@pytest.fixture()
-def dmso_rdmol():
-    return Chem.MolFromTPLFile(DMSO_TPL)
+@pytest.fixture(scope="session")
+def fractal_server(postgres_server):
+    with FractalSnowflake(
+        max_workers=1,
+        storage_project_name="test_psiresp",
+        storage_uri=postgres_server.database_uri(),
+        reset_database=False,
+        start_server=False,
+    ) as server:
+        yield server
 
 
-@pytest.fixture()
-def dmso_o1_coordinates():
-    return coordinates_from_xyzfile(DMSO_O1)
+@pytest.fixture(scope="session")
+def fractal_client(fractal_server):
+    yield ptl.FractalClient(fractal_server)
 
 
-@pytest.fixture()
-def dmso_o1_psi4mol():
-    return psi4mol_from_xyzfile(DMSO_O1)
+@pytest.fixture(scope="function")
+def empty_client():
+    server = FractalSnowflake()
+    return ptl.FractalClient(server)
 
 
-@pytest.fixture()
-def dmso_o2_coordinates():
-    return coordinates_from_xyzfile(DMSO_O2)
+@pytest.fixture
+def reference_esp(request):
+    return np.loadtxt(request.param, comments='!')[:, 0]
 
 
-@pytest.fixture()
-def dmso_o2_psi4mol():
-    return psi4mol_from_xyzfile(DMSO_O2)
+@pytest.fixture
+def reference_grid(request):
+    return np.load(request.param)
 
 
-@pytest.fixture()
-def dmso_o3_psi4mol():
-    return psi4mol_from_xyzfile(DMSO_O3)
+@pytest.fixture
+def red_charges(request):
+    with open(request.param, 'r') as f:
+        content = f.read()
+
+    mols = [x.split('\n')[1:] for x in content.split('MOLECULE') if x]
+    charges = [np.array([float(x.split()[4]) for x in y if x]) for y in mols]
+    # if len(charges) == 1:
+    #     charges = charges[0]
+    return charges
 
 
-@pytest.fixture()
-def dmso_o4_psi4mol():
-    return psi4mol_from_xyzfile(DMSO_O4)
+@pytest.fixture
+def job_esps():
+    mol_esps = {}
+    for fname in glob.glob(ESP_PATH):
+        qchash = fname.split("/")[-1].split("_")[0]
+        mol_esps[qchash] = np.loadtxt(fname)
+    return mol_esps
 
 
-@pytest.fixture()
-def dmso_orientation_psi4mols(dmso_o1_psi4mol, dmso_o2_psi4mol,
-                              dmso_o3_psi4mol, dmso_o4_psi4mol):
-    return [dmso_o1_psi4mol, dmso_o2_psi4mol,
-            dmso_o3_psi4mol, dmso_o4_psi4mol]
-
-
-@pytest.fixture()
-def nme2ala2_c1_psi4mol():
-    return psi4mol_from_xyzfile(NME2ALA2_C1)
-
-
-@pytest.fixture()
-def nme2ala2_opt_c1_psi4mol():
-    return psi4mol_from_xyzfile(NME2ALA2_OPT_C1)
-
-
-@pytest.fixture()
-def nme2ala2_opt_c2_psi4mol():
-    return psi4mol_from_xyzfile(NME2ALA2_OPT_C2)
-
-
-@pytest.fixture()
-def nme2ala2_opt_resp(nme2ala2_opt_c1_psi4mol, nme2ala2_opt_c2_psi4mol):
-    reorientations = [(5, 18, 19), (19, 18, 5), (6, 19, 20), (20, 19, 6)]
-    conformer_options = dict(reorientations=reorientations,
-                             keep_original_conformer_geometry=False,
-                             load_input=True,)
-    resp = psiresp.Resp(nme2ala2_opt_c1_psi4mol,
-                        conformer_options=conformer_options,
-                        name="nme2ala2", load_input=True,
-                        directory_path=TEST_RESP_DATA,
-                        )
-    resp.add_conformer(nme2ala2_opt_c1_psi4mol)
-    resp.add_conformer(nme2ala2_opt_c2_psi4mol)
-    resp.compute_esps()
-    return resp
-
-
-@pytest.fixture()
-def methylammonium_psi4mol():
-    return psi4mol_from_xyzfile(METHYLAMMONIUM_OPT)
-
-
-@pytest.fixture()
-def methylammonium_resp(methylammonium_psi4mol):
-    reorientations = [(1, 5, 7), (7, 5, 1)]
-    conformer_options = dict(reorientations=reorientations,
-                             keep_original_conformer_geometry=False,
-                             load_input=True)
-    resp = psiresp.Resp(methylammonium_psi4mol, charge=1,
-                        conformer_options=conformer_options,
-                        name="methylammonium", load_input=True,
-                        directory_path=TEST_MULTIRESP_DATA,
-                        )
-    resp.add_conformer(methylammonium_psi4mol)
-    resp.compute_esps()
-    return resp
+@pytest.fixture
+def job_grids():
+    mol_esps = {}
+    for fname in glob.glob(GRID_PATH):
+        qchash = fname.split("/")[-1].split("_")[0]
+        mol_esps[qchash] = np.loadtxt(fname)
+    return mol_esps

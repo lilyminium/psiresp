@@ -25,12 +25,14 @@ and the Automated Topology Builder.
    :maxdepth: 2
    :caption: Contents:
 
-   getting_started
-   parallelization
+   installation
+   usage
+   examples/README
+   molecule
+   charge_constraints
    hpc
    api
-   io
-   options/index
+   references
    
 
 

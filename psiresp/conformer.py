@@ -1,228 +1,76 @@
 
-import logging
 from typing import Optional, List
+from pydantic import Field
 
 import numpy as np
-from pydantic import PrivateAttr
+import qcelemental as qcel
 
-from . import mixins
-from .utils import orientation as orutils
-from .utils import psi4utils
-from .utils.io import datafile
-from .orientation import Orientation, BaseMoleculeChild
-
-logger = logging.getLogger(__name__)
+from psiresp import base, rdutils
+from psiresp.orientation import Orientation
+from psiresp.moleculebase import BaseMolecule
 
 
-class Conformer(BaseMoleculeChild, mixins.ConformerOptions):
-    """Class to manage one conformer"""
+class Conformer(BaseMolecule):
+    """Class to manage one conformer of a molecule.
 
-    _orientations: List[Orientation] = PrivateAttr(default_factory=list)
-    _finalized: bool = PrivateAttr(default=False)
-    _unweighted_a_matrix: Optional[np.ndarray] = PrivateAttr(default=None)
-    _unweighted_b_matrix: Optional[np.ndarray] = PrivateAttr(default=None)
-
-    @property
-    def orientations(self):
-        return self._orientations
-
-    @orientations.setter
-    def orientations(self, value):
-        self._orientations = value
-
-    def _empty_init(self):
-        self._unweighted_a_matrix = None
-        self._unweighted_b_matrix = None
-
-    @property
-    def unweighted_a_matrix(self):
-        if self._unweighted_a_matrix is None:
-            self._unweighted_a_matrix = self.compute_unweighted_a_matrix()
-        return self._unweighted_a_matrix
-
-    @property
-    def unweighted_b_matrix(self):
-        if self._unweighted_b_matrix is None:
-            self._unweighted_b_matrix = self.compute_unweighted_b_matrix()
-        return self._unweighted_b_matrix
-
-    @property
-    def weighted_a_matrix(self):
-        return self.unweighted_a_matrix * (self.weight ** 2)
-
-    @property
-    def weighted_b_matrix(self):
-        return self.unweighted_b_matrix * (self.weight ** 2)
+    It must hold at least one orientation.
+    """
+    orientations: List[Orientation] = []
+    is_optimized: bool = False
+    _qc_id: Optional[int] = None
 
     @property
     def n_orientations(self):
         return len(self.orientations)
 
-    @datafile(filename="optimized_geometry.xyz")
-    def compute_optimized_geometry(self, qm_options=None):
-        if qm_options is None:
-            qm_options = self.qm_options
-        with self.directory() as tmpdir:
-            infile, outfile = qm_options.write_opt_file(self.psi4mol,
-                                                        name=self.name)
-            qm_options.try_run_qm(infile, outfile=outfile, cwd=tmpdir)
-            xyz = psi4utils.opt_logfile_to_xyz_string(outfile)
-        return xyz
+    def add_orientation_with_coordinates(self, coordinates, units="angstrom"):
+        qcmol = self.qcmol_with_coordinates(coordinates, units=units)
+        self.orientations.append(Orientation(qcmol=qcmol))
 
-    def add_orientation(self,
-                        coordinates_or_psi4mol: psi4utils.CoordinateInputs,
-                        name: Optional[str] = None,
-                        **kwargs) -> Orientation:
-        """Create Orientation from Psi4 molecule or coordinates and add
+    def set_optimized_geometry(self, coordinates, units="bohr"):
+        cf = qcel.constants.conversion_factor(units, "bohr")
+        dct = self.qcmol.dict()
+        dct["geometry"] = coordinates * cf
+        self.qcmol = type(self.qcmol)(**dct)
+        self.is_optimized = True
 
-        Parameters
-        ----------
-        coordinates_or_psi4mol: numpy.ndarray of coordinates or psi4.core.Molecule
-            An array of coordinates or a Psi4 Molecule. If this is a molecule,
-            the molecule is copied before creating the Conformer.
-        name: str (optional)
-            Name of the conformer. If not provided, one will be generated
-            from the name template in the conformer_generator
-        **kwargs:
-            Arguments used to construct the Orientation.
-            If not provided, the default specification given in
-            :attr:`psiresp.conformer.Conformer.orientation_options`
-            will be used.
 
-        Returns
-        -------
-        orientation: Orientation
-        """
-        if name is None:
-            counter = len(self.orientations) + 1
-            name = self.orientation_name_template.format(conformer=self,
-                                                         counter=counter)
-        mol = psi4utils.psi4mol_with_coordinates(self.psi4mol,
-                                                 coordinates_or_psi4mol,
-                                                 name=name)
-        default_kwargs = self.orientation_options.to_kwargs(**kwargs)
-        default_kwargs["directory_path"] = kwargs.get("directory_path")
-        orientation = Orientation(psi4mol=mol, name=name,
-                                  qm_options=self.qm_options,
-                                  grid_options=self.grid_options,
-                                  **default_kwargs)
-        orientation._parent_path = self.path
-        self.orientations.append(orientation)
-        return orientation
+class ConformerGenerationOptions(base.Model):
+    """Options for generating conformers"""
 
-    def generate_orientations(self):
-        """Generate Orientations for this conformer"""
-        all_coordinates = self.generate_orientation_coordinates()
-        if len(all_coordinates) > len(self.orientations):
-            self._orientations = []
-            for coordinates in all_coordinates:
-                self.add_orientation(coordinates)
+    n_conformer_pool: int = Field(
+        default=4000,
+        description="Number of initial conformers to generate"
+    )
+    n_max_conformers: int = Field(
+        default=0,
+        description="Maximum number of conformers to keep"
+    )
+    rms_tolerance: float = Field(
+        default=0.05,
+        description="RMS tolerance for pruning conformers"
+    )
+    energy_window: float = Field(
+        default=30,
+        description=("Energy window (kcal/mol) within which to keep conformers. "
+                     "This is the range from the lowest energetic conformer"),
+    )
+    keep_original_conformer: bool = Field(
+        default=True,
+        description="Whether to keep the original conformer in the molecule"
+    )
 
-            if not self.orientations:
-                self.add_orientation(self.psi4mol)
+    def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:
+        """Generate conformer coordinates in angstrom"""
+        original = np.array([qcmol.geometry])
+        original *= qcel.constants.conversion_factor("bohr", "angstrom")
+        if not self.n_max_conformers:
+            return original
 
-    def finalize_geometry(self, force=False, qm_options=None):
-        """Finalize geometry of psi4mol
-
-        If :attr:`psiresp.conformer.Conformer.optimize_geometry` is ``True``,
-        this will optimize the geometry using Psi4. If not, this will continue
-        using the current geometry.
-        If :attr:`psiresp.conformer.Conformer.save_output` is ``True``, the
-        final geometry will get written to an xyz file to bypass this check
-        next time.
-        """
-        if self._finalized and not force:
-            return
-        if self.optimize_geometry:
-            xyz = self.compute_optimized_geometry(qm_options=qm_options)
-            mol = psi4utils.psi4mol_from_xyz_string(xyz)
-            self.psi4mol.set_geometry(mol.geometry())
-        self._finalized = True
-        self._empty_init()
-        self.generate_orientations()
-
-    def compute_unweighted_a_matrix(self) -> np.ndarray:
-        """Average the inverse squared distance matrices
-        from each orientation to generate the A matrix
-        for solving Ax = B.
-
-        Returns
-        -------
-        numpy.ndarray
-            The shape of this array is (n_atoms, n_atoms)
-        """
-        A = np.zeros((self.n_atoms, self.n_atoms))
-        for mol in self.orientations:
-            A += mol.get_esp_mat_a()
-        return A  # / self.n_orientations
-
-    def compute_unweighted_b_matrix(self) -> np.ndarray:
-        """Average the ESP by distance from each orientation
-        to generate the B vector for solving Ax = B
-
-        Returns
-        -------
-        numpy.ndarray
-            The shape of this vector is (n_atoms,)
-        """
-        B = np.zeros(self.n_atoms)
-        for mol in self.orientations:
-            B += mol.get_esp_mat_b()
-        return B  # / self.n_orientations
-
-    @property
-    def transformations(self):
-        return [self.reorientations, self.rotations, self.translations]
-
-    @property
-    def n_specified_transformations(self):
-        return sum(map(len, self.transformations))
-
-    @property
-    def n_transformations(self):
-        return sum([self.n_rotations, self.n_translations, self.n_reorientations])
-
-    def generate_transformations(self):
-        """Generate atom combinations and coordinates for transformations.
-
-        This is used to create the number of transformations specified
-        by n_rotations, n_reorientations and n_translations if these
-        transformations are not already given.
-        """
-        for kw in ("reorientations", "rotations"):
-            target = getattr(self, f"n_{kw}")
-            container = getattr(self, kw)
-            combinations = orutils.generate_atom_combinations(self.symbols)
-            while len(container) < target:
-                container.append(next(combinations))
-
-        n_trans = self.n_translations - len(self.translations)
-        if n_trans > 0:
-            new_translations = (np.random.rand(n_trans, 3) - 0.5) * 10
-            self.translations.extend(new_translations)
-
-    @datafile(filename="orientation_coordinates.npy")
-    def generate_orientation_coordinates(self):
-        coordinates = self.coordinates
-        self.generate_transformations()
-
-        transformed = []
-        if self.keep_original_conformer_geometry:
-            transformed.append(coordinates)
-        for reorient in self.reorientations:
-            indices = orutils.id_to_indices(reorient)
-            new = orutils.orient_rigid(*indices, coordinates)
-            transformed.append(new)
-
-        for rotate in self.rotations:
-            indices = orutils.id_to_indices(rotate)
-            new = orutils.rotate_rigid(*indices, coordinates)
-            transformed.append(new)
-
-        for translate in self.translations:
-            transformed.append(coordinates + translate)
-
-        if not transformed:
-            transformed.append(coordinates)
-
-        return np.array(transformed)
+        rdkwargs = self.dict()
+        keep = rdkwargs.pop("keep_original_conformer")
+        coords = rdutils.generate_diverse_conformer_coordinates(qcmol,
+                                                                **rdkwargs)
+        if keep:
+            coords = np.concatenate([original, coords])
+        return coords

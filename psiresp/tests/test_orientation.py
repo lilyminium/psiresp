@@ -1,79 +1,43 @@
 
+import qcelemental as qcel
+from numpy.testing import assert_allclose
 
-import pytest
-import numpy as np
-from numpy.testing import assert_almost_equal
+from psiresp.tests.datafiles import DMSO, DMSO_ESP
 
-from psiresp.tests.datafiles import (DMSO, DMSO_ESP, DMSO_RINV,
-                                     DMSO_O1, DMSO_O1_ESP, DMSO_O1_RINV,
-                                     DMSO_O2, DMSO_O2_ESP, DMSO_O2_RINV,
-                                     )
-from psiresp.tests.base import (coordinates_from_xyzfile,
-                                psi4mol_from_xyzfile,
-                                orientation_from_psi4mol,
-                                esp_from_gamess_file
-                                )
+from psiresp.orientation import Orientation
+from psiresp.qm import QMEnergyOptions
+from psiresp.tests.utils import load_gamess_esp
 
 
-class BaseTestOrientation:
-    xyzfile = None
-    espfile = None
-    rinv_file = None
+def test_compute_esp_regression(fractal_client):
+    # setup
+    qcmol = qcel.models.Molecule.from_file(DMSO)
+    ref = load_gamess_esp(DMSO_ESP)
+    ref_grid = ref[:, 1:]
+    ref_esp = ref[:, 0]
+    orientation = Orientation(qcmol=qcmol, grid=ref_grid)
 
-    @pytest.fixture()
-    def gamess_esp(self):
-        return esp_from_gamess_file(self.espfile)
+    # checks
+    assert orientation.energy is None
+    assert orientation.esp is None
 
-    @pytest.fixture()
-    def grid(self, gamess_esp):
-        return gamess_esp[:, 1:]
+    qm_options = QMEnergyOptions()
+    result_id = qm_options.add_compute(fractal_client, qcmols=[orientation.qcmol]).ids
+    record = qm_options.wait_for_results(fractal_client, response_ids=result_id)[0]
 
-    @pytest.fixture()
-    def esp(self, gamess_esp):
-        return gamess_esp[:, 0]
-
-    @pytest.fixture()
-    def r_inv(self):
-        return np.loadtxt(self.rinv_file)
-
-    @pytest.fixture()
-    def orientation(self, esp):
-        psi4mol = psi4mol_from_xyzfile(self.xyzfile)
-        orientation = orientation_from_psi4mol(psi4mol)
-        orientation._esp = esp
-        return orientation
-
-    def test_coordinates(self, orientation):
-        coordinates = coordinates_from_xyzfile(self.xyzfile)
-        assert_almost_equal(orientation.coordinates, coordinates)
-
-    def test_grid(self, orientation, grid):
-        assert_almost_equal(orientation.grid, grid, decimal=5)
-
-    @pytest.mark.slow
-    def test_esp(self, grid, esp):
-        psi4mol = psi4mol_from_xyzfile(self.xyzfile)
-        orientation = orientation_from_psi4mol(psi4mol)
-        orientation._grid = grid
-        assert_almost_equal(orientation.esp, esp, decimal=4)
-
-    def test_rinv(self, orientation, r_inv):
-        assert_almost_equal(orientation.r_inv, r_inv, decimal=5)
+    orientation.compute_esp_from_record(record)
+    assert_allclose(orientation.esp, ref_esp, atol=1e-07)
+    assert orientation.energy < 0
 
 
-class TestOrientationDMSO(BaseTestOrientation):
-    xyzfile = DMSO
-    espfile = DMSO_ESP
-    rinv_file = DMSO_RINV
+def test_compute_esp(methylammonium, fractal_client, job_grids, job_esps):
+    orientation = methylammonium.conformers[0].orientations[0]
+    mol_ids = fractal_client.add_molecules([orientation.qcmol])
+    record = fractal_client.query_results(id=mol_ids)[0]
 
+    fname = orientation.qcmol.get_hash()
+    orientation.compute_grid()
+    assert_allclose(orientation.grid, job_grids[fname])
 
-class TestOrientationDMSO_O1(BaseTestOrientation):
-    xyzfile = DMSO_O1
-    espfile = DMSO_O1_ESP
-    rinv_file = DMSO_O1_RINV
-
-
-class TestOrientationDMSO_O2(BaseTestOrientation):
-    xyzfile = DMSO_O2
-    espfile = DMSO_O2_ESP
-    rinv_file = DMSO_O2_RINV
+    orientation.compute_esp_from_record(record)
+    assert_allclose(orientation.esp, job_esps[fname])
