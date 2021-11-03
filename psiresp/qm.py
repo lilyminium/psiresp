@@ -115,7 +115,7 @@ class BaseQMOptions(Model):
     def solvent(self):
         if not self.pcm_options:
             return None
-        return self.pcm_options.solvent
+        return self.pcm_options.medium_solvent
 
     def generate_keywords(self):
         keywords = self._generate_keywords()

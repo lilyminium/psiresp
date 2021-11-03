@@ -190,8 +190,6 @@ class SparseGlobalConstraintMatrix(base.Model):
     def _iter_solve(self, resp_a, resp_b, b2):
         hyp_a = (resp_a * self.n_structure_array)[self._array_indices]
         increment = hyp_a / np.sqrt(self._charges[self._array_indices] ** 2 + b2)
-        # increment /= np.sqrt(self._charges[self._array_indices] ** 2 + resp_b ** 2)
-
         self.a = self._original_a.copy()
 
         a_shape = self.a[self._array_mask].shape

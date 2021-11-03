@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 import qcelemental as qcel
 import psiresp
-from psiresp.tests.conftest import fractal_client
+from psiresp.tests.conftest import empty_client, fractal_client
 
 from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA2_CHARGES,
@@ -13,6 +13,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      DMSO_RESPA1_CHARGES,
                                      DMSO_RESPA2_CHARGES,
                                      DMSO_O1, DMSO_O2,
+                                     ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
                                      )
 
 
@@ -51,18 +52,9 @@ def test_config_resp(config_class, red_charges, empty_client, dmso):
     assert len(job.molecules[0].conformers) == 1
     assert len(job.molecules[0].conformers[0].orientations) == 2
 
-    print(job.resp_options)
-
     job.compute_orientation_energies(client=None)
     job.compute_esps()
     job.compute_charges()
-    # print(job.molecules[0].conformers[0].orientations[0].esp)
-    # print(job.molecules[0].conformers[0].orientations[1].esp)
-    print(job.stage_1_charges.unrestrained_charges)
-    print(job.stage_1_charges.restrained_charges)
-    if job.stage_2_charges is not None:
-        print(job.stage_2_charges.unrestrained_charges)
-        print(job.stage_2_charges.restrained_charges)
     assert_allclose(job.charges, red_charges, atol=1e-3)
 
 
@@ -105,10 +97,17 @@ def test_resp2(fractal_client):
                            keep_original_orientation=True)
     mol.generate_conformers()
     mol.add_conformer_with_coordinates(c2.geometry, units="bohr")
-    mol.generate_orientations()
 
-    job = psiresp.Job(molecules=[mol])
+    assert mol.n_conformers == 2
+    assert mol.n_orientations == 0
+
+    job = psiresp.Resp2(molecules=[mol])
     job.run(client=fractal_client)
+
+    assert job.vacuum.n_conformers == 2
+    assert job.vacuum.n_orientations == 2
+    assert job.solvated.n_conformers == 2
+    assert job.solvated.n_orientations == 2
 
     ETOH_SOLV_CHARGES = np.array([-0.2416,  0.3544, -0.6898,  0.0649,  0.0649,
                                   0.0649, -0.0111, -0.0111,  0.4045])
@@ -118,6 +117,6 @@ def test_resp2(fractal_client):
     ETOH_REF_CHARGES = np.array([-0.2358,  0.33035, -0.6278,  0.0635,
                                 0.0635,  0.0635, -0.0132, -0.0132,  0.3692])
 
-    assert_allclose(job.solvated.charges, ETOH_SOLV_CHARGES, atol=5e-03)
-    assert_allclose(job.vacuum.charges, ETOH_GAS_CHARGES, atol=5e-03)
-    assert_allclose(job.get_charges(delta=0.5), ETOH_REF_CHARGES, atol=5e-03)
+    assert_allclose(job.solvated.charges[0], ETOH_SOLV_CHARGES, atol=5e-03)
+    assert_allclose(job.vacuum.charges[0], ETOH_GAS_CHARGES, atol=5e-03)
+    assert_allclose(job.get_charges(delta=0.5)[0], ETOH_REF_CHARGES, atol=5e-03)

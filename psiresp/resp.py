@@ -78,12 +78,9 @@ class RespCharges(BaseRespOptions):
         b2 = self.resp_b ** 2
         while (self._matrix.charge_difference > self.convergence_tolerance
                and n_iter < self.max_iter):
-            print(self._matrix.charge_difference, self.convergence_tolerance)
             self._matrix._iter_solve(self.resp_a, self.resp_b, b2)
             n_iter += 1
         self._matrix._iter_solve(self.resp_a, self.resp_b, b2)
-
-        print("NITER", n_iter)
 
         if self._matrix.charge_difference > self.convergence_tolerance:
             warnings.warn("Charge fitting did not converge to "

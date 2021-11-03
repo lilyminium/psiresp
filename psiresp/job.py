@@ -92,7 +92,11 @@ class Job(base.Model):
 
     @property
     def n_conformers(self):
-        return sum(len(mol.conformers) for mol in self.molecules)
+        return sum(mol.n_conformers for mol in self.molecules)
+
+    @property
+    def n_orientations(self):
+        return sum(mol.n_orientations for mol in self.molecules)
 
     def iter_conformers(self):
         for mol in self.molecules:
@@ -139,6 +143,7 @@ class Job(base.Model):
                         for orientation in conformer.orientations
                         if orientation.qc_wavefunction is None]
         qcmols = [o.qcmol for o in orientations]
+
         results = self.qm_esp_options.run(client=client,
                                           qcmols=qcmols,
                                           working_directory=self.working_directory,
@@ -189,6 +194,9 @@ class Job(base.Model):
         self.generate_conformers()
         self.optimize_geometries(client=client)
         self.generate_orientations()
+        return self.compute_esps_and_charges(client=client, update_molecules=update_molecules)
+
+    def compute_esps_and_charges(self, client=None, update_molecules: bool = True) -> np.ndarray:
         self.compute_orientation_energies(client=client)
         self.compute_esps()
         self.compute_charges(update_molecules=update_molecules)

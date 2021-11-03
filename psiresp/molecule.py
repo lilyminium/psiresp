@@ -158,10 +158,8 @@ class Molecule(BaseMolecule):
 
     @property
     def n_orientations(self):
-        """Number of orientations that should exist.
-        This may not correspond to the number of orientations actually in
-        the conformer, if generate_orientations has not been called yet."""
-        return len(self.conformers) * (self.n_transformations + int(self.keep_original_orientation))
+        """Number of orientations in the molecule."""
+        return sum(conf.n_orientations for conf in self.conformers)
 
     def generate_orientation_coordinates(
         self,
@@ -214,7 +212,7 @@ class Molecule(BaseMolecule):
         qcmol = self.qcmol_with_coordinates(coordinates, units=units)
         self.conformers.append(Conformer(qcmol=qcmol))
 
-    def generate_orientations(self, clear_existing_orientations: bool = True):
+    def generate_orientations(self, clear_existing_orientations: bool = False):
         """Generate Orientation objects for each conformer."""
         if not self.conformers:
             self.generate_conformers()

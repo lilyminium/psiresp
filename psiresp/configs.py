@@ -44,8 +44,6 @@ class ConfiguredJob(Job):
                 if field.startswith(prefix):
                     for name, value in option_config.items():
                         update_dictionary(objdct[field], name, value)
-            if prefix == "resp_":
-                print(objdct["resp_options"])
         super().__init__(**objdct)
 
 
@@ -165,15 +163,26 @@ class Resp2(base.Model):
         description="Molecules to use for the RESP job"
     )
     solvent_qm_optimization_options: qm.QMGeometryOptimizationOptions = Field(
-        default=qm.QMGeometryOptimizationOptions(),
+        default=qm.QMGeometryOptimizationOptions(
+            method="pw6b95",
+            basis="aug-cc-pV(D+d)Z",
+            pcm_options=qm.PCMOptions(solvent="water")
+        ),
         description="QM options for geometry optimization"
     )
     solvent_qm_esp_options: qm.QMEnergyOptions = Field(
-        default=qm.QMEnergyOptions(),
+        default=qm.QMEnergyOptions(
+            method="pw6b95",
+            basis="aug-cc-pV(D+d)Z",
+            pcm_options=qm.PCMOptions(medium_solvent="water")
+        ),
         description="QM options for ESP computation"
     )
     grid_options: grid.GridOptions = Field(
-        default=grid.GridOptions(),
+        default=grid.GridOptions(
+            use_radii="bondi",
+            vdw_point_density=2.5
+        ),
         description="Options for generating grid for ESP computation"
     )
     resp_options: resp.RespOptions = Field(
@@ -209,7 +218,7 @@ class Resp2(base.Model):
     )
 
     vacuum: Optional[Job] = None
-    solvent: Optional[Job] = None
+    solvated: Optional[Job] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -218,7 +227,7 @@ class Resp2(base.Model):
         vacuum_esp = self.solvent_qm_esp_options.copy(deep=True)
         vacuum_esp.pcm_options = None
 
-        self.vacuum = Job(molecules=self.molecules,
+        self.vacuum = Job(molecules=[x.copy(deep=True) for x in self.molecules],
                           qm_optimization_options=vacuum_opt,
                           qm_esp_options=vacuum_esp,
                           grid_options=self.grid_options,
@@ -229,7 +238,7 @@ class Resp2(base.Model):
                           n_processes=self.n_processes,
                           working_directory=self.working_directory / "vacuum")
 
-        self.solvated = Job(molecules=self.molecules,
+        self.solvated = Job(molecules=[x.copy(deep=True) for x in self.molecules],
                             qm_optimization_options=self.solvent_qm_optimization_options,
                             qm_esp_options=self.solvent_qm_esp_options,
                             grid_options=self.grid_options,
@@ -244,7 +253,7 @@ class Resp2(base.Model):
         self.vacuum.run(client=client, update_molecules=False)
         self.solvated.run(client=client, update_molecules=False)
 
-    @ property
+    @property
     def charges(self):
         try:
             return self.get_charges()
@@ -257,7 +266,10 @@ class Resp2(base.Model):
                              "nor `self.vacuum.charges` should be `None`. "
                              "Perhaps you need to call `.run()` ?")
 
-        return delta * self.solvated.charges + (1 - delta) * self.vacuum.charges
+        return [
+            solv * delta + (1 - delta) * vac
+            for solv, vac in zip(self.solvated.charges, self.vacuum.charges)
+        ]
 
 
 # @due.dcite(
