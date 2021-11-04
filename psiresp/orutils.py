@@ -4,16 +4,16 @@ import itertools
 import numpy as np
 
 
-def id_to_indices(atom_ids: List[int]) -> List[int]:
-    """Convert atom numbers (indexed from 1) to indices (indexed from 0)
+# def id_to_indices(atom_ids: List[int]) -> List[int]:
+#     """Convert atom numbers (indexed from 1) to indices (indexed from 0)
 
-    This also works with negative atom numbers, where -1 is the last item.
+#     This also works with negative atom numbers, where -1 is the last item.
 
-    Parameters
-    ----------
-    atom_ids: list of ints
-    """
-    return [a - 1 if a > 0 else a for a in atom_ids]
+#     Parameters
+#     ----------
+#     atom_ids: list of ints
+#     """
+#     return [a - 1 if a > 0 else a for a in atom_ids]
 
 
 def generate_atom_combinations(symbols: List[str]):
@@ -47,8 +47,8 @@ def generate_atom_combinations(symbols: List[str]):
     """
     symbols = np.asarray(symbols)
     is_H = symbols == "H"
-    h_atoms = list(np.flatnonzero(is_H) + 1)
-    heavy_atoms = list(np.flatnonzero(~is_H) + 1)
+    h_atoms = list(np.flatnonzero(is_H))
+    heavy_atoms = list(np.flatnonzero(~is_H))
     seen = set()
 
     for comb in itertools.combinations(heavy_atoms, 3):
