@@ -47,8 +47,8 @@ def generate_atom_combinations(symbols: List[str]):
     """
     symbols = np.asarray(symbols)
     is_H = symbols == "H"
-    h_atoms = list(np.flatnonzero(is_H) + 1)
-    heavy_atoms = list(np.flatnonzero(~is_H) + 1)
+    h_atoms = list(np.flatnonzero(is_H))
+    heavy_atoms = list(np.flatnonzero(~is_H))
     seen = set()
 
     for comb in itertools.combinations(heavy_atoms, 3):
