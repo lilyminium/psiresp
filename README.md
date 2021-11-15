@@ -47,6 +47,7 @@ cd psiresp
 python setup.py install
 ```
 
+Please see [the Installation docs](https://psiresp.readthedocs.io/en/latest/installation.html) for more information on installation and dependencies.
 
 ### Example
 
