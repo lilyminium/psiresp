@@ -221,3 +221,5 @@ nbsphinx_prolog = r"""
 """
 
 html_js_files = []
+
+bibtex_bibfiles = ["bibliography.bib"]

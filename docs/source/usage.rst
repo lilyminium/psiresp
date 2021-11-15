@@ -50,13 +50,14 @@ Customising RESP charge computation
 -----------------------------------
 
 Each of the aspects of computing RESP charges can be customised to correspond
-to the implementations used by :cite:p:`Bayly1993`, :cite:p:`Singh1984`,
-:cite:p:`Malde2011`, :cite:p:`Schauperl2020`, and so on. These require setting options
+to the implementations used by :cite:t:`bayly1993`, :cite:t:`singh1984`,
+:cite:t:`malde2011`, :cite:t:`schauperl2020`, and so on. These require setting options
 for grid generation, the QM computation, and the hyperbolic restraints themselves;
 please see :ref:`option_classes` for the specific options.
 
 However, for ease of use, PsiRESP also provides pre-configured classes.
-A full list is available at :ref:`preconfigured_classes`. In order to use these,
+A full list is available at :ref:`preconfigured_classes`
+as well as :ref:`Pre-configured classes`. In order to use these,
 simply replace `Job` with the particular chosen configuration:
 
 .. ipython:: python

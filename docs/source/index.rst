@@ -18,7 +18,8 @@ around heavy atoms.
 
 For ease of use, PsiRESP offers pre-configured classes that correspond with
 existing popular tools such as the RESP ESP Charge Derive (R.E.D.) tools
-and the Automated Topology Builder.
+and the Automated Topology Builder. Please see :ref:`RESP` for more details
+on RESP fitting and the pre-configured classes (:ref:`Pre-configured classes`).
 
 
 ----------------
@@ -47,6 +48,7 @@ PsiRESP is licensed under the GNU Lesser General Public License (LGPL).
    installation
    usage
    examples/README
+   resp
    molecule
    charge_constraints
    hpc
