@@ -101,7 +101,7 @@ Pre-configured classes
 
 The table below gives a broad overview of the pre-configured classes.
 
-.. table::
+.. table:: Overview of pre-configured RESP classes
     :widths: 30 50 20
 
     +----------------------------------+------------------------------------+-------------------------+
