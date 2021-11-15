@@ -11,6 +11,7 @@ def test_molecule_defaults(dmso_qcmol):
     mol.generate_orientations()
     assert len(mol.conformers) == 1
     assert len(mol.conformers[0].orientations) == 1
+    assert repr(mol) == "Molecule(name=C2H6OS, charge=0) with 1 conformers"
 
 
 def test_conformer_generation(nme2ala2_c1_opt_qcmol):
