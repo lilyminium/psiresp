@@ -15,7 +15,7 @@ If you need the latest development environment, build from source::
   conda env create -f devtools/conda-envs/environment.yaml
   conda activate psiresp
   # build the package
-  python setup.py install
+  python setup.py develop  # or python setup.py install if not creating a development environment
 
 
 To run tests::

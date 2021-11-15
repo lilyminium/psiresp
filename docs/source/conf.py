@@ -58,7 +58,8 @@ extensions = [
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'sphinxcontrib.autodoc_pydantic',
-    'nbsphinx'
+    'nbsphinx',
+    'sphinx.ext.autosectionlabel'
 ]
 
 mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
