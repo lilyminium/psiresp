@@ -18,19 +18,41 @@ around heavy atoms.
 
 For ease of use, PsiRESP offers pre-configured classes that correspond with
 existing popular tools such as the RESP ESP Charge Derive (R.E.D.) tools
-and the Automated Topology Builder.
+and the Automated Topology Builder. Please see :ref:`RESP` for more details
+on RESP fitting and the pre-configured classes (:ref:`Pre-configured classes`).
+
+
+----------------
+Getting involved
+----------------
+
+If you have a problem or feature request, please let us know
+at the `Issue Tracker`_ on GitHub. If you have any questions or comments,
+visit us on our `Discussions`_ board.
+
+Pull requests and other contributions are also very welcomed. Please see
+:ref:`Contributing` for more tips.
+
+
+-------
+License
+-------
+
+PsiRESP is licensed under the GNU Lesser General Public License (LGPL).
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    installation
    usage
    examples/README
+   resp
    molecule
    charge_constraints
    hpc
+   contributing
    api
    references
    
@@ -43,3 +65,7 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. _`Issue Tracker`: https://github.com/lilyminium/psiresp/issues
+.. _Discussions: https://github.com/lilyminium/psiresp/discussions
