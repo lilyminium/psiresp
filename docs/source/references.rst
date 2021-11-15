@@ -46,5 +46,5 @@ Do it in the BibTeX format, using:
 Bibliography
 ============
 
-.. bibliography::
+.. bibliography:: bibliography.bib
    :all:
