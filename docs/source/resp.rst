@@ -30,9 +30,9 @@ should have an equivalent charge to other atoms
 
 The equations represented by the constraint matrix
 can be solved for the charges of best fit,
-as first published by Singh and Kollman in 1984 :cite:`Singh1984`.
+as first published by Singh and Kollman in 1984 :cite:p:`singh1984`.
 
-Commonly, a "restrained fit" is performed to derive the final charges [RESP CITATIONS].
+Commonly, a "restrained fit" is performed to derive the final charges :cite:p:`bayly1993,cornell1993,cieplak1995`.
 
 The hyperbolic restraint has the form:
 
@@ -101,28 +101,31 @@ Pre-configured classes
 
 The table below gives a broad overview of the pre-configured classes.
 
-+----------------------------------+------------------------------------+-------------------------+
-| Class                            | Description                        | Reference               |
-+==================================+====================================+=========================+
-| :class:`psiresp.configs.RespA1`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
-|                                  | in the gas phase at hf/6-31g*      | :cite:t:`cornell1993`,  |
-|                                  |                                    | :cite:t:`cieplak1995`   |
-+----------------------------------+------------------------------------+-------------------------+
-| :class:`psiresp.configs.RespA2`  | A 1-stage restrained fit           |                         |
-|                                  | in the gas phase at hf/6-31g*      |                         |
-+----------------------------------+------------------------------------+-------------------------+
-| :class:`psiresp.configs.EspA1`   | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
-|                                  | in the gas phase at hf/6-31g*      |                         |
-+----------------------------------+------------------------------------+-------------------------+
-| :class:`psiresp.configs.EspA2`   | A 1-stage unrestrained fit         |                         |
-|                                  | in the gas phase at hf/sto-3g      |                         |
-+----------------------------------+------------------------------------+-------------------------+
-| :class:`psiresp.configs.ATBResp` | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
-|                                  | implicit water at b3lyp/6-31g*     |                         |
-+----------------------------------+------------------------------------+-------------------------+
-| :class:`psiresp.configs.Resp2`   | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
-|                                  | at pw6b95/aug-cc-pV(D+d)Z,         |                         |
-|                                  | in both vacuum and implicit water. |                         |
-|                                  | Charges are interpolated           |                         |
-|                                  | between the two phases.            |                         |
-+----------------------------------+------------------------------------+-------------------------+
+.. table::
+    :widths: 30 50 20
+
+    +----------------------------------+------------------------------------+-------------------------+
+    | Class                            | Description                        | Reference               |
+    +==================================+====================================+=========================+
+    | :class:`psiresp.configs.RespA1`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
+    |                                  | in the gas phase at hf/6-31g*      | :cite:t:`cornell1993`,  |
+    |                                  |                                    | :cite:t:`cieplak1995`   |
+    +----------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.RespA2`  | A 1-stage restrained fit           |                         |
+    |                                  | in the gas phase at hf/6-31g*      |                         |
+    +----------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.EspA1`   | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
+    |                                  | in the gas phase at hf/6-31g*      |                         |
+    +----------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.EspA2`   | A 1-stage unrestrained fit         |                         |
+    |                                  | in the gas phase at hf/sto-3g      |                         |
+    +----------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.ATBResp` | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
+    |                                  | implicit water at b3lyp/6-31g*     |                         |
+    +----------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.Resp2`   | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
+    |                                  | at pw6b95/aug-cc-pV(D+d)Z,         |                         |
+    |                                  | in both vacuum and implicit water. |                         |
+    |                                  | Charges are interpolated           |                         |
+    |                                  | between the two phases.            |                         |
+    +----------------------------------+------------------------------------+-------------------------+

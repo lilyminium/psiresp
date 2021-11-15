@@ -42,7 +42,7 @@ PsiRESP is licensed under the GNU Lesser General Public License (LGPL).
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    installation
