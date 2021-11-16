@@ -7,7 +7,6 @@ Important classes
 .. autosummary::
    :toctree: _autosummary
    :caption: Important classes
-   :inherited-members: BaseModel
 
    psiresp.job.Job
    psiresp.molecule.Molecule
