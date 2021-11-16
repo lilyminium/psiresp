@@ -1,8 +1,9 @@
 
 def update_dictionary(obj, key, value):
     if isinstance(value, dict):
-        if key not in obj:
+        if not hasattr(obj.get(key), "__setitem__"):
             obj[key] = {}
         for k, v in value.items():
             update_dictionary(obj[key], k, v)
-    obj[key] = value
+    else:
+        obj[key] = value
