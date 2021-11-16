@@ -14,27 +14,6 @@ def test_molecule_defaults(dmso_qcmol):
     assert repr(mol) == "Molecule(name=C2H6OS, charge=0) with 1 conformers"
 
 
-def test_molecule_equality(dmso_qcmol):
-    mol = psiresp.Molecule(qcmol=dmso_qcmol)
-    mol.generate_orientations()
-    mol_with_orient = psiresp.Molecule(qcmol=dmso_qcmol)
-    mol_with_orient.generate_orientations()
-    assert mol == mol_with_orient
-
-    mol_without_orient = psiresp.Molecule(qcmol=dmso_qcmol)
-    assert not mol_without_orient.conformers
-    assert mol.conformers
-    assert mol != mol_without_orient
-
-    mol_without_orient.generate_orientations()
-    assert mol == mol_without_orient
-
-    ccmol = psiresp.Molecule.from_smiles("CC")
-    assert mol != ccmol
-    ccmol.generate_orientations()
-    assert mol != ccmol
-
-
 def test_conformer_generation(nme2ala2_c1_opt_qcmol):
     options = ConformerGenerationOptions(n_max_conformers=5)
     mol = psiresp.Molecule(qcmol=nme2ala2_c1_opt_qcmol, conformer_generation_options=options)
