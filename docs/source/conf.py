@@ -70,6 +70,10 @@ napoleon_google_docstring = False
 # napoleon_use_ivar = True
 autodoc_typehints = "description"
 
+autodoc_default_options = {
+    'inherited-members': "BaseModel",
+}
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
