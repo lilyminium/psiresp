@@ -16,6 +16,5 @@ ignore:
   - "psiresp/due.py"
   - "psiresp/tests"
   - "psiresp/_version.py"
-  - "psiresp/testing.py"
 fixes:
   - "/home/circleci/::"
