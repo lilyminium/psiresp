@@ -24,9 +24,6 @@ def test_molecule_equality(dmso_qcmol):
     mol_without_orient = psiresp.Molecule(qcmol=dmso_qcmol)
     assert not mol_without_orient.conformers
     assert mol.conformers
-    assert mol != mol_without_orient
-
-    mol_without_orient.generate_orientations()
     assert mol == mol_without_orient
 
     ccmol = psiresp.Molecule.from_smiles("CC")
