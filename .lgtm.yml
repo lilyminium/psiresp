@@ -15,4 +15,4 @@ path_classifiers:
   test:
     - psiresp/tests
   utils:
-    - psiresp/utils/due.py
+    - psiresp/due.py
