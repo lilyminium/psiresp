@@ -180,10 +180,7 @@ class SparseGlobalConstraintMatrix(base.Model):
     def _solve(self):
         self._previous_charges = copy.deepcopy(self._charges)
         try:
-            # self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
-            # getting some singular matrix warnings from scipy that disappear in np?
-            print(self.a.toarray()[-10:])
-            self._charges = np.linalg.solve(self.a.toarray(), self.b)
+            self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
         except RuntimeError as e:  # TODO: this could be slow?
             self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
         else:
