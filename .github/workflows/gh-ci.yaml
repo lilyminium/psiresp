@@ -77,7 +77,7 @@ jobs:
       - name: run_tests
         run: |
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
-          pytest psiresp/tests $PYTEST_FLAGS
+          pytest -n auto psiresp/tests $PYTEST_FLAGS
         
       - name: codecov
         uses: codecov/codecov-action@v1
