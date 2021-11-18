@@ -360,7 +360,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         for mol in self.molecules:
             try:
                 ch_groups = rdutils.get_sp3_ch_indices(mol._rdmol)
-            except:
+            except (TypeError, RuntimeError, AttributeError):
                 ch_groups = psi4utils.get_sp3_ch_indices(mol.qcmol)
             for c, hs in ch_groups.items():
                 if len(hs) in accepted_n_hs:
