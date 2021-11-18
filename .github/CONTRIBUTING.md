@@ -1,7 +1,9 @@
 # How to contribute
 
 We welcome contributions from external contributors, and this document
-describes how to merge code changes into this psiresp. 
+describes how to merge code changes into psiresp.
+
+Please also see the [documentation](https://psiresp.readthedocs.io/en/latest/contributing.html) for more.
 
 ## Getting Started
 

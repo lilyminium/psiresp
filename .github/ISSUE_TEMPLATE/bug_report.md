@@ -17,14 +17,14 @@ assignees: ''
 <!-- Steps to reproduce the behavior. Please include all code you used, and if possible, the files you used for the molecules and/or job. For best results, try using the example files provided in the tests. -->
 
 ```python
-import psiresp as sip
-from psiresp.tests.datafiles import NME2ALA2_OPT_C1, NME2ALA2_OPT_C2, METHYLAMMONIUM_OPT
+import psiresp
+from psiresp.tests.datafiles import DMSO
 
 ...
 ```
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+<!-- If applicable, add screenshots to help explain your problem. -->
 
 **Computing environment:**
  - Operating system (Linux, Mac, Windows?): 
