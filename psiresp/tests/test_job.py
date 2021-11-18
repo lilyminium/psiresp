@@ -34,6 +34,12 @@ class TestSingleResp:
         assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
         assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
 
+        chgrepr = """<RespCharges(resp_a=0.0005, resp_b=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.438774683967294 ,  0.1481499770546328,  0.1799603291130058,
+        0.187168139253483 ,  0.3574352905687928, -0.5085439033039006,
+       -0.4606746989404943,  0.1909172499562079,  0.1550046535501001,
+        0.1893576467154666])], restrained_charges=None>"""
+        assert repr(job.stage_1_charges) == chgrepr
+
     def test_restrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=True)
         job = Job(molecules=[dmso],

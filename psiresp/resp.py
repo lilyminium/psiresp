@@ -60,6 +60,18 @@ class RespCharges(BaseRespOptions):
     charge_constraints: charge.MoleculeChargeConstraints
     surface_constraints: ESPSurfaceConstraintMatrix
 
+    def __repr__(self) -> str:
+        respstr = (f"resp_a={self.resp_a}, resp_b={self.resp_b}, "
+                   f"restrained_fit={self.restrained_fit}, "
+                   f"exclude_hydrogens={self.exclude_hydrogens}")
+        constr = f"{self.charge_constraints.n_constraints} charge constraints"
+        if self._unrestrained_charges is None:
+            chgstr = "charges not computed"
+        else:
+            chgstr = (f"unrestrained_charges={self.unrestrained_charges}, "
+                      f"restrained_charges={self.restrained_charges}")
+        return f"<{self._clsname}({respstr}) with {constr}; {chgstr}>"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._matrix = SparseGlobalConstraintMatrix.from_constraints(
