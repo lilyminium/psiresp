@@ -58,7 +58,8 @@ extensions = [
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'sphinxcontrib.autodoc_pydantic',
-    'nbsphinx'
+    'nbsphinx',
+    'sphinx.ext.autosectionlabel'
 ]
 
 mathjax_path = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
@@ -68,6 +69,10 @@ napoleon_google_docstring = False
 # napoleon_use_param = False
 # napoleon_use_ivar = True
 autodoc_typehints = "description"
+
+autodoc_default_options = {
+    'inherited-members': "BaseModel",
+}
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -114,7 +119,6 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
-    'style_nav_header_background': 'white',
     # Toc options
     'collapse_navigation': True,
     'sticky_navigation': True,
@@ -127,6 +131,8 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_css_files = ['css/custom.css']
+
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -220,3 +226,5 @@ nbsphinx_prolog = r"""
 """
 
 html_js_files = []
+
+bibtex_bibfiles = ["bibliography.bib"]

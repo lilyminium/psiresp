@@ -124,6 +124,9 @@ class Molecule(BaseMolecule):
         n_confs = len(self.conformers)
         return f"{self._clsname}({qcmol_repr}, charge={self.charge}) with {n_confs} conformers"
 
+    def __hash__(self):
+        return hash(self.qcmol.get_hash())
+
     def generate_transformations(self,
                                  n_rotations: int = 0,
                                  n_reorientations: int = 0,

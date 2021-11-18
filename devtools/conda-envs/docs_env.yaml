@@ -47,5 +47,5 @@ dependencies:
       # - nbsphinx
       # - sphinx<4.0
       - sphinx_rtd_theme
-      - sphinxcontrib-bibtex<2.0.0
+      - sphinxcontrib-bibtex
       - sphinx-sitemap
