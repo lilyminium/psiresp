@@ -68,8 +68,9 @@ class RespCharges(BaseRespOptions):
         if self._unrestrained_charges is None:
             chgstr = "charges not computed"
         else:
-            chgstr = (f"unrestrained_charges={self.unrestrained_charges}, "
-                      f"restrained_charges={self.restrained_charges}")
+            with np.printoptions(precision=5):
+                chgstr = (f"unrestrained_charges={self.unrestrained_charges}, "
+                          f"restrained_charges={self.restrained_charges}")
         return f"<{self._clsname}({respstr}) with {constr}; {chgstr}>"
 
     def __init__(self, *args, **kwargs):
