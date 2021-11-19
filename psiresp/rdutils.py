@@ -325,7 +325,7 @@ def get_sp3_ch_indices(rdmol):
     for i in np.where(symbols == "C")[0]:
         contains_index = np.any(bonds[:, :2] == i, axis=1)
         c_bonds = bonds[contains_index & single_bonds][:, :2]
-        c_partners = c_bonds[c_bonds != i]
+        c_partners = (c_bonds[c_bonds != i]).astype(int)
         if len(c_partners) == 4:
             groups[i] = c_partners[symbols[c_partners] == "H"]
     return groups

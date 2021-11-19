@@ -4,6 +4,7 @@ import copy
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
+# from pydantic import validator
 
 from . import base
 
@@ -65,17 +66,18 @@ class ESPSurfaceConstraintMatrix(base.Model):
 
         return matrix
 
-    def validate_array(cls, array):
-        array = np.asarray(array).astype(float)
+    # @validator("matrix")
+    # def validate_array(cls, value):
+    #     array = np.asarray(value).astype(float)
 
-        assert len(array.shape) == 2
-        if array.shape[1] > array.shape[0]:
-            array = array.T
+    #     assert len(array.shape) == 2
+    #     if array.shape[1] > array.shape[0]:
+    #         array = array.T
 
-        if array.shape[1] != array.shape[0] + 1:
-            raise ValueError("Array should be of shape N x N + 1")
+    #     if array.shape[1] != array.shape[0] + 1:
+    #         raise ValueError("Array should be of shape N x N + 1")
 
-        return array
+    #     return array
 
     @property
     def n_dim(self):
@@ -179,8 +181,6 @@ class SparseGlobalConstraintMatrix(base.Model):
         self._previous_charges = copy.deepcopy(self._charges)
         try:
             self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
-        except Warning:
-            breakpoint()
         except RuntimeError as e:  # TODO: this could be slow?
             self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
         else:
