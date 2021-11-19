@@ -17,29 +17,29 @@ pytest_plugins = [
 ]
 
 
-@pytest.fixture(scope="session")
-def postgres_server():
-    storage = TemporaryPostgres(database_name="test_psiresp")
-    storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
-    yield storage.psql
-    storage.stop()
+# @pytest.fixture(scope="session")
+# def postgres_server():
+#     storage = TemporaryPostgres(database_name="test_psiresp")
+#     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
+#     yield storage.psql
+#     storage.stop()
 
 
-@pytest.fixture(scope="session")
-def fractal_server(postgres_server):
-    with FractalSnowflake(
-        max_workers=1,
-        storage_project_name="test_psiresp",
-        storage_uri=postgres_server.database_uri(),
-        reset_database=False,
-        start_server=False,
-    ) as server:
-        yield server
+# @pytest.fixture(scope="session")
+# def fractal_server(postgres_server):
+#     with FractalSnowflake(
+#         max_workers=1,
+#         storage_project_name="test_psiresp",
+#         storage_uri=postgres_server.database_uri(),
+#         reset_database=False,
+#         start_server=False,
+#     ) as server:
+#         yield server
 
 
-@pytest.fixture(scope="session")
-def fractal_client(fractal_server):
-    yield ptl.FractalClient(fractal_server)
+# @pytest.fixture(scope="session")
+# def fractal_client(fractal_server):
+#     yield ptl.FractalClient(fractal_server)
 
 
 # @pytest.fixture(scope="function")
