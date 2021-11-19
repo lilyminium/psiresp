@@ -8,15 +8,10 @@ from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP
 
 
 @pytest.fixture(scope="session")
-def postgres_server():
+def fractal_client():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
-    yield storage.psql
-    storage.stop()
-
-
-@pytest.fixture(scope="session")
-def fractal_client(postgres_server):
+    postgres_server = storage.psql
     with FractalSnowflake(
         max_workers=1,
         storage_project_name="test_psiresp",
@@ -25,6 +20,7 @@ def fractal_client(postgres_server):
         start_server=False,
     ) as server:
         yield ptl.FractalClient(server)
+    storage.stop()
 
 
 @pytest.fixture(scope="function")
