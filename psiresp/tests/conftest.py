@@ -34,12 +34,12 @@ def fractal_server(postgres_server):
         reset_database=False,
         start_server=False,
     ) as server:
-        yield server
+        return server
 
 
 @pytest.fixture(scope="session")
 def fractal_client(fractal_server):
-    yield ptl.FractalClient(fractal_server)
+    return ptl.FractalClient(fractal_server)
 
 
 # @pytest.fixture(scope="function")
