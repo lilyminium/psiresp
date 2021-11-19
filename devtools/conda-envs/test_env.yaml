@@ -35,7 +35,7 @@ dependencies:
   - pip:
       - pytest
       - pytest-cov
-      - pytest-xdist
+      # - pytest-xdist
       - duecredit
       - importlib_resources
       - mdanalysis>=2.0
