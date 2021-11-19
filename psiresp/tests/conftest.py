@@ -18,7 +18,7 @@ pytest_plugins = [
 ]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture  # (scope="session")
 def fractal_client():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
