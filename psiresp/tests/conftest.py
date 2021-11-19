@@ -42,10 +42,10 @@ def fractal_client(fractal_server):
     return ptl.FractalClient(fractal_server)
 
 
-# @pytest.fixture(scope="function")
-# def empty_client():
-#     server = FractalSnowflake()
-#     return ptl.FractalClient(server)
+@pytest.fixture(scope="function")
+def empty_client():
+    server = FractalSnowflake()
+    return ptl.FractalClient(server)
 
 
 @pytest.fixture

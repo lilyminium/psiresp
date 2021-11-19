@@ -20,36 +20,36 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      )
 
 
-# class TestSingleResp:
-#     def test_unrestrained(self, dmso, fractal_client):
-#         options = RespOptions(stage_2=True, restrained_fit=False)
-#         job = Job(molecules=[dmso],
-#                   resp_options=options)
-#         job.run(client=fractal_client)
+class TestSingleResp:
+    def test_unrestrained(self, dmso, fractal_client):
+        options = RespOptions(stage_2=True, restrained_fit=False)
+        job = Job(molecules=[dmso],
+                  resp_options=options)
+        job.run(client=fractal_client)
 
-#         esp_1 = [[-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
-#                  -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]]
-#         esp_2 = [[-0.39199538, 0.15716631, 0.15716631, 0.15716631, 0.35743529,
-#                  -0.5085439, -0.43701446, 0.16953984, 0.16953984, 0.16953984]]
-#         assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
-#         assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
+        esp_1 = [[-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
+                 -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]]
+        esp_2 = [[-0.39199538, 0.15716631, 0.15716631, 0.15716631, 0.35743529,
+                 -0.5085439, -0.43701446, 0.16953984, 0.16953984, 0.16953984]]
+        assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
+        assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
 
-#         chgrepr = """<RespCharges(resp_a=0.0005, resp_b=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.43877,  0.14815,  0.17996,  0.18717,  0.35744, -0.50854,
-#        -0.46067,  0.19092,  0.155  ,  0.18936])], restrained_charges=None>"""
-#         assert repr(job.stage_1_charges) == chgrepr
+        chgrepr = """<RespCharges(resp_a=0.0005, resp_b=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.43877,  0.14815,  0.17996,  0.18717,  0.35744, -0.50854,
+       -0.46067,  0.19092,  0.155  ,  0.18936])], restrained_charges=None>"""
+        assert repr(job.stage_1_charges) == chgrepr
 
-#     def test_restrained(self, dmso, fractal_client):
-#         options = RespOptions(stage_2=True, restrained_fit=True)
-#         job = Job(molecules=[dmso],
-#                   resp_options=options)
-#         job.run(client=fractal_client)
+    def test_restrained(self, dmso, fractal_client):
+        options = RespOptions(stage_2=True, restrained_fit=True)
+        job = Job(molecules=[dmso],
+                  resp_options=options)
+        job.run(client=fractal_client)
 
-#         resp_1 = [[-0.31436216, 0.11376836, 0.14389443, 0.15583112, 0.30951582,
-#                   -0.50568553, -0.33670393, 0.15982115, 0.12029174, 0.153629]]
-#         resp_2 = [[-0.25158642, 0.11778735, 0.11778735, 0.11778735, 0.30951582,
-#                   -0.50568553, -0.29298059, 0.12912489, 0.12912489, 0.12912489]]
-#         assert_allclose(job.stage_1_charges.restrained_charges, resp_1, atol=1e-5)
-#         assert_allclose(job.stage_2_charges.restrained_charges, resp_2, atol=1e-5)
+        resp_1 = [[-0.31436216, 0.11376836, 0.14389443, 0.15583112, 0.30951582,
+                  -0.50568553, -0.33670393, 0.15982115, 0.12029174, 0.153629]]
+        resp_2 = [[-0.25158642, 0.11778735, 0.11778735, 0.11778735, 0.30951582,
+                  -0.50568553, -0.29298059, 0.12912489, 0.12912489, 0.12912489]]
+        assert_allclose(job.stage_1_charges.restrained_charges, resp_1, atol=1e-5)
+        assert_allclose(job.stage_2_charges.restrained_charges, resp_2, atol=1e-5)
 
 
 class TestMultiRespFast:
@@ -83,117 +83,117 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
-    # @pytest.mark.slow
-    # @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
-    #     (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
-    #     (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
-    #     (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
-    # ], indirect=['red_charges'])
-    # def test_calculated_esps(self, nme2ala2, methylammonium,
-    #                          methylammonium_nme2ala2_charge_constraints,
-    #                          stage_2, resp_a, red_charges,
-    #                          fractal_client, job_esps, job_grids):
+    @pytest.mark.slow
+    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+        (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
+        (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
+        (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
+    ], indirect=['red_charges'])
+    def test_calculated_esps(self, nme2ala2, methylammonium,
+                             methylammonium_nme2ala2_charge_constraints,
+                             stage_2, resp_a, red_charges,
+                             fractal_client, job_esps, job_grids):
 
-    #     resp_options = RespOptions(stage_2=stage_2, resp_a1=resp_a)
-    #     job = Job(molecules=[methylammonium, nme2ala2],
-    #               charge_constraints=methylammonium_nme2ala2_charge_constraints,
-    #               resp_options=resp_options)
-    #     job.compute_orientation_energies(client=fractal_client)
-    #     job.compute_esps()
-    #     for mol in job.molecules:
-    #         for conf in mol.conformers:
-    #             for orient in conf.orientations:
-    #                 fname = orient.qcmol.get_hash()
-    #                 assert_allclose(orient.grid, job_grids[fname], atol=1e-7)
-    #                 assert_allclose(orient.esp, job_esps[fname], atol=1e-7)
+        resp_options = RespOptions(stage_2=stage_2, resp_a1=resp_a)
+        job = Job(molecules=[methylammonium, nme2ala2],
+                  charge_constraints=methylammonium_nme2ala2_charge_constraints,
+                  resp_options=resp_options)
+        job.compute_orientation_energies(client=fractal_client)
+        job.compute_esps()
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    assert_allclose(orient.grid, job_grids[fname], atol=1e-7)
+                    assert_allclose(orient.esp, job_esps[fname], atol=1e-7)
 
-    #     job.compute_charges()
-    #     charges = np.concatenate(job.charges)
+        job.compute_charges()
+        charges = np.concatenate(job.charges)
 
-    #     assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
-    #     assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
-    #     assert_allclose(charges[25], 0.6163)
-    #     assert_allclose(charges[26], -0.5722)
-    #     assert_allclose(charges[18], charges[22])
-    #     for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
-    #         assert_allclose(calculated, reference, atol=1e-3)
+        assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[25], 0.6163)
+        assert_allclose(charges[26], -0.5722)
+        assert_allclose(charges[18], charges[22])
+        for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
+            assert_allclose(calculated, reference, atol=1e-3)
 
-    # def test_run_with_empty(self, empty_client):
-    #     conformer_options = psiresp.ConformerGenerationOptions(
-    #         n_max_conformers=2,
-    #         keep_original_conformer=False,
-    #         rms_tolerance=0.01,
-    #     )
-    #     nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
-    #                                             optimize_geometry=False,
-    #                                             conformer_generation_options=conformer_options)
-    #     assert nme2ala2._rdmol is not None
-    #     methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
-    #                                                   optimize_geometry=False,
-    #                                                   conformer_generation_options=conformer_options)
-    #     assert methylammonium._rdmol is not None
+    def test_run_with_empty(self, empty_client):
+        conformer_options = psiresp.ConformerGenerationOptions(
+            n_max_conformers=2,
+            keep_original_conformer=False,
+            rms_tolerance=0.01,
+        )
+        nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
+                                                optimize_geometry=False,
+                                                conformer_generation_options=conformer_options)
+        assert nme2ala2._rdmol is not None
+        methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
+                                                      optimize_geometry=False,
+                                                      conformer_generation_options=conformer_options)
+        assert methylammonium._rdmol is not None
 
-    #     # add constraints
-    #     # nme to 0
-    #     constraints = psiresp.ChargeConstraintOptions()
-    #     nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
-    #     nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
-    #     constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
-    #                                                        charge=0,
-    #                                                        indices=nme_indices[0])
-    #     # inter-aa to 0
-    #     methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
-    #     ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
-    #     constraint_atoms = methyl_atoms[0] + ace_atoms[0]
-    #     constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
+        # add constraints
+        # nme to 0
+        constraints = psiresp.ChargeConstraintOptions()
+        nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
+        nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
+        constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+                                                           charge=0,
+                                                           indices=nme_indices[0])
+        # inter-aa to 0
+        methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
+        ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
+        constraint_atoms = methyl_atoms[0] + ace_atoms[0]
+        constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
 
-    #     # constrain particular atoms
-    #     co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
-    #     assert len(co_atoms) == 1
-    #     assert len(co_atoms[0]) == 2
-    #     constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[0][:1])
-    #     constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[0][1:])
+        # constrain particular atoms
+        co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
+        assert len(co_atoms) == 1
+        assert len(co_atoms[0]) == 2
+        constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[0][:1])
+        constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[0][1:])
 
-    #     # equivalent hs
-    #     h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
-    #     h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
-    #     constraints.add_charge_equivalence_constraint(atoms=h_atoms)
-    #     c_smiles = "C([C:1]([H])([H])([H]))([C:1]([H])([H])([H]))"
-    #     c_atoms = nme2ala2.get_atoms_from_smarts(c_smiles)[0]
-    #     constraints.add_charge_equivalence_constraint(atoms=c_atoms)
-    #     h_smiles = "[N+]([H])([H])([H])"
-    #     h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
-    #     constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+        # equivalent hs
+        h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
+        h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+        c_smiles = "C([C:1]([H])([H])([H]))([C:1]([H])([H])([H]))"
+        c_atoms = nme2ala2.get_atoms_from_smarts(c_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=c_atoms)
+        h_smiles = "[N+]([H])([H])([H])"
+        h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
+        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
-    #     geometry_options = psiresp.QMGeometryOptimizationOptions(
-    #         method="b3lyp", basis="sto-3g",
-    #     )
-    #     esp_options = psiresp.QMEnergyOptions(
-    #         method="b3lyp", basis="sto-3g",
-    #     )
+        geometry_options = psiresp.QMGeometryOptimizationOptions(
+            method="b3lyp", basis="sto-3g",
+        )
+        esp_options = psiresp.QMEnergyOptions(
+            method="b3lyp", basis="sto-3g",
+        )
 
-    #     job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
-    #                             charge_constraints=constraints,
-    #                             qm_optimization_options=geometry_options,
-    #                             qm_esp_options=esp_options,)
-    #     job_multi.run(client=empty_client)
+        job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
+                                charge_constraints=constraints,
+                                qm_optimization_options=geometry_options,
+                                qm_esp_options=esp_options,)
+        job_multi.run(client=empty_client)
 
-    #     nme_charges = job_multi.molecules[1].stage_2_restrained_charges
-    #     assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
+        nme_charges = job_multi.molecules[1].stage_2_restrained_charges
+        assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
 
-    #     methylammonium_charges = [-0.3465729,  0.2114969,  0.1668618,  0.1668618,  0.1668618,
-    #                               0.2114969,  0.2114969,  0.2114969]
-    #     nme2ala2_charges = [-0.2856602,  0.3785914, -0.3082414, -0.4437356,  0.2920418,
-    #                         -0.3827429, -0.3827429,  0.6163, -0.2091145, -0.3866144,
-    #                         -0.5722,  0.0776994,  0.0776994,  0.0776994,  0.2719351,
-    #                         0.0972261,  0.0972261,  0.0972261,  0.0972261,  0.0972261,
-    #                         0.0972261,  0.1360149,  0.153238,  0.153238,  0.153238]
+        methylammonium_charges = [-0.3465729,  0.2114969,  0.1668618,  0.1668618,  0.1668618,
+                                  0.2114969,  0.2114969,  0.2114969]
+        nme2ala2_charges = [-0.2856602,  0.3785914, -0.3082414, -0.4437356,  0.2920418,
+                            -0.3827429, -0.3827429,  0.6163, -0.2091145, -0.3866144,
+                            -0.5722,  0.0776994,  0.0776994,  0.0776994,  0.2719351,
+                            0.0972261,  0.0972261,  0.0972261,  0.0972261,  0.0972261,
+                            0.0972261,  0.1360149,  0.153238,  0.153238,  0.153238]
 
-    #     # low precision -- generation of conformers can be flaky
-    #     assert_allclose(job_multi.charges[0],
-    #                     methylammonium_charges, atol=1e-1)
-    #     assert_allclose(job_multi.charges[1][1:7],
-    #                     nme2ala2_charges, atol=1e-1)
+        # low precision -- generation of conformers can be flaky
+        assert_allclose(job_multi.charges[0],
+                        methylammonium_charges, atol=1e-1)
+        assert_allclose(job_multi.charges[1][1:7],
+                        nme2ala2_charges, atol=1e-1)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
         nme2ala2.optimize_geometry = True
