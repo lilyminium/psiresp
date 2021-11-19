@@ -7,7 +7,7 @@ from qcfractal import FractalSnowflake
 from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def fractal_client():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
