@@ -193,7 +193,7 @@ class TestMultiRespFast:
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-1)
         assert_allclose(job_multi.charges[1][1:7],
-                        nme2ala2_charges, atol=1e-1)
+                        nme2ala2_charges[1:7], atol=1e-1)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
         nme2ala2.optimize_geometry = True
