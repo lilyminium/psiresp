@@ -114,82 +114,82 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
-    def test_run_with_empty(self, empty_client):
-        conformer_options = psiresp.ConformerGenerationOptions(
-            n_max_conformers=2,
-            keep_original_conformer=False,
-            rms_tolerance=0.01,
-        )
-        nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
-                                                optimize_geometry=False,
-                                                conformer_generation_options=conformer_options)
-        assert nme2ala2._rdmol is not None
-        methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
-                                                      optimize_geometry=False,
-                                                      conformer_generation_options=conformer_options)
-        assert methylammonium._rdmol is not None
+    # def test_run_with_empty(self, empty_client):
+    #     conformer_options = psiresp.ConformerGenerationOptions(
+    #         n_max_conformers=2,
+    #         keep_original_conformer=False,
+    #         rms_tolerance=0.01,
+    #     )
+    #     nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
+    #                                             optimize_geometry=False,
+    #                                             conformer_generation_options=conformer_options)
+    #     assert nme2ala2._rdmol is not None
+    #     methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
+    #                                                   optimize_geometry=False,
+    #                                                   conformer_generation_options=conformer_options)
+    #     assert methylammonium._rdmol is not None
 
-        # add constraints
-        # nme to 0
-        constraints = psiresp.ChargeConstraintOptions()
-        nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
-        nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
-        constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
-                                                           charge=0,
-                                                           indices=nme_indices[0])
-        # inter-aa to 0
-        methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
-        ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
-        constraint_atoms = methyl_atoms[0] + ace_atoms[0]
-        constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
+    #     # add constraints
+    #     # nme to 0
+    #     constraints = psiresp.ChargeConstraintOptions()
+    #     nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
+    #     nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
+    #     constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+    #                                                        charge=0,
+    #                                                        indices=nme_indices[0])
+    #     # inter-aa to 0
+    #     methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
+    #     ace_atoms = nme2ala2.get_atoms_from_smarts("C([H])([H])([H])C(=O)N([H])")
+    #     constraint_atoms = methyl_atoms[0] + ace_atoms[0]
+    #     constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
 
-        # constrain particular atoms
-        co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
-        assert len(co_atoms) == 1
-        assert len(co_atoms[0]) == 2
-        constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[0][:1])
-        constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[0][1:])
+    #     # constrain particular atoms
+    #     co_atoms = nme2ala2.get_atoms_from_smarts("CC(=O)NC(C)(C)[C:1]=[O:2]")
+    #     assert len(co_atoms) == 1
+    #     assert len(co_atoms[0]) == 2
+    #     constraints.add_charge_sum_constraint(charge=0.6163, atoms=co_atoms[0][:1])
+    #     constraints.add_charge_sum_constraint(charge=-0.5722, atoms=co_atoms[0][1:])
 
-        # equivalent hs
-        h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
-        h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
-        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
-        c_smiles = "C([C:1]([H])([H])([H]))([C:1]([H])([H])([H]))"
-        c_atoms = nme2ala2.get_atoms_from_smarts(c_smiles)[0]
-        constraints.add_charge_equivalence_constraint(atoms=c_atoms)
-        h_smiles = "[N+]([H])([H])([H])"
-        h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
-        constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+    #     # equivalent hs
+    #     h_smiles = "C(C([H:2])([H:2])([H:2]))(C([H:2])([H:2])([H:2]))"
+    #     h_atoms = nme2ala2.get_atoms_from_smarts(h_smiles)[0]
+    #     constraints.add_charge_equivalence_constraint(atoms=h_atoms)
+    #     c_smiles = "C([C:1]([H])([H])([H]))([C:1]([H])([H])([H]))"
+    #     c_atoms = nme2ala2.get_atoms_from_smarts(c_smiles)[0]
+    #     constraints.add_charge_equivalence_constraint(atoms=c_atoms)
+    #     h_smiles = "[N+]([H])([H])([H])"
+    #     h_atoms = methylammonium.get_atoms_from_smarts(h_smiles)[0]
+    #     constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
-        geometry_options = psiresp.QMGeometryOptimizationOptions(
-            method="b3lyp", basis="sto-3g",
-        )
-        esp_options = psiresp.QMEnergyOptions(
-            method="b3lyp", basis="sto-3g",
-        )
+    #     geometry_options = psiresp.QMGeometryOptimizationOptions(
+    #         method="b3lyp", basis="sto-3g",
+    #     )
+    #     esp_options = psiresp.QMEnergyOptions(
+    #         method="b3lyp", basis="sto-3g",
+    #     )
 
-        job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
-                                charge_constraints=constraints,
-                                qm_optimization_options=geometry_options,
-                                qm_esp_options=esp_options,)
-        job_multi.run(client=empty_client)
+    #     job_multi = psiresp.Job(molecules=[methylammonium, nme2ala2],
+    #                             charge_constraints=constraints,
+    #                             qm_optimization_options=geometry_options,
+    #                             qm_esp_options=esp_options,)
+    #     job_multi.run(client=empty_client)
 
-        nme_charges = job_multi.molecules[1].stage_2_restrained_charges
-        assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
+    #     nme_charges = job_multi.molecules[1].stage_2_restrained_charges
+    #     assert_allclose(nme_charges[list(nme_indices[0])].sum(), 0, atol=1e-7)
 
-        methylammonium_charges = [-0.3465729,  0.2114969,  0.1668618,  0.1668618,  0.1668618,
-                                  0.2114969,  0.2114969,  0.2114969]
-        nme2ala2_charges = [-0.2856602,  0.3785914, -0.3082414, -0.4437356,  0.2920418,
-                            -0.3827429, -0.3827429,  0.6163, -0.2091145, -0.3866144,
-                            -0.5722,  0.0776994,  0.0776994,  0.0776994,  0.2719351,
-                            0.0972261,  0.0972261,  0.0972261,  0.0972261,  0.0972261,
-                            0.0972261,  0.1360149,  0.153238,  0.153238,  0.153238]
+    #     methylammonium_charges = [-0.3465729,  0.2114969,  0.1668618,  0.1668618,  0.1668618,
+    #                               0.2114969,  0.2114969,  0.2114969]
+    #     nme2ala2_charges = [-0.2856602,  0.3785914, -0.3082414, -0.4437356,  0.2920418,
+    #                         -0.3827429, -0.3827429,  0.6163, -0.2091145, -0.3866144,
+    #                         -0.5722,  0.0776994,  0.0776994,  0.0776994,  0.2719351,
+    #                         0.0972261,  0.0972261,  0.0972261,  0.0972261,  0.0972261,
+    #                         0.0972261,  0.1360149,  0.153238,  0.153238,  0.153238]
 
-        # low precision -- generation of conformers can be flaky
-        assert_allclose(job_multi.charges[0],
-                        methylammonium_charges, atol=1e-1)
-        assert_allclose(job_multi.charges[1][1:7],
-                        nme2ala2_charges, atol=1e-1)
+    #     # low precision -- generation of conformers can be flaky
+    #     assert_allclose(job_multi.charges[0],
+    #                     methylammonium_charges, atol=1e-1)
+    #     assert_allclose(job_multi.charges[1][1:7],
+    #                     nme2ala2_charges, atol=1e-1)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
         nme2ala2.optimize_geometry = True
