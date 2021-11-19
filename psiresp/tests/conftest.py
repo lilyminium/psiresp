@@ -26,28 +26,21 @@ def postgres_server():
 
 
 @pytest.fixture(scope="session")
-def fractal_server(postgres_server):
-    server = FractalSnowflake(
-        max_workers=1,
+def fractal_client(postgres_server):
+    with FractalSnowflake(
+        max_workers=0,
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
         start_server=False,
-    )
-    yield server
-    server.stop()
-
-
-@pytest.fixture(scope="session")
-def fractal_client(fractal_server):
-    return ptl.FractalClient(fractal_server)
+    ) as server:
+        yield ptl.FractalClient(server)
 
 
 @pytest.fixture(scope="function")
 def empty_client():
-    server = FractalSnowflake()
-    yield ptl.FractalClient(server)
-    server.stop()
+    with FractalSnowflake() as server:
+        yield ptl.FractalClient(server)
 
 
 @pytest.fixture
