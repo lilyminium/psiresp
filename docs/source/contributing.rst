@@ -22,7 +22,7 @@ In short, the steps are to:
     #. Commit and push changes to GitHub, and open a pull request
 
 
-
+Some more resources are available `here <https://github.com/lilyminium/psiresp/blob/master/.github/CONTRIBUTING.md>`_ .
 
 .. _`Issue Tracker`: https://github.com/lilyminium/psiresp/issues
 .. _`pull request`: https://github.com/lilyminium/psiresp/pulls

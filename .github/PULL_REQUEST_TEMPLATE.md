@@ -1,12 +1,13 @@
 ## Description
-Provide a brief description of the PR's purpose here.
+<!-- Provide a brief description of the PR's purpose here. -->
+Fixes #
 
-## Todos
-Notable points that this PR has either accomplished or will accomplish.
-  - [ ] TODO 1
+**Changes made**
+  -
 
-## Questions
-- [ ] Question1
+## Checklist
 
-## Status
-- [ ] Ready to go
+  - [ ] Tagged issue being addressed
+  - [ ] Tests
+  - [ ] Documentation
+  - [ ] Changelog

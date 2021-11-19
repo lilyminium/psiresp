@@ -34,6 +34,10 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 #         assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
 #         assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
 
+#         chgrepr = """<RespCharges(resp_a=0.0005, resp_b=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.43877,  0.14815,  0.17996,  0.18717,  0.35744, -0.50854,
+#        -0.46067,  0.19092,  0.155  ,  0.18936])], restrained_charges=None>"""
+#         assert repr(job.stage_1_charges) == chgrepr
+
 #     def test_restrained(self, dmso, fractal_client):
 #         options = RespOptions(stage_2=True, restrained_fit=True)
 #         job = Job(molecules=[dmso],
