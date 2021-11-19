@@ -4,6 +4,8 @@ from numpy.testing import assert_allclose
 
 from psiresp.qm import QMEnergyOptions
 
+from psiresp.tests.server import empty_client
+
 
 class TestQMEnergyOptions:
 

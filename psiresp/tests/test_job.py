@@ -18,6 +18,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA1_CHARGES,
                                      MANUAL_JOBS_WKDIR,
                                      )
+from psiresp.tests.server import fractal_client, empty_client
 
 
 class TestSingleResp:
