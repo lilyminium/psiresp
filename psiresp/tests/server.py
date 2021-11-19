@@ -18,7 +18,7 @@ def postgres_server():
 @pytest.fixture(scope="session")
 def fractal_client(postgres_server):
     with FractalSnowflake(
-        max_workers=0,
+        max_workers=1,
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,

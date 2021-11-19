@@ -193,8 +193,15 @@ class TestMultiRespFast:
         # low precision -- generation of conformers can be flaky
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-1)
-        assert_allclose(job_multi.charges[1][1:7],
-                        nme2ala2_charges[1:7], atol=1e-1)
+        calculated_nme2ala2 = job_multi.charges[1]
+        assert_allclose(calculated_nme2ala2[-1], calculated_nme2ala2[-2])
+        assert_allclose(calculated_nme2ala2[-1], calculated_nme2ala2[-3])
+
+        assert_allclose(calculated_nme2ala2[7], 0.6163)
+        assert_allclose(calculated_nme2ala2[10], -0.5722)
+
+        assert_allclose(job_multi.charges[1][1:3],
+                        nme2ala2_charges[1:3], atol=1e-1)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
         nme2ala2.optimize_geometry = True
