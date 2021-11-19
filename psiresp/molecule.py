@@ -127,6 +127,9 @@ class Molecule(BaseMolecule):
     def __hash__(self):
         return hash(self.qcmol.get_hash())
 
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
     def generate_transformations(self,
                                  n_rotations: int = 0,
                                  n_reorientations: int = 0,
