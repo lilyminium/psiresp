@@ -7,11 +7,12 @@ from psiresp.qm import QMEnergyOptions
 # from psiresp.tests.server import empty_client
 
 
-class TestQMEnergyOptions:
+@pytest.fixture
+def cheap_options():
+    return QMEnergyOptions(basis="sto-3g", method="b3lyp")
 
-    @pytest.fixture()
-    def cheap_options(self):
-        return QMEnergyOptions(basis="sto-3g", method="b3lyp")
+
+class TestQMEnergyOptions:
 
     def test_add_compute(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()

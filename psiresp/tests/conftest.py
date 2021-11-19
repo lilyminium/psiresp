@@ -36,7 +36,7 @@ def fractal_client():
 
 @pytest.fixture(scope="function")
 def empty_client():
-    with FractalSnowflake() as server:
+    with FractalSnowflake(max_workers=1) as server:
         yield ptl.FractalClient(server)
 
 
