@@ -188,7 +188,7 @@ class TestMultiRespFast:
         # low precision -- generation of conformers can be flaky
         assert_allclose(job_multi.charges[0],
                         methylammonium_charges, atol=1e-1)
-        assert_allclose(job_multi.charges[1],
+        assert_allclose(job_multi.charges[1][1:7],
                         nme2ala2_charges, atol=1e-1)
 
     def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
