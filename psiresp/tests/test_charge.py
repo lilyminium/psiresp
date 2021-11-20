@@ -13,7 +13,7 @@ from psiresp.job import Job
 from psiresp.constraint import SparseGlobalConstraintMatrix
 
 from psiresp.tests.datafiles import DMSO_STAGE_2_A, DMSO_STAGE_2_B
-# from psiresp.tests.server import fractal_client
+from psiresp.server import fractal_client
 
 
 def test_charge_sum_constraint(dmso):

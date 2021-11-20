@@ -15,7 +15,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      ETHANOL_RESP2_C1, ETHANOL_RESP2_C2,
                                      )
 
-# from psiresp.tests.server import fractal_client
+from psiresp.server import fractal_client
 
 
 @pytest.mark.parametrize("config_class, red_charges", [

@@ -8,7 +8,7 @@ from psiresp.orientation import Orientation
 from psiresp.qm import QMEnergyOptions
 from psiresp.tests.utils import load_gamess_esp
 
-# from psiresp.tests.server import fractal_client
+from psiresp.server import fractal_client
 
 
 def test_compute_esp_regression(fractal_client):
