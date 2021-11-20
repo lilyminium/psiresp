@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from psiresp.qm import QMEnergyOptions
 
-from psiresp.server import empty_client
+# from psiresp.server import empty_client
 
 
 @pytest.fixture
