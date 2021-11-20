@@ -17,7 +17,7 @@ def fractal_client():
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
-        start_server=True,
+        start_server=False,
     ) as server:
         yield ptl.FractalClient(server)
     storage.stop()
@@ -25,5 +25,5 @@ def fractal_client():
 
 @pytest.fixture(scope="function")
 def empty_client():
-    with FractalSnowflake(max_workers=1, start_server=True) as server:
+    with FractalSnowflake() as server:
         yield ptl.FractalClient(server)
