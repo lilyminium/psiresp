@@ -114,6 +114,7 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
+    @pytest.mark.slow
     def test_run_with_empty(self, empty_client):
         conformer_options = psiresp.ConformerGenerationOptions(
             n_max_conformers=2,
