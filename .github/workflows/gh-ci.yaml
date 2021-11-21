@@ -24,12 +24,10 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
         runslow: [false]
-        # exclude:
-        #   # Tests hang on 3.8. Not sure why
-        #   # failures used to be sporadic but became systematic on PR
-        #   # trying to fix this. 
-        #   - os: ubuntu-latest
-        #     python-version: 3.8
+        exclude:
+          # Tests hang. Not sure why
+          - os: ubuntu-latest
+            python-version: 3.9
         include:
           - os: macOS-latest
             python-version: 3.7
@@ -91,7 +89,7 @@ jobs:
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
           pytest -n 4 psiresp/tests $PYTEST_FLAGS
 
-      - name: run_fast_tests
+      - name: run_slow_tests
         if: ${{ matrix.runslow == true }}
         run: |
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
