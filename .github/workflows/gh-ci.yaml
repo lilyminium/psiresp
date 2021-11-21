@@ -23,12 +23,17 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
-        exclude:
-          # Tests hang on 3.8. Not sure why
-          # failures used to be sporadic but became systematic on PR
-          # trying to fix this. 
-          - os: ubuntu-latest
-            python-version: 3.8
+        runslow: [false]
+        # exclude:
+        #   # Tests hang on 3.8. Not sure why
+        #   # failures used to be sporadic but became systematic on PR
+        #   # trying to fix this. 
+        #   - os: ubuntu-latest
+        #     python-version: 3.8
+        include:
+          - os: macOS-latest
+            python-version: 3.7
+            runslow: true
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
@@ -80,10 +85,17 @@ jobs:
       - name: install_psiresp
         run: python setup.py install
 
-      - name: run_tests
+      - name: run_fast_tests
+        if: ${{ matrix.runslow == false }}
         run: |
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
           pytest -n 4 psiresp/tests $PYTEST_FLAGS
+
+      - name: run_fast_tests
+        if: ${{ matrix.runslow == true }}
+        run: |
+          PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
+          pytest -n 4 --runslow psiresp/tests $PYTEST_FLAGS
         
       - name: codecov
         uses: codecov/codecov-action@v1
@@ -116,6 +128,3 @@ jobs:
       - name: build_docs
         run: |
           python setup.py build_ext
-
-
-
