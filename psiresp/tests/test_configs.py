@@ -41,7 +41,7 @@ def test_config_resp(config_class, red_charges, fractal_client, dmso):
                                                                    indices=ix)
     job = config_class(molecules=[dmso],
                        charge_constraints=constraints,
-                       n_processes=1)
+                       )
     assert isinstance(job, config_class)
 
     job.generate_conformers()
@@ -71,7 +71,7 @@ def test_config_multiresp(nme2ala2, methylammonium,
 
     job = config_class(molecules=[methylammonium, nme2ala2],
                        charge_constraints=methylammonium_nme2ala2_charge_constraints,
-                       n_processes=1)
+                       )
     assert isinstance(job, config_class)
 
     for orient in job.iter_orientations():
@@ -103,7 +103,7 @@ def test_resp2(fractal_client):
     assert mol.n_conformers == 2
     assert mol.n_orientations == 0
 
-    job = psiresp.Resp2(molecules=[mol], n_processes=1)
+    job = psiresp.Resp2(molecules=[mol])
     job.run(client=fractal_client)
 
     assert job.vacuum.n_conformers == 2

@@ -26,7 +26,7 @@ class TestSingleResp:
         options = RespOptions(stage_2=True, restrained_fit=False)
         job = Job(molecules=[dmso],
                   resp_options=options,
-                  n_processes=1)
+                  )
         job.run(client=fractal_client)
 
         esp_1 = [[-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
@@ -44,7 +44,7 @@ class TestSingleResp:
         options = RespOptions(stage_2=True, restrained_fit=True)
         job = Job(molecules=[dmso],
                   resp_options=options,
-                  n_processes=1)
+                  )
         job.run(client=fractal_client)
 
         resp_1 = [[-0.31436216, 0.11376836, 0.14389443, 0.15583112, 0.30951582,
@@ -69,7 +69,7 @@ class TestMultiRespFast:
         job = Job(molecules=[methylammonium, nme2ala2],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options,
-                  n_processes=1)
+                  )
         for mol in job.molecules:
             for conf in mol.conformers:
                 for orient in conf.orientations:
@@ -102,7 +102,7 @@ class TestMultiRespFast:
         job = Job(molecules=[methylammonium, nme2ala2],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options,
-                  n_processes=1)
+                  )
         job.compute_orientation_energies(client=fractal_client)
         job.compute_esps()
         for mol in job.molecules:
@@ -181,7 +181,7 @@ class TestMultiRespFast:
                                 charge_constraints=constraints,
                                 qm_optimization_options=geometry_options,
                                 qm_esp_options=esp_options,
-                                n_processes=1)
+                                )
         job_multi.run(client=empty_client)
 
         nme_charges = job_multi.molecules[1].stage_2_restrained_charges
@@ -214,7 +214,7 @@ class TestMultiRespFast:
         assert len(nme2ala2.conformers) == 2
         assert len(methylammonium.conformers) == 1
         job = Job(molecules=[methylammonium, nme2ala2],
-                  n_processes=1)
+                  )
 
         data_wkdir = pathlib.Path(MANUAL_JOBS_WKDIR)
 
