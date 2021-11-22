@@ -24,10 +24,10 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
         runslow: [false]
-        # exclude:
-        #   # Tests hang. Not sure why
-        #   - os: ubuntu-latest
-        #     python-version: 3.9
+        exclude:
+          # Tests hang. Not sure why
+          - os: ubuntu-latest
+            python-version: 3.8
         include:
           - os: macOS-latest
             python-version: 3.7
