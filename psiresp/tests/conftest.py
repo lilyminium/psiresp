@@ -34,13 +34,13 @@ def fractal_client(postgres_server):
         reset_database=False,
         start_server=False,
     ) as server:
-        yield ptl.FractalClient(server)
+        return ptl.FractalClient(server)
 
 
 @pytest.fixture(scope="function")
 def empty_client():
     with FractalSnowflake() as server:
-        yield ptl.FractalClient(server)
+        return ptl.FractalClient(server)
 
 
 @pytest.fixture
