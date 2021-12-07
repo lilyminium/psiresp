@@ -3,15 +3,15 @@ psiresp
 A RESP plugin for Psi4
 """
 
-from psiresp.qm import QMEnergyOptions, QMGeometryOptimizationOptions
-from psiresp.conformer import Conformer, ConformerGenerationOptions
-from psiresp.orientation import Orientation
-from psiresp.molecule import Molecule
-from psiresp.job import Job
-from psiresp.charge import ChargeConstraintOptions
-from psiresp.resp import RespOptions, RespCharges
-from psiresp.grid import GridOptions
-from psiresp.configs import *
+from .qm import QMEnergyOptions, QMGeometryOptimizationOptions
+from .conformer import Conformer, ConformerGenerationOptions
+from .orientation import Orientation
+from .molecule import Molecule
+from .job import Job
+from .charge import ChargeConstraintOptions
+from .resp import RespOptions, RespCharges
+from .grid import GridOptions
+from .configs import *
 
 from ._version import get_versions
 

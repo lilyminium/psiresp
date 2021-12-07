@@ -12,7 +12,15 @@ classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)", 
     "Programming Language :: Python :: 3",]
 requires-python = ">=3.7"
-requires = ["numpy", "qcelemental", "duecredit"]
+requires = [
+    "numpy",
+    "scipy",
+    "geometric",
+    "qcelemental",
+    "qcfractal",
+    "duecredit",
+    "requests",
+    ]
 
 [tool.flit.metadata.requires-extra]
 test = [
@@ -28,6 +36,8 @@ doc = [
     "myst-parser",
     "nbsphinx",
     "ipython",
+    "nglview",
+    "jupyter",
     ]
 
 [tool.pytest.ini_options]
