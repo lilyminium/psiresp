@@ -5,6 +5,7 @@ tags:
   - molecular dynamics
   - atomic partial charges
   - force fields
+  - resp
 authors:
   - name: Lily Wang
     orcid: 0000-0002-6095-6704
@@ -15,7 +16,7 @@ authors:
 affiliations:
  - name: Research School of Chemistry, College of Science, Australian National University, Canberra, ACT, 2601, Australia
    index: 1
-date: 24 July 2021
+date: 16 December 2021
 bibliography: paper.bib
 ---
 
@@ -56,9 +57,11 @@ Finally, a Python RESP plugin for Psi4 also exists [@alenaizan2020]. Also called
 
 PsiRESP is a Python package that can be used to calculate ESP [@singh1984] and RESP charges[@bayly1993; @cornell1993; @cieplak1995], as well as the next-generation RESP2 scheme [@schauperl2020]. Both intra-molecular and inter-molecular charge constraints and charge equivalence constraints are supported. Users may generate their own conformers of a molecule, or conformers can be automatically generated. Multiple orientations can also be specified or automatically generated for each conformer, to ensure a generally applicable distribution of charges. Multiple atomic radii sets are supported, including Bondi and MSK radii.
 
-PsiRESP uses QCElemental [@qcelemental] and RDKit [@rdkit] to parse molecular input and output, meaning that it supports a wide array of formats, including XYZ and SMILES. A strict limitation is that elements and bond connectivity must be present in the file, or proximity by Psi4. Conformers are embedded and generated using RDKit [@rdkit]. Quantum chemistry calculations are run in Psi4 [@psi4]. 
+PsiRESP uses QCElemental [@qcelemental] and RDKit [@rdkit] to parse molecular input and output, meaning that it supports a wide array of formats, including XYZ and SMILES. A strict limitation is that elements and bond connectivity must be present in the file, or inferrable by proximity by Psi4. Conformers are embedded and generated using RDKit [@rdkit]. Quantum chemistry calculations are run in Psi4 [@psi4]. 
 
-PsiRESP can be used interactively; however, due to the time-consuming nature of QM calculations, it is highly recommended to use input job files instead. A command-line tool that parses YAML files is provided for this purpose. The project contains a thorough Continuous Integration test suite ensuring that charges are comparable with those derived from other similar packages. Releases follow Semantic Versioning 2.0.
+PsiRESP can be used interactively in a single job in connection with a QCFractal [@qcfractal] server. Alternatively, in acknowledgement of possible limits on time or other computing resources, users can use PsiRESP in two stages: first to generate input files for Psi4 that users can run manually or in parallel job submissions, and secondly to read the data computed from each file to finish the charge calculations.
+
+The project contains a thorough Continuous Integration test suite ensuring that charges are comparable with those derived from other similar packages and previous versions. Code is written in a modular style, allowing for easy extension of capabilities, e.g. including charges computed from electric fields in the future. Core dependencies have been kept as minimal as possible to ease installation, although users are encouraged to make use of other packages (e.g. MDAnalysis [michaud-agrawal2011; gowers2016] or the OpenForceField toolkit [@openff-toolkit] for additional I/O and functionality) Releases follow Semantic Versioning 2.0.
 
 # Acknowledgements
 
