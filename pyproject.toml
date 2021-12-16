@@ -1,6 +1,6 @@
 [build-system]
-requires = ["flit_core >=2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["flit"]
+build-backend = "flit.buildapi"
 
 [tool.flit.metadata]
 module = "psiresp"
@@ -17,7 +17,6 @@ requires = [
     "scipy",
     "geometric",
     "qcelemental",
-    "qcfractal",
     "duecredit",
     "requests",
     ]
