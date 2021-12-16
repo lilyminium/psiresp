@@ -1,7 +1,16 @@
 Installation
 ============
 
-The easiest approach to install the latest release is to use pip::
+PsiRESP depends on Psi4 and RDKit, neither of which are available on PyPI.
+It is highly recommended to first create an environment with these dependencies::
+
+  git clone https://github.com/lilyminium/psiresp
+  cd psiresp
+  # create new environment with dependencies
+  conda env create -f devtools/conda-envs/environment.yaml
+  conda activate psiresp
+
+The easiest approach to install the latest release is then to use pip::
 
   # pip
   pip install psiresp
@@ -9,11 +18,6 @@ The easiest approach to install the latest release is to use pip::
 
 If you need the latest development environment, build from source::
 
-  git clone https://github.com/lilyminium/psiresp
-  cd psiresp
-  # create new environment with dependencies
-  conda env create -f devtools/conda-envs/environment.yaml
-  conda activate psiresp
   # build the package
   python setup.py develop  # or python setup.py install if not creating a development environment
 
