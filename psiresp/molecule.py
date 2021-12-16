@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from pydantic import Field
 
-from . import base, orutils, rdutils
+from . import base, orutils
 from .conformer import Conformer, ConformerGenerationOptions
 from .moleculebase import BaseMolecule
 
@@ -96,11 +96,13 @@ class Molecule(BaseMolecule):
 
     @classmethod
     def from_smiles(cls, smiles, **kwargs):
+        from . import rdutils
         rdmol = rdutils.rdmol_from_smiles(smiles)
         return cls.from_rdkit(rdmol, **kwargs)
 
     @classmethod
     def from_rdkit(cls, molecule, random_seed=-1, **kwargs):
+        from . import rdutils
         qcmol = rdutils.rdmol_to_qcelemental(molecule, random_seed=random_seed)
         kwargs = dict(**kwargs)
         kwargs["qcmol"] = qcmol

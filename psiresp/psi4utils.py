@@ -1,6 +1,11 @@
 from typing import List, Dict
 
-import psi4
+try:
+    import psi4
+except ImportError:
+    raise ImportError("Psi4 is a core dependency of PsiRESP. "
+                      "Please install it with "
+                      "`conda install -c psi4 psi4`")
 import numpy as np
 
 

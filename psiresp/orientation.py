@@ -4,11 +4,10 @@ import numpy as np
 from pydantic import Field  # , PrivateAttr, validator, root_validator
 import qcelemental as qcel
 
-from psiresp import psi4utils
-from psiresp.constraint import ESPSurfaceConstraintMatrix
-from psiresp.moleculebase import BaseMolecule
-from psiresp.grid import GridOptions
-from psiresp.qcutils import QCWaveFunction
+from .constraint import ESPSurfaceConstraintMatrix
+from .moleculebase import BaseMolecule
+from .grid import GridOptions
+from .qcutils import QCWaveFunction
 
 
 class Orientation(BaseMolecule):
@@ -41,6 +40,7 @@ class Orientation(BaseMolecule):
         self.grid = grid_options.generate_grid(self.qcmol)
 
     def compute_esp(self):
+        from . import psi4utils
         self.esp = psi4utils.compute_esp(self.qc_wavefunction, self.grid)
         return self.esp
 

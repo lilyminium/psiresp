@@ -5,8 +5,8 @@ from collections import defaultdict
 import numpy as np
 from pydantic import Field
 
-from psiresp import base, psi4utils, rdutils
-from psiresp.molecule import Atom, Molecule
+from . import base
+from .molecule import Atom, Molecule
 
 
 @functools.total_ordering
@@ -357,6 +357,8 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         accepted_n_hs:
             Number of Hs around a carbon to symmetrize
         """
+        from . import rdutils
+        from . import psi4utils
         for mol in self.molecules:
             try:
                 ch_groups = rdutils.get_sp3_ch_indices(mol._rdmol)

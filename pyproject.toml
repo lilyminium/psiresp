@@ -17,6 +17,8 @@ requires = [
     "scipy",
     "geometric",
     "qcelemental",
+    "qcfractal",
+    "tqdm",
     "duecredit",
     "requests",
     ]

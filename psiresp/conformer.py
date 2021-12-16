@@ -5,9 +5,9 @@ from pydantic import Field
 import numpy as np
 import qcelemental as qcel
 
-from psiresp import base, rdutils
-from psiresp.orientation import Orientation
-from psiresp.moleculebase import BaseMolecule
+from . import base
+from .orientation import Orientation
+from .moleculebase import BaseMolecule
 
 
 class Conformer(BaseMolecule):
@@ -62,6 +62,7 @@ class ConformerGenerationOptions(base.Model):
 
     def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:
         """Generate conformer coordinates in angstrom"""
+        from . import rdutils
         original = np.array([qcmol.geometry])
         original *= qcel.constants.conversion_factor("bohr", "angstrom")
         if not self.n_max_conformers:

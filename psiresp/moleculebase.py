@@ -1,24 +1,37 @@
-from typing import Optional  # , TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import qcelemental as qcel
-from rdkit import Chem
 
-from . import base, rdutils
+from . import base
 from .orutils import generate_atom_combinations
+
+if TYPE_CHECKING:
+    import rdkit
 
 
 class BaseMolecule(base.Model):
     qcmol: qcel.models.Molecule
-    _rdmol: Optional[Chem.Mol] = None
+    _rdmol: Optional["rdkit.Chem.Mol"] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._rdmol = rdutils.rdmol_from_qcelemental(self.qcmol)
-        extras = self.qcmol.__dict__["extras"]
-        if extras is None:
-            extras = {}
-        extras[rdutils.OFF_SMILES_ATTRIBUTE] = rdutils.rdmol_to_smiles(self._rdmol)
-        self.qcmol.__dict__["extras"] = extras
+        try:
+            from . import rdutils
+        except ImportError:
+            pass
+        else:
+            self._rdmol = rdutils.rdmol_from_qcelemental(self.qcmol)
+            extras = self.qcmol.__dict__["extras"]
+            if extras is None:
+                extras = {}
+            extras[rdutils.OFF_SMILES_ATTRIBUTE] = rdutils.rdmol_to_smiles(self._rdmol)
+            self.qcmol.__dict__["extras"] = extras
+
+    @property
+    def rdmol(self):
+        if self._rdmol is None:
+            raise ValueError("Could not create a valid RDKit molecule from QCElemental molecule")
+        return self._rdmol
 
     def qcmol_with_coordinates(self, coordinates, units="angstrom"):
         dct = self.qcmol.dict()
@@ -51,9 +64,9 @@ class BaseMolecule(base.Model):
         return [next(atoms) for i in range(n_combinations)]
 
     def get_smarts_matches(self, smiles):
-        if self._rdmol is None:
-            raise ValueError("Could not create a valid RDKit molecule from QCElemental molecule")
-        rdmol = Chem.Mol(self._rdmol)
+        rdmol = self.rdmol
+        from rdkit import Chem
+        rdmol = Chem.Mol(rdmol)
         Chem.SanitizeMol(rdmol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_SETAROMATICITY)
         Chem.SetAromaticity(rdmol, Chem.AromaticityModel.AROMATICITY_MDL)
 
@@ -75,4 +88,6 @@ class BaseMolecule(base.Model):
             return matches
 
     def to_smiles(self, mapped=True):
-        return rdutils.rdmol_to_smiles(self._rdmol, mapped=mapped)
+        mol = self.rdmol
+        from . import rdutils
+        return rdutils.rdmol_to_smiles(self.rdmol, mapped=mapped)

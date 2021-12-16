@@ -5,8 +5,14 @@ from typing import TYPE_CHECKING, Set, Tuple
 
 from typing_extensions import Literal
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import AllChem
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+except ImportError:
+    raise ImportError("rdkit is a core dependency of PsiRESP. "
+                      "Please install it with "
+                      "`conda install -c conda-forge rdkit`")
 
 
 if TYPE_CHECKING:

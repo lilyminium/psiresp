@@ -10,10 +10,10 @@ import numpy as np
 import scipy.linalg
 
 from . import base, molecule, charge, qm, grid, resp
-from psiresp.charge import MoleculeChargeConstraints
-from psiresp.resp import RespCharges
-from psiresp.orientation import Orientation
-from psiresp.constraint import ESPSurfaceConstraintMatrix
+from .charge import MoleculeChargeConstraints
+from .resp import RespCharges
+from .orientation import Orientation
+from .constraint import ESPSurfaceConstraintMatrix
 
 logger = logging.getLogger(__name__)
 

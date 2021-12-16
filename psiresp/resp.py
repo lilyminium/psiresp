@@ -4,9 +4,9 @@ import warnings
 import numpy as np
 from pydantic import Field
 
-from psiresp import base, charge
-from psiresp.constraint import (ESPSurfaceConstraintMatrix,
-                                SparseGlobalConstraintMatrix)
+from . import base, charge
+from .constraint import (ESPSurfaceConstraintMatrix,
+                         SparseGlobalConstraintMatrix)
 
 
 class BaseRespOptions(base.Model):
