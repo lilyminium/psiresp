@@ -34,8 +34,13 @@ Create a new conda environment with dependencies. In general, installing the dep
 conda env create -f devtools/conda-envs/environment.yaml
 conda activate psiresp
 ```
+To install the latest release:
 
-To build from source, clone this repository and install the package.
+```
+pip install psiresp
+```
+
+Alternatively, to build from source, clone this repository and install the package.
 
 ```
 git clone https://github.com/lilyminium/psiresp.git
