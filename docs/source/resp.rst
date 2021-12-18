@@ -42,11 +42,11 @@ The hyperbolic restraint has the form:
 
 
 :math:`a` defines the asymptotic limits of the penalty, and corresponds to
-:attr:`~psiresp.resp.RespOptions.resp_a1` and
-:attr:`~psiresp.resp.RespOptions.resp_a2` for the stage 1 and stage 2
+:attr:`~psiresp.resp.RespOptions.restraint_scale_stage_1` and
+:attr:`~psiresp.resp.RespOptions.restraint_scale_stage_2` for the stage 1 and stage 2
 fits, respectively.
 :math:`b` defines the width of the penalty, and corresponds to
-:attr:`~psiresp.resp.RespOptions.resp_b`.
+:attr:`~psiresp.resp.RespOptions.restraint_steepness`.
 
 If you only want a one-stage fit, the process stops here.
 In a two-stage fit, the typical charge model in AMBER and CHARMM

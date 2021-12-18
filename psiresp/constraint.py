@@ -193,8 +193,8 @@ class SparseGlobalConstraintMatrix(base.Model):
             if np.isnan(self._charges[0]):
                 self._charges = scipy.sparse.linalg.lsmr(self.coefficient_matrix, self.constant_vector)[0]
 
-    def _iter_solve(self, resp_a, resp_b, b2):
-        hyp_a = (resp_a * self.n_structure_array)[self._array_indices]
+    def _iter_solve(self, restraint_scale, restraint_steepness, b2):
+        hyp_a = (restraint_scale * self.n_structure_array)[self._array_indices]
         increment = hyp_a / np.sqrt(self._charges[self._array_indices] ** 2 + b2)
         self.coefficient_matrix = self._original_coefficient_matrix.copy()
 

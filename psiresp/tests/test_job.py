@@ -34,7 +34,7 @@ class TestSingleResp:
         assert_allclose(job.stage_1_charges.unrestrained_charges, esp_1, atol=1e-7)
         assert_allclose(job.stage_2_charges.unrestrained_charges, esp_2, atol=1e-7)
 
-        chgrepr = """<RespCharges(resp_a=0.0005, resp_b=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.43877,  0.14815,  0.17996,  0.18717,  0.35744, -0.50854,
+        chgrepr = """<RespCharges(restraint_scale=0.0005, restraint_steepness=0.1, restrained_fit=False, exclude_hydrogens=True) with 0 charge constraints; unrestrained_charges=[array([-0.43877,  0.14815,  0.17996,  0.18717,  0.35744, -0.50854,
        -0.46067,  0.19092,  0.155  ,  0.18936])], restrained_charges=None>"""
         assert repr(job.stage_1_charges) == chgrepr
 
@@ -53,16 +53,16 @@ class TestSingleResp:
 
 
 class TestMultiRespFast:
-    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+    @pytest.mark.parametrize("stage_2, restraint_scale, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
         (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
     ], indirect=['red_charges'])
     def test_given_esps(self, nme2ala2, methylammonium,
                         methylammonium_nme2ala2_charge_constraints,
-                        stage_2, resp_a, red_charges, job_esps, job_grids):
+                        stage_2, restraint_scale, red_charges, job_esps, job_grids):
 
-        resp_options = RespOptions(stage_2=stage_2, resp_a1=resp_a)
+        resp_options = RespOptions(stage_2=stage_2, restraint_scale_stage_1=restraint_scale)
         job = Job(molecules=[methylammonium, nme2ala2],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options)
@@ -84,17 +84,17 @@ class TestMultiRespFast:
             assert_allclose(calculated, reference, atol=1e-3)
 
     # @pytest.mark.slow
-    @pytest.mark.parametrize("stage_2, resp_a, red_charges", [
+    @pytest.mark.parametrize("stage_2, restraint_scale, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
         (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
     ], indirect=['red_charges'])
     def test_calculated_esps(self, nme2ala2, methylammonium,
                              methylammonium_nme2ala2_charge_constraints,
-                             stage_2, resp_a, red_charges,
+                             stage_2, restraint_scale, red_charges,
                              fractal_client, job_esps, job_grids):
 
-        resp_options = RespOptions(stage_2=stage_2, resp_a1=resp_a)
+        resp_options = RespOptions(stage_2=stage_2, restraint_scale_stage_1=restraint_scale)
         job = Job(molecules=[methylammonium, nme2ala2],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options)

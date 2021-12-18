@@ -91,8 +91,8 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
       molecules=[dmso],
       resp_options=psiresp.RespOptions(
          stage_2=True,  # run 2-stage RESP
-         resp_a1=0.0005,  # hyperbola restraints for stage 1
-         resp_a2=0.001,  # hyperbola restraints for stage 2
+         restraint_scale_stage_1=0.0005,  # hyperbola restraints for stage 1
+         restraint_scale_stage_2=0.001,  # hyperbola restraints for stage 2
          restrained_fit=True,  # restrain ESP fit
       ),
       qm_optimization_options=psiresp.QMGeometryOptimizationOptions(
