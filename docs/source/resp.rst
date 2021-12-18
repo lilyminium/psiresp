@@ -1,3 +1,5 @@
+.. _resp-label:
+
 RESP
 ====
 
@@ -21,18 +23,15 @@ is typically generated at certain radii from each atom, forming a
 equations is commonly called "surface constraints" in the code and
 throughout the documentation.
 
-You can add your own charge constraints to the "surface constraints"
-to form an overall constraint matrix. These charge constraints can
-control what charge a group of atoms should sum to 
-(:class:`~psiresp.charge.ChargeSumConstraint`) or if one atom
-should have an equivalent charge to other atoms
-(:class:`~psiresp.charge.ChargeEquivalenceConstraint`).
-
 The equations represented by the constraint matrix
 can be solved for the charges of best fit,
 as first published by Singh and Kollman in 1984 :cite:p:`singh1984`.
+In PsiRESP, this is referred to as the "ESP" method.
+You can add your own charge constraints; please see the section
+on charge constraints below.
 
 Commonly, a "restrained fit" is performed to derive the final charges :cite:p:`bayly1993,cornell1993,cieplak1995`.
+This is typically known as "RESP".
 
 The hyperbolic restraint has the form:
 
@@ -74,26 +73,45 @@ In more technical detail, this is the process for each stage:
     are also not given a fixed charge in stage 2 fits, but left free to vary.
 
 
+Charge constraints
+------------------
+
+You can add your own charge constraints to the "surface constraints".
+These charge constraints can
+control what charge a group of atoms should sum to 
+(:class:`~psiresp.charge.ChargeSumConstraint`);
+this is very useful for example, for making sure that
+extraneous caps on an amino acid sum to 0. That way the
+amino acid retains an integer charge in a protein.
+
+Alternatively, you can control whether an atom
+should have an equivalent charge to another atom
+(:class:`~psiresp.charge.ChargeEquivalenceConstraint`).
+This is useful for enforcing symmetry. The
+``symmetric_methyls`` and ``symmetric_methylenes``
+options in :class:`psiresp.charge.ChargeConstraintOptions`
+use :class:`~psiresp.charge.ChargeEquivalenceConstraint`
+on the hydrogens around an sp3 carbon.
 
 
----------------
-Practical steps
----------------
+Conformational dependence
+-------------------------
 
-The general, practical process of computing RESP charges is as follows:
+RESP methods are highly conformation-dependent; it is
+highly likely that you derive different charges for the same
+molecule if you use two different conformers. Even the
+orientation of the molecule can affect the resulting charges.
+For that reason, it is **highly** recommended to use
+multiple conformers and orientations for each molecule.
 
-#. Generate some number of conformers
-#. (Optional) Use Psi4 to optimize the geometry of each conformer
-#. Generate some number of orientations for each conformer
-#. Compute the wavefunction of each orientation with Psi4
-#. Generate a grid of points around each molecule
-#. Evaluate the electrostatic potential (ESP) of the molecule on the grid points
-#. (Optional) Set charge constraints
-#. Fit charges to these charge constraints and ESPs according to specified RESP options
+While users can provide their own, PsiRESP also includes
+methods for automatic conformer and orientation generation.
+In particular, the conformers selected for use in calculating
+charges use the Electrostatically Least-interacting
+Functional group (ELF) technique, which is used in AM1BCC ELF10.
 
-
-All of these are handled for you under the hood with :meth:`psiresp.job.Job.run`.
-
+Please see :ref:`conformers-label` for details on the
+implementation.
 
 ----------------------
 Pre-configured classes

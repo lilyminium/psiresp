@@ -8,11 +8,15 @@ attribute.
 
 This has several advantages; molecules can be easily hashed, for example, and
 they interact natively with the engine-agnostic QCEngine and QCFractal packages.
+A QCElemental molecule can be created from, and corresponds directly to,
+the commonly-used XYZ format.
 
-There is a hierarchy to these molecules.
+There is a hierarchy to these molecules in the PsiRESP API.
 A :class:`psiresp.molecule.Molecule` contains
 :class:`psiresp.conformer.Conformer` s, which contains
 :class:`psiresp.orientation.Orientation` s.
+
+.. _conformers-label:
 
 ----------
 Conformers
