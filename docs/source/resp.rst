@@ -158,28 +158,20 @@ The penalty added to each term looks like the following graph:
 
 .. ipython:: python
 
-    import plotly.graph_objects as go
+    from matplotlib import pyplot as plt
     import numpy as np
-    from ipywidgets import interact
-    import ipywidgets as widgets
 
-    fig = go.FigureWidget()
-    fig.update_yaxes(range = [-0.006, 0.006], title_text='Penalty')
-    fig.update_xaxes(title_text="Charge")
-    scatt = fig.add_scatter()
-    x_values = np.linspace(-0.2, 0.2, 500)
+    x = np.linspace(-0.2, 0.2, 500)
+    f = lambda a, b: (a * x * (1/(np.sqrt(x ** 2 + b ** 2))))
 
-    a_widget = widgets.FloatSlider(min=0, max=0.005, step=0.0001, value=0.001, description="a (resp_a)", readout_format=".4f")
-    b_widget = widgets.FloatSlider(min=0, max=0.02, step=0.002, value=0.01, description="b (resp_b)", readout_format=".3f")
-
-    @interact(a=a_widget,b=b_widget)
-    def update(a=0.005, b=0.2):
-        with fig.batch_update():
-            scatt = fig.data[0]
-            scatt.x=x_values
-            scatt.y=(a * x_values * (1/(np.sqrt(x_values ** 2 + b ** 2))))
-    box = widgets.VBox([a_widget, b_widget, fig])
-    box
+    fig, ax = plt.subplots()
+    for a in [0, 0.0005, 0.001]:
+        for b in [0, 0.05, 0.1]:
+            ax.plot(x, f(0, 0), label=f"resp_a={a}, resp_b={b}")
+    ax.set_xlabel("Charge")
+    ax.set_ylabel("Penalty")
+    ax.legend()
+    plt.show()
 
 
 
