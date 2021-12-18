@@ -52,13 +52,13 @@ information.
 
 Next, we need to figure out how to calculate the
 quantum chemistry jobs. 
-PsiRESP uses a :class:`qcfractal.server.FractalServer` to manage
+PsiRESP uses a :class:`qcfractal.FractalServer` to manage
 resources with QM computations. However, it is not always possible
 or practical to have a server running in a different process; for
 example, if you want to use PsiRESP in a Jupyter notebook, or within
 a Python script. Within a Python script, QCFractal recommends a
-:class:`qcfractal.snowflake.FractalSnowflake`; within a Jupyter notebook,
-:class:`qcfractal.snowflake.FractalSnowflakeHandler`.
+:class:`qcfractal.FractalSnowflake`; within a Jupyter notebook,
+:class:`qcfractal.FractalSnowflakeHandler`.
 
 Alternatively, you may not want to use a server at all, but to run the
 QM computations yourselves. In that case, pass ``client=None``.
