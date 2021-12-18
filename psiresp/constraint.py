@@ -4,7 +4,6 @@ import copy
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
-# from pydantic import validator
 
 from . import base
 
@@ -21,6 +20,17 @@ def array_ops(func):
 
 
 class ESPSurfaceConstraintMatrix(base.Model):
+    """
+    Class used to iteratively solve the matrix of linear
+    equations Ax=b for the charges. In this analogy,
+    `A` is the coefficient matrix of summed inverse distances
+    to each grid point, and charge constraints;
+    `b` is the constant vector of summed potential at each
+    grid point, and values of the charge constraints.
+    We solve for x, the charges.
+
+    Users should not need to use this class directly.
+    """
 
     matrix: np.ndarray
 
@@ -57,27 +67,23 @@ class ESPSurfaceConstraintMatrix(base.Model):
         return matrix
 
     @classmethod
-    def from_a_and_b(cls, a, b):
-        n_dim = a.shape[0]
-        array = np.empty((n_dim + 1, n_dim))
-        matrix = cls(matrix=array)
-        matrix.a = a
-        matrix.b = b
+    def from_coefficient_matrix(cls, coefficient_matrix,
+                                constant_vector=None):
+        n_dim = coefficient_matrix.shape[0]
+        if constant_vector is None:
+            constant_vector = np.zeros(n_dim)
+        else:
+            try:
+                constant_vector = constant_vector.reshape((n_dim,))
+            except ValueError:
+                msg = f"`constant_vector` must have shape ({n_dim},)"
+                raise ValueError(msg)
+        placeholder = np.empty((n_dim + 1, n_dim))
+        matrix = cls(matrix=placeholder)
+        matrix.coefficient_matrix = coefficient_matrix
+        matrix.constant_vector = constant_vector
 
         return matrix
-
-    # @validator("matrix")
-    # def validate_array(cls, value):
-    #     array = np.asarray(value).astype(float)
-
-    #     assert len(array.shape) == 2
-    #     if array.shape[1] > array.shape[0]:
-    #         array = array.T
-
-    #     if array.shape[1] != array.shape[0] + 1:
-    #         raise ValueError("Array should be of shape N x N + 1")
-
-    #     return array
 
     @property
     def n_dim(self):
@@ -107,7 +113,7 @@ class SparseGlobalConstraintMatrix(base.Model):
     n_structure_array: Optional[np.ndarray] = None
     mask: Optional[np.ndarray] = None
 
-    _original_a: Optional[scipy.sparse.csr_matrix] = None
+    _original_coefficient_matrix: Optional[scipy.sparse.csr_matrix] = None
     _charges: Optional[np.ndarray] = None
     _previous_charges: Optional[np.ndarray] = None
     _n_atoms: Optional[int] = None
@@ -118,8 +124,8 @@ class SparseGlobalConstraintMatrix(base.Model):
     def from_constraints(cls, surface_constraints,
                          charge_constraints,
                          exclude_hydrogens=True):
-        a = scipy.sparse.csr_matrix(surface_constraints.a)
-        b = surface_constraints.b
+        a = scipy.sparse.csr_matrix(surface_constraints.coefficient_matrix)
+        b = surface_constraints.constant_vector
 
         if charge_constraints.n_constraints:
             a_block = scipy.sparse.hstack([
@@ -154,7 +160,7 @@ class SparseGlobalConstraintMatrix(base.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._n_atoms = len(self.b)
+        self._n_atoms = len(self.constant_vector)
         if self.n_structure_array is None:
             self.n_structure_array = np.ones(self._n_atoms)
         if self.mask is None:
@@ -163,7 +169,7 @@ class SparseGlobalConstraintMatrix(base.Model):
         diag_indices = np.diag_indices(self._n_atoms)
         self._array_mask = (diag_indices[0][self._array_indices],
                             diag_indices[1][self._array_indices])
-        self._original_a = copy.deepcopy(self.a)
+        self._original_coefficient_matrix = copy.deepcopy(self.coefficient_matrix)
 
     @property
     def charge_difference(self):
@@ -180,18 +186,18 @@ class SparseGlobalConstraintMatrix(base.Model):
     def _solve(self):
         self._previous_charges = copy.deepcopy(self._charges)
         try:
-            self._charges = scipy.sparse.linalg.spsolve(self.a, self.b)
+            self._charges = scipy.sparse.linalg.spsolve(self.coefficient_matrix, self.constant_vector)
         except RuntimeError as e:  # TODO: this could be slow?
-            self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
+            self._charges = scipy.sparse.linalg.lsmr(self.coefficient_matrix, self.constant_vector)[0]
         else:
             if np.isnan(self._charges[0]):
-                self._charges = scipy.sparse.linalg.lsmr(self.a, self.b)[0]
+                self._charges = scipy.sparse.linalg.lsmr(self.coefficient_matrix, self.constant_vector)[0]
 
     def _iter_solve(self, resp_a, resp_b, b2):
         hyp_a = (resp_a * self.n_structure_array)[self._array_indices]
         increment = hyp_a / np.sqrt(self._charges[self._array_indices] ** 2 + b2)
-        self.a = self._original_a.copy()
+        self.coefficient_matrix = self._original_coefficient_matrix.copy()
 
-        a_shape = self.a[self._array_mask].shape
-        self.a[self._array_mask] += increment.reshape(a_shape)
+        a_shape = self.coefficient_matrix[self._array_mask].shape
+        self.coefficient_matrix[self._array_mask] += increment.reshape(a_shape)
         self._solve()

@@ -214,14 +214,14 @@ class Job(base.Model):
             )
             for mol in self.molecules
         ]
-        a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
-        a_row = scipy.linalg.block_diag(*[np.ones(mat.b.shape[0]) for mat in matrices])
+        a_mol = scipy.linalg.block_diag(*[mat.coefficient_matrix for mat in matrices])
+        a_row = scipy.linalg.block_diag(*[np.ones(mat.constant_vector.shape[0]) for mat in matrices])
         a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
         a_block = np.bmat([[a_mol, a_row.T], [a_row, a_zeros]])
 
-        b_block = np.concatenate([mat.b for mat in matrices]
+        b_block = np.concatenate([mat.constant_vector for mat in matrices]
                                  + [[mol.charge for mol in self.molecules]])
-        return ESPSurfaceConstraintMatrix.from_a_and_b(a_block, b_block)
+        return ESPSurfaceConstraintMatrix.from_coefficient_matrix(a_block, b_block)
 
     def generate_molecule_charge_constraints(self) -> MoleculeChargeConstraints:
         """

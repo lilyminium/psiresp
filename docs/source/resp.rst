@@ -107,23 +107,23 @@ The table below gives a broad overview of the pre-configured classes.
     +----------------------------------+------------------------------------+-------------------------+
     | Class                            | Description                        | Reference               |
     +==================================+====================================+=========================+
-    | :class:`psiresp.configs.RespA1`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
+    | :class:`psiresp.configs.TwoStageRESP`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
     |                                  | in the gas phase at hf/6-31g*      | :cite:t:`cornell1993`,  |
     |                                  |                                    | :cite:t:`cieplak1995`   |
     +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.RespA2`  | A 1-stage restrained fit           |                         |
+    | :class:`psiresp.configs.OneStageRESP`  | A 1-stage restrained fit           |                         |
     |                                  | in the gas phase at hf/6-31g*      |                         |
     +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.EspA1`   | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
+    | :class:`psiresp.configs.ESP`   | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
     |                                  | in the gas phase at hf/6-31g*      |                         |
     +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.EspA2`   | A 1-stage unrestrained fit         |                         |
+    | :class:`psiresp.configs.WeinerESP`   | A 1-stage unrestrained fit         |                         |
     |                                  | in the gas phase at hf/sto-3g      |                         |
     +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.ATBResp` | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
+    | :class:`psiresp.configs.ATBRESP` | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
     |                                  | implicit water at b3lyp/6-31g*     |                         |
     +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.Resp2`   | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
+    | :class:`psiresp.configs.RESP2`   | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
     |                                  | at pw6b95/aug-cc-pV(D+d)Z,         |                         |
     |                                  | in both vacuum and implicit water. |                         |
     |                                  | Charges are interpolated           |                         |

@@ -65,7 +65,7 @@ The project contains a thorough Continuous Integration test suite ensuring that 
 
 # Acknowledgements
 
-This work was supported by a grant from the Australian Research Council (DP180103573). This project is based on the Computational Molecular Science Python Cookiecutter version 1.2. Pre-configured models and reorientation algorithm are written to directly match results from RESP ESP charge Derive (R.E.D.) [@dupradeau2007; @dupradeau2010]. ATBResp tries to match results from Automated Topology Builder [@malde2011]. Resp2 tries to match results from RESP2 [@schauperl2020]. Some tests compare results to output from resp, the current RESP plugin for Psi4 [@alenaizan2020]. The research was undertaken with the assistance of resources and services from the National Computational Infrastructure (NCI), which is supported by the Australian Government.
+This work was supported by a grant from the Australian Research Council (DP180103573). This project is based on the Computational Molecular Science Python Cookiecutter version 1.2. Pre-configured models and reorientation algorithm are written to directly match results from RESP ESP charge Derive (R.E.D.) [@dupradeau2007; @dupradeau2010]. ATBRESP tries to match results from Automated Topology Builder [@malde2011]. RESP2 tries to match results from RESP2 [@schauperl2020]. Some tests compare results to output from resp, the current RESP plugin for Psi4 [@alenaizan2020]. The research was undertaken with the assistance of resources and services from the National Computational Infrastructure (NCI), which is supported by the Australian Government.
 
 
 # References

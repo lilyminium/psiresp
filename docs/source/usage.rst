@@ -64,7 +64,7 @@ simply replace `Job` with the particular chosen configuration:
 
     import psiresp
     dmso = psiresp.Molecule.from_smiles("CS(=O)C")
-    esp_a1 = psiresp.EspA1(molecules=[dmso])
+    esp_a1 = psiresp.ESP(molecules=[dmso])
     print(esp_a1.resp_options)
 
-And use :meth:`~psiresp.configs.EspA1.run()` to run the job, as usual.
+And use :meth:`~psiresp.configs.ESP.run()` to run the job, as usual.

@@ -17,9 +17,9 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 
 
 @pytest.mark.parametrize("config_class, red_charges", [
-    (psiresp.configs.EspA1, DMSO_ESPA1_CHARGES),
-    (psiresp.configs.RespA1, DMSO_RESPA1_CHARGES),
-    (psiresp.configs.RespA2, DMSO_RESPA2_CHARGES),
+    (psiresp.configs.ESP, DMSO_ESPA1_CHARGES),
+    (psiresp.configs.TwoStageRESP, DMSO_RESPA1_CHARGES),
+    (psiresp.configs.OneStageRESP, DMSO_RESPA2_CHARGES),
 
 ], indirect=['red_charges'])
 def test_config_resp(config_class, red_charges, fractal_client, dmso):
@@ -58,9 +58,9 @@ def test_config_resp(config_class, red_charges, fractal_client, dmso):
 
 
 @pytest.mark.parametrize("config_class, red_charges", [
-    (psiresp.configs.EspA1, AMM_NME_OPT_ESPA1_CHARGES),
-    (psiresp.configs.RespA2, AMM_NME_OPT_RESPA2_CHARGES),
-    (psiresp.configs.RespA1, AMM_NME_OPT_RESPA1_CHARGES),
+    (psiresp.configs.ESP, AMM_NME_OPT_ESPA1_CHARGES),
+    (psiresp.configs.OneStageRESP, AMM_NME_OPT_RESPA2_CHARGES),
+    (psiresp.configs.TwoStageRESP, AMM_NME_OPT_RESPA1_CHARGES),
 ], indirect=['red_charges'])
 def test_config_multiresp(nme2ala2, methylammonium,
                           methylammonium_nme2ala2_charge_constraints,
@@ -100,7 +100,7 @@ def test_resp2(fractal_client):
     assert mol.n_conformers == 2
     assert mol.n_orientations == 0
 
-    job = psiresp.Resp2(molecules=[mol])
+    job = psiresp.RESP2(molecules=[mol])
     job.run(client=fractal_client)
 
     assert job.vacuum.n_conformers == 2
