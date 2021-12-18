@@ -171,7 +171,8 @@ The penalty added to each term looks like the following graph:
     ax.set_xlabel("Charge")
     ax.set_ylabel("Penalty")
     ax.legend()
-    plt.show()
+    @savefig penalty_graph.png width=4in
+    plt.show();
 
 
 
