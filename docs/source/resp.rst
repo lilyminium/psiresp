@@ -167,7 +167,7 @@ The penalty added to each term looks like the following graph:
     fig, ax = plt.subplots()
     for a in [0, 0.0005, 0.001]:
         for b in [0, 0.05, 0.1]:
-            ax.plot(x, f(0, 0), label=f"resp_a={a}, resp_b={b}")
+            ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
     ax.set_xlabel("Charge")
     ax.set_ylabel("Penalty")
     ax.legend()
