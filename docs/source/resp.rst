@@ -93,6 +93,8 @@ options in :class:`psiresp.charge.ChargeConstraintOptions`
 use :class:`~psiresp.charge.ChargeEquivalenceConstraint`
 on the hydrogens around an sp3 carbon.
 
+Please see :ref:`constraints-label` for more information.
+
 
 Conformational dependence
 -------------------------
@@ -112,6 +114,75 @@ Functional group (ELF) technique, which is used in AM1BCC ELF10.
 
 Please see :ref:`conformers-label` for details on the
 implementation.
+
+Penalty coefficients
+--------------------
+
+The hyperbolic restraint used in a restrained fit is controlled by
+two parameters: ``resp_a`` (in a two-stage fit, ``resp_a1`` and ``resp_a2``
+for the first and second stages respectively) and ``resp_b``.
+
+The way to conceptually understand the purpose of the restraint
+is to "add noise" to the fit and pull the magnitudes of the resulting
+charges towards 0. When the charges are fitted to the
+electrostatic potential, they are done so following the classic equation
+
+.. math::
+
+    A\vec{x} = \vec{b}
+
+Here, :math:`A` has no relation to :math:`a` in the hyperbolic restraint.
+Instead, the inverse distances from each atom to each grid point are
+summed, and then the atom-to-atom Cartesian product of these
+form the elements of :math:`A`.
+These products are followed by the atoms involved in any charge constraints.
+
+Similarly, :math:`\vec{b}` has no relation to :math:`b`
+in the hyperbolic restraint; instead, it is the vector of the summed
+electrostatic potential felt at each grid point, multiplied by
+the inverse distance to each atom.
+(If using charge constraints, :math:`\vec{b}` also includes the values of the
+charge constraints).
+
+Without a restraint, we simply solve for :math:`x`, i.e., the charges.
+A row of :math:`A_{i}` represents the degree of interaction between
+atom :math:`i` with every other atom in the molecule, which is solved for the
+summed, distance-weighted electrostatic potential :math:`\vec{b}_{i}`.
+
+However, we can add a penalty to minimize fluctuation in charges.
+The restraint is only added to the *diagonal* elements in :math:`A`,
+or the self-interacting terms :math:`A_{i, i}`. The penalty
+term updates iteratively depending on the charge :math:`x_{i}`,
+until the calculated charges converge within a user-specified threshold.
+The penalty added to each term looks like the following graph:
+
+.. ipython:: python
+
+    import plotly.graph_objects as go
+    import numpy as np
+    from ipywidgets import interact
+    import ipywidgets as widgets
+
+    fig = go.FigureWidget()
+    fig.update_yaxes(range = [-0.006, 0.006], title_text='Penalty')
+    fig.update_xaxes(title_text="Charge")
+    scatt = fig.add_scatter()
+    x_values = np.linspace(-0.2, 0.2, 500)
+
+    a_widget = widgets.FloatSlider(min=0, max=0.005, step=0.0001, value=0.001, description="a (resp_a)", readout_format=".4f")
+    b_widget = widgets.FloatSlider(min=0, max=0.02, step=0.002, value=0.01, description="b (resp_b)", readout_format=".3f")
+
+    @interact(a=a_widget,b=b_widget)
+    def update(a=0.005, b=0.2):
+        with fig.batch_update():
+            scatt = fig.data[0]
+            scatt.x=x_values
+            scatt.y=(a * x_values * (1/(np.sqrt(x_values ** 2 + b ** 2))))
+    box = widgets.VBox([a_widget, b_widget, fig])
+    box
+
+
+
 
 ----------------------
 Pre-configured classes

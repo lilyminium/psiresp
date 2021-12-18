@@ -101,6 +101,10 @@ the server.
 Customising RESP charge computation
 -----------------------------------
 
+
+Existing methods
+----------------
+
 Each of the aspects of computing RESP charges can be customised to correspond
 to the implementations used by :cite:t:`bayly1993`, :cite:t:`singh1984`,
 :cite:t:`malde2011`, :cite:t:`schauperl2020`, and so on. These require setting options

@@ -1,3 +1,5 @@
+.. _constraints-label:
+
 Charge constraints
 ==================
 
@@ -97,7 +99,8 @@ and methylammonium:
                                                                indices=nme_indices[0])
     # add constraint with both nme2ala2 and methylammonium
     constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
-    print(constraints)
+    print(len(constraints.charge_sum_constraints))
+    print(len(constraints.charge_equivalence_constraints))
 
 When we create :class:`~psiresp.charge.MoleculeChargeConstraints` with
 only the nme2ala2 molecule, the redundant constraint is removed:
@@ -108,11 +111,11 @@ only the nme2ala2 molecule, the redundant constraint is removed:
                         constraints,
                         molecules=[nme2ala2],
                         )
-    print(mol_constraints.charge_sum_constraints)
+    print(len(mol_constraints.charge_sum_constraints))
 
 
 And the sp3 equivalences are added:
 
 .. ipython:: python
 
-    print(mol_constraints.charge_equivalence_constraints)
+    print(len(mol_constraints.charge_equivalence_constraints))
