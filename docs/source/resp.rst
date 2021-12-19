@@ -161,51 +161,17 @@ The graphs below illustrate how the penalty added to each term
 changes with different ``resp_a`` and ``resp_b``.
 ``resp_a`` controls the height of the curve, or the maximum
 penalty possible no matter how great the charge.
+
+.. image:: images/penalty_graph_a.png
+    :alt: change in penalty over resp_a
+    :width: 400px
+
 ``resp_b`` controls the steepness of the curve, or how slowly
 the penalty changes with the magnitude of charge.
 
-.. ipython:: python
-    :suppress:
-
-    from matplotlib import pyplot as plt
-
-    def label_axes(ax, dependent="resp_a"):
-        ax.set_xlabel("Charge")
-        ax.set_ylabel("Penalty")
-        plt.title(f"Change in penalty over {dependent}")
-        ax.legend()
-        plt.tight_layout()
-
-.. ipython:: python
-
-    from matplotlib import pyplot as plt
-    import numpy as np
-
-    x = np.linspace(-0.2, 0.2, 500)
-    f = lambda a, b: (a * x * (1/(np.sqrt(x ** 2 + b ** 2))))
-
-    b = 0.1
-
-    fig, ax = plt.subplots()
-    for a in [0, 0.0005, 0.001]:
-        ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
-    label_axes(ax, dependent="resp_a")
-    @savefig penalty_graph_a.png width=4in
-    plt.show();
-
-.. ipython:: python
-
-    a = 0.0005
-
-    fig, ax = plt.subplots()
-    for b in [0, 0.05, 0.1]:
-        ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
-    label_axes(ax, dependent="resp_b")
-    @savefig penalty_graph_b.png width=4in
-    plt.show();
-
-
-
+.. image:: images/penalty_graph_b.png
+    :alt: change in penalty over resp_b
+    :width: 400px
 
 
 ----------------------
