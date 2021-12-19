@@ -121,6 +121,8 @@ Penalty coefficients
 The hyperbolic restraint used in a restrained fit is controlled by
 two parameters: ``resp_a`` (in a two-stage fit, ``resp_a1`` and ``resp_a2``
 for the first and second stages respectively) and ``resp_b``.
+Below is an explanation of how these parameters control the
+penalty applied to the matrix of linear equations to be solved.
 
 The way to conceptually understand the purpose of the restraint
 is to "add noise" to the fit and pull the magnitudes of the resulting
@@ -154,7 +156,25 @@ The restraint is only added to the *diagonal* elements in :math:`A`,
 or the self-interacting terms :math:`A_{i, i}`. The penalty
 term updates iteratively depending on the charge :math:`x_{i}`,
 until the calculated charges converge within a user-specified threshold.
-The penalty added to each term looks like the following graph:
+
+The graphs below illustrate how the penalty added to each term
+changes with different ``resp_a`` and ``resp_b``.
+``resp_a`` controls the height of the curve, or the maximum
+penalty possible no matter how great the charge.
+``resp_b`` controls the steepness of the curve, or how slowly
+the penalty changes with the magnitude of charge.
+
+.. ipython:: python
+    :suppress:
+
+    from matplotlib import pyplot as plt
+
+    def label_axes(ax, dependent="resp_a"):
+        ax.set_xlabel("Charge")
+        ax.set_ylabel("Penalty")
+        plt.title(f"Change in penalty over {dependent}")
+        ax.legend()
+        plt.tight_layout()
 
 .. ipython:: python
 
@@ -164,15 +184,26 @@ The penalty added to each term looks like the following graph:
     x = np.linspace(-0.2, 0.2, 500)
     f = lambda a, b: (a * x * (1/(np.sqrt(x ** 2 + b ** 2))))
 
+    b = 0.1
+
     fig, ax = plt.subplots()
     for a in [0, 0.0005, 0.001]:
-        for b in [0, 0.05, 0.1]:
-            ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
-    ax.set_xlabel("Charge")
-    ax.set_ylabel("Penalty")
-    ax.legend()
-    @savefig penalty_graph.png width=4in
+        ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
+    label_axes(ax, dependent="resp_a")
+    @savefig penalty_graph_a.png width=4in
     plt.show();
+
+.. ipython:: python
+
+    a = 0.0005
+
+    fig, ax = plt.subplots()
+    for b in [0, 0.05, 0.1]:
+        ax.plot(x, f(a, b), label=f"resp_a={a}, resp_b={b}")
+    label_axes(ax, dependent="resp_b")
+    @savefig penalty_graph_b.png width=4in
+    plt.show();
+
 
 
 
