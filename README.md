@@ -15,14 +15,14 @@ multi-molecule fits.
 It is written to correspond closely with existing tools such as the
 [RESP ESP charge Derive (R.E.D.)](https://upjv.q4md-forcefieldtools.org/RED/) tools.
 
-As of now, the following implementations are well-tested:
+As of now, the following implementations are well-tested to reproduce results from existing tools, primarily R.E.D.:
 
-* standard 2-stage RESP (convenience class: psiresp.configs.RespA1)
-* standard 1-stage RESP (convenience class: psiresp.configs.RespA2)
-* standard unrestrained ESP (convenience class: psiresp.configs.EspA1)
+* standard 2-stage RESP (convenience class: `RespA1`)
+* standard 1-stage RESP (convenience class: `RespA2`)
+* standard unrestrained ESP (convenience class: `EspA1`)
 
-These implementations are not as well-tested:
-* ESP using HF/STO-3G (convenience class: psiresp.configs.EspA2) -- Psi4 seems to minimize to a relatively different geometry than GAMESS with STO-3G.
+These implementations are strongly tested to reproduce results from comparable tools:
+* ESP using HF/STO-3G (convenience class: `EspA2`) -- Psi4 seems to minimize to a relatively different geometry than GAMESS with STO-3G.
 * psiresp.configs.ATBResp, mimicking the method used by the [Automated Topology Builder](https://atb.uq.edu.au/) is not tested at all. The published methods do not indicate the point density, moreover, the results generated seem to have changed since the original paper. **Use at your own risk.**
 * psiresp.configs.Resp2, as the methods are expensive
 
