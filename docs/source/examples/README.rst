@@ -1,3 +1,4 @@
+.. _examples-label:
 
 ========
 Examples

@@ -4,35 +4,86 @@ Usage
 PsiRESP is built on Psi4 and MolSSI's QC stack. While it is theoretically possible to use
 other packages for the QM calculations, PsiRESP is written to use Psi4 as seamlessly as possible.
 
+The general, practical process of computing RESP charges is as follows:
+
+#. Generate some number of conformers
+#. (Optional) Use Psi4 to optimize the geometry of each conformer
+#. Generate some number of orientations for each conformer
+#. Compute the wavefunction of each orientation with Psi4
+#. Generate a grid of points around each molecule
+#. Evaluate the electrostatic potential (ESP) of the molecule on the grid points
+#. (Optional) Set charge constraints
+#. Fit charges to these charge constraints and ESPs according to specified RESP options
+
+
+All of these are handled for you under the hood with :meth:`psiresp.job.Job.run`.
 
 ---------------
 Minimal example
 ---------------
 
-PsiRESP uses a :class:`qcfractal.server.FractalServer` to manage
+This is a minimal example for demonstration purposes.
+Please see the examples in :ref:`examples-label` for
+more detailed tutorials.
+
+Let us first create a molecule. This can be done from
+an RDKit molecule, QCElemental molecule, or simply from
+a SMILES string.
+
+.. code-block:: ipython
+
+    In [1]: import psiresp
+    In [2]: dmso = psiresp.Molecule.from_smiles("CS(=O)C")
+
+Charge computation is always carried out with a
+:class:`psiresp.job.Job`. A default job will calculate
+charges using common RESP settings, i.e. a two-stage
+fit in the gas phase at hf/6-31g*. However,
+**by default, only one conformer and orientation is used** -- this
+is to prevent overwriting any user-provided conformers.
+For the sake of this minimal example, we will keep that setting.
+However, it is highly recommended to use multiple conformers
+and multiple orientations; please see :ref:`resp-label`_ for more
+information.
+
+.. code-block:: ipython
+
+    In [3]: job = psiresp.Job(molecules=[dmso])
+
+Next, we need to figure out how to calculate the
+quantum chemistry jobs. 
+PsiRESP uses a :class:`qcfractal.FractalServer` to manage
 resources with QM computations. However, it is not always possible
 or practical to have a server running in a different process; for
 example, if you want to use PsiRESP in a Jupyter notebook, or within
 a Python script. Within a Python script, QCFractal recommends a
-:class:`qcfractal.snowflake.FractalSnowflake`; within a Jupyter notebook,
-:class:`qcfractal.snowflake.FractalSnowflakeHandler`.
+:class:`qcfractal.FractalSnowflake`; within a Jupyter notebook,
+:class:`qcfractal.FractalSnowflakeHandler`.
 
 Alternatively, you may not want to use a server at all, but to run the
 QM computations yourselves. In that case, pass ``client=None``.
 Please see :ref:`manual_qm` for more information.
 
-For now, if using a `FractalSnowflake`, it is recommended to use the
-patched version in :class:`psiresp.testing.FractalSnowflake`.
+
+.. note::
+    For now, if using a `FractalSnowflake`, it is recommended to use the
+    patched version in :class:`psiresp.testing.FractalSnowflake`.
+
+The code below creates a QCFractal server and client.
 
 .. code-block:: ipython
 
-    In [1]: import qcfractal.interface as ptl
-    In [2]: from psiresp.testing import FractalSnowflake
-    In [3]: import psiresp
-    In [4]: server = FractalSnowflake()
-    In [5]: client = ptl.FractalClient(server, verify=False)
-    In [6]: dmso = psiresp.Molecule.from_smiles("CS(=O)C")
-    In [7]: job = psiresp.Job(molecules=[dmso])
+    In [4]: import qcfractal.interface as ptl
+    In [5]: from psiresp.testing import FractalSnowflake
+    In [6]: server = FractalSnowflake()
+    In [7]: client = ptl.FractalClient(server, verify=False)
+
+We can then run the job by passing it the client. It will
+use this client to submit jobs to, and retrieve jobs from,
+the server.
+
+.. code-block:: ipython
+
     In [8]: job.run(client=client)
     In [9]: print(job.charges)
     Out [9]:
@@ -45,9 +96,14 @@ patched version in :class:`psiresp.testing.FractalSnowflake`.
     [C:1](-[S:2](=[O:3])-[C:4](-[H:8])(-[H:9])-[H:10])(-[H:5])(-[H:6])-[H:7]
 
 
+
 -----------------------------------
 Customising RESP charge computation
 -----------------------------------
+
+
+Existing methods
+----------------
 
 Each of the aspects of computing RESP charges can be customised to correspond
 to the implementations used by :cite:t:`bayly1993`, :cite:t:`singh1984`,
