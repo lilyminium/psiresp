@@ -165,6 +165,7 @@ penalty possible no matter how great the charge.
 .. image:: images/penalty_graph_a.png
     :alt: change in penalty over resp_a
     :width: 400px
+    :align: center
 
 ``resp_b`` controls the steepness of the curve, or how slowly
 the penalty changes with the magnitude of charge.
@@ -172,6 +173,7 @@ the penalty changes with the magnitude of charge.
 .. image:: images/penalty_graph_b.png
     :alt: change in penalty over resp_b
     :width: 400px
+    :align: center
 
 
 ----------------------
