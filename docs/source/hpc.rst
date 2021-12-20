@@ -16,7 +16,7 @@ Using a persistent server with QCFractal
 ----------------------------------------
 
 One way to do this is to use a persistent
-:class:`qcfractal.server.FractalServer`.
+:class:`qcfractal.FractalServer`.
 If using multiple jobs, the process should go:
 
 **1. Submit a cheap, single-core job starting up the QCFractal server**
@@ -68,7 +68,7 @@ Using a temporary server with QCFractal
 ---------------------------------------
 
 Alternatively, if this is not possible, use a
-:class:`qcfractal.snowflake.FractalSnowflake` server. Please see
+:class:`qcfractal.FractalSnowflake` server. Please see
 QCFractal's documentation for more, but you are able to specify
 ``max_workers`` for the ``ProcessPoolExecutor`` to spin up.
 
