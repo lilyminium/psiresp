@@ -93,10 +93,10 @@ and methylammonium:
     constraints = psiresp.ChargeConstraintOptions(symmetric_methyls=True,
                                                   symmetric_methylenes=True)
     # add this constraint twice
-    constraints.add_charge_equivalence_constraint_for_molecule(nme2ala2,
-                                                               indices=nme_indices[0])
-    constraints.add_charge_equivalence_constraint_for_molecule(nme2ala2,
-                                                               indices=nme_indices[0])
+    constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+                                                       indices=nme_indices[0])
+    constraints.add_charge_sum_constraint_for_molecule(nme2ala2,
+                                                       indices=nme_indices[0])
     # add constraint with both nme2ala2 and methylammonium
     constraints.add_charge_sum_constraint(charge=0, atoms=constraint_atoms)
     print(len(constraints.charge_sum_constraints))
