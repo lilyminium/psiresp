@@ -15,6 +15,7 @@ dependencies:
   # deps
   - numpy
   - scipy >= 1.4
+  - tqdm
 
   # Pip-only installs
   - pip:
