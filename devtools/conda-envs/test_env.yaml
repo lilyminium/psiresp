@@ -15,7 +15,6 @@ dependencies:
   - psi4 >= 1.3.0
   - intel-openmp!=2019.5
   - geometric
-  - msgpack-python
 
   # qcstack
   - postgresql >= 13.0
@@ -41,3 +40,4 @@ dependencies:
       - pytest-xdist
       - duecredit
       - importlib_resources
+      - msgpack-python

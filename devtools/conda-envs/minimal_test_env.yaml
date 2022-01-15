@@ -23,3 +23,4 @@ dependencies:
       - pytest-cov
       - pytest-xdist
       - importlib_resources
+      - msgpack-python
