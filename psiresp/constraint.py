@@ -15,7 +15,7 @@ def array_ops(func):
         except AttributeError:
             arr = func(self.matrix, other)
         if arr is not None:
-            return type(self)(matrix=arr)
+            return type(self)(coefficient_matrix=arr)
     return wrapper
 
 
@@ -32,7 +32,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
     Users should not need to use this class directly.
     """
 
-    matrix: np.ndarray
+    coefficient_matrix: np.ndarray
 
     __add__ = array_ops(np.ndarray.__add__)
     __sub__ = array_ops(np.ndarray.__sub__)
@@ -48,7 +48,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
 
     @classmethod
     def with_n_dim(cls, n_dim: int):
-        return cls(matrix=np.zeros((n_dim + 1, n_dim)))
+        return cls(coefficient_matrix=np.zeros((n_dim + 1, n_dim)))
 
     @classmethod
     def from_orientations(cls, orientations=[],
@@ -79,7 +79,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
                 msg = f"`constant_vector` must have shape ({n_dim},)"
                 raise ValueError(msg)
         placeholder = np.empty((n_dim + 1, n_dim))
-        matrix = cls(matrix=placeholder)
+        matrix = cls(coefficient_matrix=placeholder)
         matrix.coefficient_matrix = coefficient_matrix
         matrix.constant_vector = constant_vector
 
