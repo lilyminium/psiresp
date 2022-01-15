@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -23,6 +24,8 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 
 ], indirect=['red_charges'])
 def test_config_resp(config_class, red_charges, fractal_client, dmso):
+    pytest.importorskip("psi4")
+
     qcdmso = qcel.models.Molecule.from_file(DMSO_O1, fix_com=True,
                                             fix_orientation=True)
     qcdmso2 = qcel.models.Molecule.from_file(DMSO_O2, fix_com=True,
@@ -66,7 +69,6 @@ def test_config_multiresp(nme2ala2, methylammonium,
                           methylammonium_nme2ala2_charge_constraints,
                           config_class, red_charges,
                           job_esps, job_grids):
-
     job = config_class(molecules=[methylammonium, nme2ala2],
                        charge_constraints=methylammonium_nme2ala2_charge_constraints)
     assert isinstance(job, config_class)
@@ -89,6 +91,8 @@ def test_config_multiresp(nme2ala2, methylammonium,
 
 
 def test_resp2(fractal_client):
+    pytest.importorskip("psi4")
+
     # generate molecule
     c1 = qcel.models.Molecule.from_file(ETHANOL_RESP2_C1)
     c2 = qcel.models.Molecule.from_file(ETHANOL_RESP2_C2)

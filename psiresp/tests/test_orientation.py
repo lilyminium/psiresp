@@ -1,4 +1,4 @@
-
+import pytest
 import qcelemental as qcel
 from numpy.testing import assert_allclose
 
@@ -7,6 +7,8 @@ from psiresp.tests.datafiles import DMSO, DMSO_ESP
 from psiresp.orientation import Orientation
 from psiresp.qm import QMEnergyOptions
 from psiresp.tests.utils import load_gamess_esp
+
+pytest.importorskip("psi4")
 
 
 def test_compute_esp_regression(fractal_client):
@@ -30,8 +32,8 @@ def test_compute_esp_regression(fractal_client):
     assert orientation.energy < 0
 
 
-def test_compute_esp(methylammonium, fractal_client, job_grids, job_esps):
-    orientation = methylammonium.conformers[0].orientations[0]
+def test_compute_esp(methylammonium_empty, fractal_client, job_grids, job_esps):
+    orientation = methylammonium_empty.conformers[0].orientations[0]
     mol_ids = fractal_client.add_molecules([orientation.qcmol])
     record = fractal_client.query_results(id=mol_ids)[0]
 

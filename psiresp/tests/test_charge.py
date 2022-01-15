@@ -48,6 +48,8 @@ def test_charge_equivalence_constraint(dmso):
 
 
 def test_options_setup():
+    pytest.importorskip("rdkit")
+
     nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O")
     methylammonium = psiresp.Molecule.from_smiles("C[NH3+]")
     constraints = psiresp.ChargeConstraintOptions()
@@ -79,6 +81,8 @@ class TestMoleculeChargeConstraints:
 
     # @pytest.mark.slow
     def test_add_constraints_from_charges(self, dmso, fractal_client):
+        pytest.importorskip("psi4")
+
         charge_options = ChargeConstraintOptions(symmetric_methyls=True,
                                                  symmetric_methylenes=True)
         job = Job(molecules=[dmso],

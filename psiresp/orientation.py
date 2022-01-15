@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 import numpy as np
@@ -8,6 +9,7 @@ from .constraint import ESPSurfaceConstraintMatrix
 from .moleculebase import BaseMolecule
 from .grid import GridOptions
 from .qcutils import QCWaveFunction
+from .utils import require_package
 
 
 class Orientation(BaseMolecule):
@@ -40,6 +42,7 @@ class Orientation(BaseMolecule):
         self.grid = grid_options.generate_grid(self.qcmol)
 
     def compute_esp(self):
+        require_package("psi4")
         from . import psi4utils
         self.esp = psi4utils.compute_esp(self.qc_wavefunction, self.grid)
         return self.esp

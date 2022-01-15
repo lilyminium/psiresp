@@ -357,13 +357,8 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         accepted_n_hs:
             Number of Hs around a carbon to symmetrize
         """
-        from . import rdutils
-        from . import psi4utils
         for mol in self.molecules:
-            try:
-                ch_groups = rdutils.get_sp3_ch_indices(mol._rdmol)
-            except (TypeError, RuntimeError, AttributeError):
-                ch_groups = psi4utils.get_sp3_ch_indices(mol.qcmol)
+            ch_groups = mol.get_sp3_ch_indices()
             for c, hs in ch_groups.items():
                 if len(hs) in accepted_n_hs:
                     atoms = [Atom(molecule=mol, index=i) for i in hs]

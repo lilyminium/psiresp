@@ -26,6 +26,7 @@ dependencies:
 
   # deps
   - rdkit
+  - numpy
   - scipy
 
   # weird mamba mismatch

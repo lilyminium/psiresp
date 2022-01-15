@@ -19,6 +19,8 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      MANUAL_JOBS_WKDIR,
                                      )
 
+pytest.importorskip("psi4")
+
 
 class TestSingleResp:
     def test_unrestrained(self, dmso, fractal_client):
@@ -89,13 +91,13 @@ class TestMultiRespFast:
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
         (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
     ], indirect=['red_charges'])
-    def test_calculated_esps(self, nme2ala2, methylammonium,
+    def test_calculated_esps(self, nme2ala2_empty, methylammonium_empty,
                              methylammonium_nme2ala2_charge_constraints,
                              stage_2, restraint_height, red_charges,
                              fractal_client, job_esps, job_grids):
 
         resp_options = RespOptions(stage_2=stage_2, restraint_height_stage_1=restraint_height)
-        job = Job(molecules=[methylammonium, nme2ala2],
+        job = Job(molecules=[methylammonium_empty, nme2ala2_empty],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options)
         job.compute_orientation_energies(client=fractal_client)
@@ -203,12 +205,14 @@ class TestMultiRespFast:
                         nme2ala2_charges,
                         atol=1e-3)
 
-    def test_run_manual(self, nme2ala2, methylammonium, tmpdir):
-        nme2ala2.optimize_geometry = True
-        methylammonium.optimize_geometry = True
-        assert len(nme2ala2.conformers) == 2
-        assert len(methylammonium.conformers) == 1
-        job = Job(molecules=[methylammonium, nme2ala2])
+    def test_run_manual(self, nme2ala2_empty, methylammonium_empty, tmpdir):
+        pytest.importorskip("rdkit")
+
+        nme2ala2_empty.optimize_geometry = True
+        methylammonium_empty.optimize_geometry = True
+        assert len(nme2ala2_empty.conformers) == 2
+        assert len(methylammonium_empty.conformers) == 1
+        job = Job(molecules=[methylammonium_empty, nme2ala2_empty])
 
         data_wkdir = pathlib.Path(MANUAL_JOBS_WKDIR)
 

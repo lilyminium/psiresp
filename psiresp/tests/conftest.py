@@ -3,9 +3,6 @@ import pytest
 
 
 import numpy as np
-import qcfractal.interface as ptl
-from psiresp.testing import TemporaryPostgres
-from qcfractal import FractalSnowflake
 
 from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
 
@@ -26,7 +23,11 @@ pytest_plugins = [
 
 
 @pytest.fixture(scope="session")
-def fractal_client(postgres_server):
+def fractal_client():
+    pytest.importorskip("qcfractal.postgres_harness")
+    from qcfractal import FractalSnowflake, interface as ptl
+    from psiresp.testing import TemporaryPostgres
+
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
     postgres_server = storage.psql
@@ -41,6 +42,10 @@ def fractal_client(postgres_server):
 
 @pytest.fixture(scope="function")
 def empty_client():
+    pytest.importorskip("qcfractal.snowflake")
+    import qcfractal.interface as ptl
+    from qcfractal import FractalSnowflake
+
     server = FractalSnowflake()
     return ptl.FractalClient(server)
 

@@ -75,3 +75,14 @@ class QCWaveFunction(BaseMolecule):
         orbitals = getattr(self.qc_wavefunction, self.qc_wavefunction.orbitals_a)[:, :self.n_alpha]
         density = np.dot(orbitals, orbitals.T)
         return density[reverse_ao_map[:, None], reverse_ao_map]
+
+
+def get_vdwradii(element):
+    try:
+        radius = qcel.vdwradii.get(element, units="bohr")
+    except qcel.DataUnavailableError:
+        raise ValueError(
+            f"Cannot get VdW radius for element {element}, "
+            "so cannot guess bonds"
+        )
+    return radius

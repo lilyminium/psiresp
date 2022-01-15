@@ -8,6 +8,7 @@ import qcelemental as qcel
 from . import base
 from .orientation import Orientation
 from .moleculebase import BaseMolecule
+from .utils import require_package
 
 
 class Conformer(BaseMolecule):
@@ -62,16 +63,17 @@ class ConformerGenerationOptions(base.Model):
 
     def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:
         """Generate conformer coordinates in angstrom"""
-        from . import rdutils
         original = np.array([qcmol.geometry])
         original *= qcel.constants.conversion_factor("bohr", "angstrom")
         if not self.n_max_conformers:
             return original
+        else:
+            require_package("rdkit")
+            from .rdutils import generate_diverse_conformer_coordinates
 
-        rdkwargs = self.dict()
-        keep = rdkwargs.pop("keep_original_conformer")
-        coords = rdutils.generate_diverse_conformer_coordinates(qcmol,
-                                                                **rdkwargs)
-        if keep:
-            coords = np.concatenate([original, coords])
-        return coords
+            rdkwargs = self.dict()
+            keep = rdkwargs.pop("keep_original_conformer")
+            coords = generate_diverse_conformer_coordinates(qcmol, **rdkwargs)
+            if keep:
+                coords = np.concatenate([original, coords])
+            return coords

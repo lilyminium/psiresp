@@ -24,6 +24,7 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
         runslow: [false]
+        environment: [test_env.yaml]
         exclude:
           # Tests hang. Not sure why
           - os: ubuntu-latest
@@ -34,6 +35,11 @@ jobs:
           - os: macOS-latest
             python-version: 3.8
             runslow: true
+          - name: minimal-ubuntu
+            os: ubuntu-latest
+            python-version: 3.8
+            environment: minimal_test_env.yaml
+
     env:
       CYTHON_TRACE_NOGIL: 1
       MPLBACKEND: agg
@@ -72,7 +78,7 @@ jobs:
           add-pip-as-python-dependency: true
           mamba-version: "*"
           architecture: x64
-          environment-file: devtools/conda-envs/test_env.yaml
+          environment-file: ${{ matrix.environment }}
           activate-environment: test
 
       - name: check_setup

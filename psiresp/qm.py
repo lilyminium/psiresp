@@ -1,19 +1,20 @@
 import time
 import pathlib
 import logging
-from typing import List, Optional, Dict, Any, Union
+from typing import TYPE_CHECKING, List, Optional, Dict, Any, Union
 
 import numpy as np
 from typing_extensions import Literal
 import qcelemental as qcel
-import qcfractal.interface as ptl
-from qcfractal.interface.models.records import RecordStatusEnum
 from pydantic import Field, ValidationError
 
 from .base import Model
 from .qcutils import QCWaveFunction
 
 logger = logging.getLogger(__name__)
+
+# if TYPE_CHECKING:
+#     import qcfractal.interface
 
 
 #: A limited list of QM methods in Psi4
@@ -132,7 +133,7 @@ class BaseQMOptions(Model):
 
     def _generate_spec(self, client, **kwargs):
         keywords = self.generate_keywords()
-        kwset = ptl.models.KeywordSet(values=keywords)
+        kwset = {"values": keywords}
         kwid = client.add_keywords([kwset])[0]
         logger.debug(f"Added {kwset} with ID {kwid}")
 
@@ -148,11 +149,12 @@ class BaseQMOptions(Model):
         return spec
 
     def add_compute(self,
-                    client: ptl.FractalClient,
+                    client: "qcfractal.interface.FractalClient",
                     qcmols: List[qcel.models.Molecule] = [],
                     **kwargs
-                    ) -> ptl.models.ComputeResponse:
+                    ) -> "qcfractal.interface.models.ComputeResponse":
         """Add compute specification to the client"""
+        client = self._validate_client(client)
         spec = self._generate_spec(client, **kwargs)
         logger.debug(f"Submitting specification {spec} for {len(qcmols)} molecules to {client}")
         response = client.add_compute(molecule=qcmols, **spec)
@@ -160,7 +162,7 @@ class BaseQMOptions(Model):
         return response
 
     def add_compute_and_wait(self,
-                             client: ptl.FractalClient,
+                             client: "qcfractal.interface.FractalClient",
                              qcmols: List[qcel.models.Molecule] = [],
                              **kwargs
                              ) -> List[Any]:
@@ -177,7 +179,7 @@ class BaseQMOptions(Model):
         raise NotImplementedError
 
     def run(self,
-            client: Optional[ptl.FractalClient] = None,
+            client: Optional["qcfractal.interface.FractalClient"] = None,
             qcmols: List[qcel.models.Molecule] = [],
             working_directory=".",
             **kwargs) -> List[Any]:
@@ -251,6 +253,25 @@ class BaseQMOptions(Model):
             f.write(compute.serialize("msgpack-ext"))
         logger.debug(f"Wrote to {infile}")
         return infile
+
+    def _validate_client(self, client: "qcfractal.interface.FractalClient"):
+        try:
+            import qcfractal.interface as ptl
+        except ImportError:
+            raise ImportError(
+                "Could not import qcfractal. "
+                "This function requires a QCFractal client. "
+                "Please ensure qcfractal is installed"
+            )
+        if not isinstance(client, ptl.FractalClient):
+            try:
+                client = ptl.FractalClient(client)
+            except TypeError:
+                raise TypeError(
+                    f"`client` is {type(client)}, "
+                    "but must be an instance of qcportal.FractalClient. "
+                )
+        return client
 
     def manage_external_output(self, qcmols: List[qcel.models.Molecule],
                                working_directory: Union[str, pathlib.Path] = ".",
@@ -376,10 +397,11 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
     )
 
     def add_compute(self,
-                    client: ptl.FractalClient,
+                    client: "qcfractal.interface.FractalClient",
                     qcmols: List[qcel.models.Molecule] = [],
                     **kwargs
-                    ) -> ptl.models.ComputeResponse:
+                    ) -> "qcfractal.interface.models.ComputeResponse":
+        client = self._validate_client(client)
         spec = dict(qc_spec=self._generate_spec(client, **kwargs), keywords=None)
         logger.debug(f"Submitting specification {spec} for {len(qcmols)} molecules to {client}")
         response = client.add_procedure("optimization", "geometric", spec, qcmols)
@@ -431,11 +453,15 @@ def wait(client, response_ids=[], query_interval=20, query_target="results",
     while(n_incomplete):
         time.sleep(query_interval)
         results = query(id=response_ids)
-        status = [r.status for r in results]
-        status = np.array([s.value
-                           if isinstance(s, RecordStatusEnum)
-                           else s
-                           for s in status])
+        statuses = [r.status for r in results]
+        status = []
+        accepted_statuses = ["COMPLETE", "ERROR", "INCOMPLETE", "RUNNING"]
+        for each_status in statuses:
+            if getattr(each_status, "value") in accepted_statuses:
+                status.append(each_status.value)
+            else:
+                status.append(each_status)
+        status = np.array(status)
         n_incomplete = (status == "INCOMPLETE").sum()
         n_complete = (status == "COMPLETE").sum()
         n_error = (status == "ERROR").sum()
