@@ -14,6 +14,7 @@ from .charge import MoleculeChargeConstraints
 from .resp import RespCharges
 from .orientation import Orientation
 from .constraint import ESPSurfaceConstraintMatrix
+from .utils import require_package
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,7 @@ class Job(base.Model):
 
     def _compute_esp(self, orientation):
         """Compute the grid and ESP for an orientation with the job's grid options"""
+        require_package("psi4")
         if orientation.grid is None:
             orientation.compute_grid(grid_options=self.grid_options)
         orientation.compute_esp()
@@ -184,6 +186,7 @@ class Job(base.Model):
 
     def _try_compute_esp(self, orientation):
         """Wrap ESP computation in a try/except to defer errors"""
+        require_package("psi4")
         try:
             return self._compute_esp(orientation)
         except BaseException as e:
@@ -191,12 +194,18 @@ class Job(base.Model):
 
     def run(self, client=None, update_molecules: bool = True) -> np.ndarray:
         """Run the whole job"""
+        # die early on failure to import
+        # we can't decorate the function because pickle is sad
+        require_package("psi4")
+
         self.generate_conformers()
         self.optimize_geometries(client=client)
         self.generate_orientations()
         return self.compute_esps_and_charges(client=client, update_molecules=update_molecules)
 
     def compute_esps_and_charges(self, client=None, update_molecules: bool = True) -> np.ndarray:
+        require_package("psi4")
+
         self.compute_orientation_energies(client=client)
         self.compute_esps()
         self.compute_charges(update_molecules=update_molecules)

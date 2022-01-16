@@ -53,19 +53,110 @@ def rdmol_to_smiles(rdmol, mapped=True):
     return Chem.MolToSmiles(rdmol, allBondsExplicit=True, allHsExplicit=True)
 
 
+def assign_connectivity_from_proximity(rdmol, scale_factor=0.55):
+    table = Chem.GetPeriodicTable()
+    conformer = rdmol.GetConformer(0)
+    n_atoms = rdmol.GetNumAtoms()
+    for i, atom1 in enumerate(rdmol.GetAtoms()):
+        xyz1 = np.array(conformer.GetAtomPosition(i))
+        rad1 = table.GetRvdw(atom1.GetSymbol())
+        for j in range(i + 1, n_atoms):
+            atom2 = rdmol.GetAtomWithIdx(j)
+            xyz2 = np.array(conformer.GetAtomPosition(j))
+            rad2 = table.GetRvdw(atom2.GetSymbol())
+
+            max_distance = (rad1 + rad2) * scale_factor
+            distance = np.linalg.norm(xyz1 - xyz2)
+            if distance < max_distance:
+                rdmol.AddBond(i, j, Chem.BondType.SINGLE)
+
+
+def n_unpaired_e(atom):
+    table = Chem.GetPeriodicTable()
+    current = atom.GetTotalValence() - atom.GetFormalCharge()
+    valences = list(table.GetValenceList(atom.GetSymbol()))
+    return [valence - current for valence in valences]
+
+
+def assign_bond_order_and_charges_from_electrons(rdmol):
+    """
+    Modelled after Cedric Bouysset's method for assigning bond order and charges
+    as detailed in https://cedric.bouysset.net/blog/2020/07/22/rdkit-converter-part2 .
+
+    In short:
+        - if atom has no unpaired electrons, no action
+        - if atom has too many paired electrons, turn them into positive charge
+        - if atom has unpaired electrons:
+             - search for neighbors with unpaired electrons
+             - set bond between them to smallest one that satisfies the lowest
+               number of electrons in any state in either atom
+             - repeat for all neighbors
+             - if atom has remaining unpaired electrons, turn them into negative charge
+    """
+
+    # sort by # unpaired electrons to deal with unpaired electrons first
+    for atom in sorted(rdmol.GetAtoms(), reverse=True, key=n_unpaired_e):
+        n_unpaired = n_unpaired_e(atom)
+        if len(n_unpaired) == 1:  # single valence state
+            n = n_unpaired[0]
+            # set excess electrons to positive charge
+            if n < 0:
+                atom.SetFormalCharge(-n)
+                rdmol.UpdatePropertyCache(strict=False)
+            if n <= 0:
+                continue
+
+        # deal with unpaired electrons
+        n_unpaired = np.array(n_unpaired_e(atom))
+        # compare with unpaired electrons of neighboring atoms
+        # again, sort for the likeliest pairs first
+        for neighbor in sorted(
+            atom.GetNeighbors(),
+            reverse=True,
+            key=n_unpaired_e,
+        ):
+            neighbor_unpaired = np.array(n_unpaired_e(neighbor))
+            # set bond between neighbor and self to smallest possible
+            # to satisfy valences
+            smallest_overlap = min(
+                min(n_unpaired[n_unpaired >= 0], default=0),
+                min(neighbor_unpaired[neighbor_unpaired >= 0], default=0),
+            )
+            if smallest_overlap == 0:
+                continue
+            bond = rdmol.GetBondBetweenAtoms(atom.GetIdx(), neighbor.GetIdx())
+            bond.SetBondType(BONDTYPES[smallest_overlap + 1])
+            # update valence states
+            rdmol.UpdatePropertyCache(strict=False)
+            n_unpaired = np.array(n_unpaired_e(atom))
+
+        # any residual unpaired electrons are turned into negative charge
+        n_unpaired = n_unpaired_e(atom)[0]
+        if n_unpaired > 0:
+            atom.SetFormalCharge(-n)
+            atom.SetNumRadicalElectrons(0)
+            rdmol.UpdatePropertyCache(strict=False)
+    Chem.Kekulize(rdmol)
+
+
 def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
                            guess_connectivity: bool = True):
+    import qcelemental as qcel
     smiles = qcmol.dict().get("extras", {}).get(OFF_SMILES_ATTRIBUTE)
     if smiles:
-        return rdmol_from_smiles(smiles, order_by_map_number=True)
-    if guess_connectivity:
-        import psi4
-        psi4str = qcmol.to_string(dtype="psi4")
-        psi4mol = psi4.core.Molecule.from_string(psi4str, dtype="psi4", fix_com=True, fix_orientation=True)
-        rdmol = rdmol_from_psi4(psi4mol)
+        rdmol = rdmol_from_smiles(smiles, order_by_map_number=True)
+        coordinates = qcmol.geometry * qcel.constants.conversion_factor("bohr", "angstrom")
+        add_conformer_from_coordinates(rdmol, coordinates=coordinates)
     else:
-        rdmol = _rdmol_from_qcelemental(qcmol)
-    # Chem.SanitizeMol(rdmol)
+        rdmol = Chem.RWMol(_rdmol_from_qcelemental(qcmol))
+    if guess_connectivity:
+        if not qcmol.connectivity:
+            assign_connectivity_from_proximity(rdmol)
+        rdmol.UpdatePropertyCache(strict=False)
+        assign_bond_order_and_charges_from_electrons(rdmol)
+
+    rdmol = Chem.Mol(rdmol)
+    Chem.SanitizeMol(rdmol)
     return rdmol
 
 
@@ -75,7 +166,7 @@ def rdmol_from_psi4(psi4mol):
     return rdmol
 
 
-def get_connectivity(rdmol):
+def get_rdkit_connectivity(rdmol):
     return np.array([
         [bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), bond.GetBondTypeAsDouble()]
         for bond in rdmol.GetBonds()
@@ -89,7 +180,7 @@ def rdmol_to_qcelemental(rdmol, multiplicity=1, random_seed=-1):
         Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True,
                                       randomSeed=random_seed)
 
-    connectivity = get_connectivity(rdmol)
+    connectivity = get_rdkit_connectivity(rdmol)
 
     for i, atom in enumerate(rdmol.GetAtoms(), 1):
         atom.SetAtomMapNum(i)
@@ -114,7 +205,9 @@ def _rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule"):
     import qcelemental as qcel
     rwmol = Chem.RWMol()
     for symbol in qcmol.symbols:
-        rwmol.AddAtom(Chem.Atom(symbol))
+        atom = Chem.Atom(symbol)
+        atom.SetNoImplicit(True)
+        rwmol.AddAtom(atom)
     if qcmol.connectivity is not None:
         for i, j, d in qcmol.connectivity:
             if np.isclose(d, 1.5):
@@ -331,7 +424,7 @@ def generate_diverse_conformer_coordinates(molecule,
 
 def get_sp3_ch_indices(rdmol):
     symbols = np.array([at.GetSymbol() for at in rdmol.GetAtoms()])
-    bonds = get_connectivity(rdmol)
+    bonds = get_rdkit_connectivity(rdmol)
     single_bonds = np.isclose(bonds[:, 2], np.ones_like(bonds[:, 2]))
 
     groups = {}
@@ -374,3 +467,7 @@ def molecule_from_rdkit(rdmol, molecule_cls, random_seed=-1, **kwargs):
     for conformer in rdmol.GetConformers():
         obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
     return obj
+
+
+def get_connectivity(molecule):
+    return get_rdkit_connectivity(molecule._rdmol)

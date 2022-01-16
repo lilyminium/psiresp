@@ -53,3 +53,5 @@ AMM_NME_OPT_ESPA1_CHARGES = datapath("charges/amm_dimethyl_espA1.dat")
 
 ETHANOL_RESP2_C1 = datapath("molecules/ethanol_resp2_opt_c1.xyz")
 ETHANOL_RESP2_C2 = datapath("molecules/ethanol_resp2_opt_c2.xyz")
+
+ETHANE_JSON = datapath("molecules/ethane.json")

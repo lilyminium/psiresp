@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import functools
 import logging
 
@@ -252,6 +252,36 @@ class Molecule(BaseMolecule):
     def get_atoms_from_smarts(self, smiles):
         indices = self.get_smarts_matches(smiles)
         return [Atom.from_molecule(self, indices=ix) for ix in indices]
+
+    def get_sp3_ch_indices(self) -> Dict[int, List[int]]:
+        get_connectivity = None
+        if self._rdmol:
+            try:
+                from .rdutils import get_connectivity
+            except ImportError:
+                pass
+        if get_connectivity is None:
+            try:
+                from .psi4utils import get_connectivity
+            except ImportError:
+                def get_connectivity(x):
+                    return x.qcmol.connectivity
+
+        symbols = self.qcmol.symbols
+        bonds = get_connectivity(self)
+        if bonds is None:
+            bonds = np.empty(0, 3)
+        bonds = np.asarray(bonds)
+        single_bonds = np.isclose(bonds[:, 2], np.ones_like(bonds[:, 2]))
+        groups = {}
+        for i in np.where(symbols == "C")[0]:
+            contains_index = np.any(bonds[:, :2] == i, axis=1)
+            c_bonds = bonds[contains_index & single_bonds][:, :2].astype(int)
+            c_partners = c_bonds[c_bonds != i]
+            if len(c_partners) == 4:
+                print(groups, i, c_partners, symbols)
+                groups[i] = c_partners[symbols[c_partners] == "H"]
+        return groups
 
 
 @functools.total_ordering

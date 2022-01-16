@@ -26,6 +26,7 @@ dependencies:
 
   # deps
   - rdkit
+  - numpy
   - scipy
 
   # weird mamba mismatch
@@ -33,9 +34,6 @@ dependencies:
 
   # Pip-only installs
   - pip:
-      - pytest
-      - pytest-cov
-      - pytest-xdist
       - duecredit
       - importlib_resources
-      - mdanalysis>=2.0
+      - msgpack-python

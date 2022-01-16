@@ -38,9 +38,13 @@ def compute_esp(qc_wavefunction, grid):
     return np.array(psi4esp)
 
 
-def get_connectivity(qcmol) -> List[List[int]]:
-    psi4mol = psi4mol_from_qcmol(qcmol)
-    return np.asarray(psi4.qcdb.parker._bond_profile(psi4mol))
+def get_connectivity(molecule) -> List[List[int]]:
+    if hasattr(molecule, "qcmol"):
+        molecule = molecule.qcmol
+    psi4mol = psi4mol_from_qcmol(molecule)
+    if not molecule.connectivity:
+        connectivity = psi4.qcdb.parker._bond_profile(psi4mol)
+    return np.asarray(connectivity)
 
 
 def get_sp3_ch_indices(qcmol) -> Dict[int, List[int]]:

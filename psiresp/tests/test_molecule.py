@@ -14,7 +14,7 @@ def test_molecule_defaults(dmso_qcmol):
     assert repr(mol) == "Molecule(name=C2H6OS, charge=0) with 1 conformers"
 
 
-def test_molecule_equality(dmso_qcmol):
+def test_molecule_equality(dmso_qcmol, cc_qcmol):
     mol = psiresp.Molecule(qcmol=dmso_qcmol)
     mol.generate_orientations()
     mol_with_orient = psiresp.Molecule(qcmol=dmso_qcmol)
@@ -26,15 +26,17 @@ def test_molecule_equality(dmso_qcmol):
     assert mol.conformers
     assert mol == mol_without_orient
 
-    ccmol = psiresp.Molecule.from_smiles("CC")
+    ccmol = psiresp.Molecule(qcmol=cc_qcmol)
     assert mol != ccmol
     ccmol.generate_orientations()
     assert mol != ccmol
 
 
 def test_conformer_generation(nme2ala2_c1_opt_qcmol):
+    pytest.importorskip("rdkit")
     options = ConformerGenerationOptions(n_max_conformers=5)
-    mol = psiresp.Molecule(qcmol=nme2ala2_c1_opt_qcmol, conformer_generation_options=options)
+    mol = psiresp.Molecule(qcmol=nme2ala2_c1_opt_qcmol,
+                           conformer_generation_options=options)
     mol.generate_conformers()
     mol.generate_orientations()
     assert len(mol.conformers) == 6
@@ -42,6 +44,7 @@ def test_conformer_generation(nme2ala2_c1_opt_qcmol):
 
 
 def test_smarts_searching():
+    pytest.importorskip("rdkit")
     nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O")
     nme_smiles = "CC(=O)NC(C)(C)C([N:1]([H:2])[C:3]([H:4])([H:5])([H:6]))=O"
     nme_indices = nme2ala2.get_smarts_matches(nme_smiles)
@@ -51,6 +54,7 @@ def test_smarts_searching():
 
 
 def test_smarts_unlabeled():
+    pytest.importorskip("rdkit")
     methylammonium = psiresp.Molecule.from_smiles("C[NH3+]")
     methyl_atoms = methylammonium.get_atoms_from_smarts("C([H])([H])([H])")
     assert len(methyl_atoms) == 1
@@ -69,5 +73,6 @@ def test_smarts_unlabeled():
                                "(-[H:13])-[H:14]"))
 ])
 def to_smiles(insmiles, outsmiles):
+    pytest.importorskip("rdkit")
     mol = psiresp.Molecule.from_smiles(insmiles)
     assert mol.to_smiles() == outsmiles
