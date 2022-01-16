@@ -18,7 +18,7 @@ dependencies:
 
   # qcstack
   - postgresql >= 13.0
-  - qcelemental
+  - qcelemental == 0.22.0
   - qcengine
   - qcfractal
   - qcfractal-core
@@ -33,11 +33,12 @@ dependencies:
   # weird mamba mismatch
   - h5py<3.2
 
+  - pytest >= 4.6.4
+  - pytest-cov
+  - pytest-xdist
+
   # Pip-only installs
   - pip:
-      - pytest
-      - pytest-cov
-      - pytest-xdist
       - duecredit
       - importlib_resources
       - msgpack-python

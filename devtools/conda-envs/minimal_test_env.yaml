@@ -10,17 +10,20 @@ dependencies:
   - pip
 
   # qcstack
-  - qcelemental
+  - qcelemental == 0.22.0
 
   # deps
   - numpy
   - scipy >= 1.4
   - tqdm
 
+  # testing
+  - pytest >= 4.6.4
+  - pytest-cov
+  - pytest-xdist
+
+
   # Pip-only installs
   - pip:
-      - pytest
-      - pytest-cov
-      - pytest-xdist
       - importlib_resources
       - msgpack-python

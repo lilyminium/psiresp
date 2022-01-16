@@ -18,7 +18,7 @@ dependencies:
 
   # qcstack
   - postgresql >= 13.0
-  - qcelemental
+  - qcelemental == 0.22.0
   - qcengine
   - qcfractal
   - qcfractal-core
@@ -34,9 +34,6 @@ dependencies:
 
   # Pip-only installs
   - pip:
-      - pytest
-      - pytest-cov
-      - pytest-xdist
       - duecredit
       - importlib_resources
       - msgpack-python
