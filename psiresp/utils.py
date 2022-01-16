@@ -1,6 +1,5 @@
 
 import importlib
-import functools
 
 
 def update_dictionary(obj, key, value):

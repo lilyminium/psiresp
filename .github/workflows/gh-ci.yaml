@@ -25,12 +25,12 @@ jobs:
         codecov: [true]
         runslow: [false]
         environment: [test_env]
-        exclude:
-          # Tests hang. Not sure why
-          - os: ubuntu-latest
-            python-version: 3.8
-          - os: ubuntu-latest
-            python-version: 3.9
+        # exclude:
+        #   # Tests hang. Not sure why
+        #   - os: ubuntu-latest
+        #     python-version: 3.8
+        #   - os: ubuntu-latest
+        #     python-version: 3.9
         include:
           - os: ubuntu-latest
             python-version: 3.7

@@ -1,7 +1,7 @@
 import time
 import pathlib
 import logging
-from typing import TYPE_CHECKING, List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union
 
 import numpy as np
 from typing_extensions import Literal
@@ -12,9 +12,6 @@ from .base import Model
 from .qcutils import QCWaveFunction
 
 logger = logging.getLogger(__name__)
-
-# if TYPE_CHECKING:
-#     import qcfractal.interface
 
 
 #: A limited list of QM methods in Psi4
