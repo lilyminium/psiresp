@@ -33,11 +33,11 @@ jobs:
         #     python-version: 3.9
         include:
           - os: ubuntu-latest
-            python-version: 3.7
+            python-version: 3.9
             runslow: true
             environment: test_env
           - os: macOS-latest
-            python-version: 3.8
+            python-version: 3.7
             runslow: true
             environment: test_env
           - os: ubuntu-latest

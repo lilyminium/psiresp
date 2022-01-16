@@ -39,7 +39,7 @@ def test_compute_esp(methylammonium_empty, fractal_client, job_grids, job_esps):
 
     fname = orientation.qcmol.get_hash()
     orientation.compute_grid()
-    assert_allclose(orientation.grid, job_grids[fname])
+    assert_allclose(orientation.grid, job_grids[fname], atol=5e-9)
 
     orientation.compute_esp_from_record(record)
-    assert_allclose(orientation.esp, job_esps[fname])
+    assert_allclose(orientation.esp, job_esps[fname], atol=5e-9)
