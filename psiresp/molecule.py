@@ -1,4 +1,3 @@
-from random import random
 from typing import List, Optional, Tuple
 import functools
 import logging
