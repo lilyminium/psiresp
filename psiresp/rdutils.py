@@ -37,8 +37,8 @@ def rdmol_from_smiles(smiles, order_by_map_number: bool = False):
     if order_by_map_number:
         map_numbers = [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
         if 0 not in map_numbers:
-            new_order = tuple(np.argsort(map_numbers))
-            rdmol = Chem.RenumberAtoms(new_order)
+            new_order = tuple(map(int, np.argsort(map_numbers)))
+            rdmol = Chem.RenumberAtoms(rdmol, new_order)
             for atom in rdmol.GetAtoms():
                 atom.SetAtomMapNum(0)
     return rdmol
@@ -57,7 +57,7 @@ def rdmol_from_qcelemental(qcmol: "qcelemental.models.Molecule",
                            guess_connectivity: bool = True):
     smiles = qcmol.dict().get("extras", {}).get(OFF_SMILES_ATTRIBUTE)
     if smiles:
-        return rdmol_from_smiles(smiles)
+        return rdmol_from_smiles(smiles, order_by_map_number=True)
     if guess_connectivity:
         import psi4
         psi4str = qcmol.to_string(dtype="psi4")
@@ -88,10 +88,6 @@ def rdmol_to_qcelemental(rdmol, multiplicity=1, random_seed=-1):
     if not rdmol.GetNumConformers():
         Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True,
                                       randomSeed=random_seed)
-        try:
-            minimize_conformer_geometries(rdmol)
-        except RuntimeError:
-            pass
 
     connectivity = get_connectivity(rdmol)
 
@@ -375,6 +371,6 @@ def molecule_from_rdkit(rdmol, molecule_cls, random_seed=-1, **kwargs):
     obj = molecule_cls(**kwargs)
     obj._rdmol = rdmol
 
-    # for conformer in rdmol.GetConformers():
-    #     obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
+    for conformer in rdmol.GetConformers():
+        obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
     return obj
