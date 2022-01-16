@@ -210,8 +210,8 @@ class SparseGlobalConstraintMatrix(base.Model):
                     self.coefficient_matrix, self.constant_vector
                 )[0]
 
-    def _iter_solve(self, restraint_scale, restraint_steepness, b2):
-        hyp_a = (restraint_scale * self.n_structure_array)[self._array_indices]
+    def _iter_solve(self, restraint_height, restraint_slope, b2):
+        hyp_a = (restraint_height * self.n_structure_array)[self._array_indices]
         increment = hyp_a / np.sqrt(
             self._charges[self._array_indices] ** 2 + b2
         )

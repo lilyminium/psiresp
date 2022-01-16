@@ -11,8 +11,8 @@ from .constraint import (ESPSurfaceConstraintMatrix,
 
 class BaseRespOptions(base.Model):
     """Base RESP options"""
-    restraint_steepness: float = Field(default=0.1,
-                                       description="Tightness of hyperbolic penalty at its minimum")
+    restraint_slope: float = Field(default=0.1,
+                                   description="Tightness of hyperbolic penalty at its minimum")
     restrained_fit: bool = Field(default=True,
                                  description="Perform a restrained fit")
     exclude_hydrogens: bool = Field(
@@ -30,12 +30,12 @@ class BaseRespOptions(base.Model):
 
 
 class RespOptions(BaseRespOptions):
-    restraint_scale_stage_1: float = Field(
+    restraint_height_stage_1: float = Field(
         default=0.0005,
         description=("scale factor of asymptote limits of hyperbola, "
                      "in the stage 1 fit"),
     )
-    restraint_scale_stage_2: float = Field(
+    restraint_height_stage_2: float = Field(
         default=0.001,
         description=("scale factor of asymptote limits of hyperbola, "
                      "in the stage 2 fit"),
@@ -50,8 +50,8 @@ class RespOptions(BaseRespOptions):
 
 class RespCharges(BaseRespOptions):
     """Self-contained class to solve RESP charges with charge constraints"""
-    restraint_scale: float = Field(default=0.0005,
-                                   description="scale factor of asymptote limits of hyperbola")
+    restraint_height: float = Field(default=0.0005,
+                                    description="scale factor of asymptote limits of hyperbola")
 
     _restrained_charges: Optional[np.ndarray] = None
     _unrestrained_charges: Optional[np.ndarray] = None
@@ -61,7 +61,7 @@ class RespCharges(BaseRespOptions):
     surface_constraints: ESPSurfaceConstraintMatrix
 
     def __repr__(self) -> str:
-        respstr = (f"restraint_scale={self.restraint_scale}, restraint_steepness={self.restraint_steepness}, "
+        respstr = (f"restraint_height={self.restraint_height}, restraint_slope={self.restraint_slope}, "
                    f"restrained_fit={self.restrained_fit}, "
                    f"exclude_hydrogens={self.exclude_hydrogens}")
         constr = f"{self.charge_constraints.n_constraints} charge constraints"
@@ -84,16 +84,16 @@ class RespCharges(BaseRespOptions):
     def solve(self):
         self._matrix._solve()
         self._unrestrained_charges = self._matrix._charges.flatten()
-        if not self.restrained_fit or not self.restraint_scale:
+        if not self.restrained_fit or not self.restraint_height:
             return
 
         n_iter = 0
-        b2 = self.restraint_steepness ** 2
+        b2 = self.restraint_slope ** 2
         while (self._matrix.charge_difference > self.convergence_tolerance
                and n_iter < self.max_iter):
-            self._matrix._iter_solve(self.restraint_scale, self.restraint_steepness, b2)
+            self._matrix._iter_solve(self.restraint_height, self.restraint_slope, b2)
             n_iter += 1
-        self._matrix._iter_solve(self.restraint_scale, self.restraint_steepness, b2)
+        self._matrix._iter_solve(self.restraint_height, self.restraint_slope, b2)
 
         if self._matrix.charge_difference > self.convergence_tolerance:
             warnings.warn("Charge fitting did not converge to "

@@ -245,7 +245,7 @@ class Job(base.Model):
 
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
-                                           restraint_scale=self.resp_options.restraint_scale_stage_1,
+                                           restraint_height=self.resp_options.restraint_height_stage_1,
                                            **self.resp_options._base_kwargs)
         self.stage_1_charges.solve()
 
@@ -253,7 +253,7 @@ class Job(base.Model):
             stage_2_constraints.add_constraints_from_charges(self.stage_1_charges._charges)
             self.stage_2_charges = RespCharges(charge_constraints=stage_2_constraints,
                                                surface_constraints=surface_constraints,
-                                               restraint_scale=self.resp_options.restraint_scale_stage_2,
+                                               restraint_height=self.resp_options.restraint_height_stage_2,
                                                **self.resp_options._base_kwargs)
             self.stage_2_charges.solve()
 
