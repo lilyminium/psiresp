@@ -10,7 +10,7 @@ dependencies:
   - pip
 
   # qcstack
-  - qcelemental == 0.22.0
+  - qcelemental
 
   # deps
   - numpy
