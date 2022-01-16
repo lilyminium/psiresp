@@ -32,10 +32,6 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.9
         include:
-          - os: ubuntu-latest
-            python-version: 3.8
-            runslow: true
-            environment: test_env
           - os: macOS-latest
             python-version: 3.8
             runslow: true

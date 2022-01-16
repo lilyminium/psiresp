@@ -88,6 +88,5 @@ class BaseMolecule(base.Model):
             return matches
 
     def to_smiles(self, mapped=True):
-        mol = self.rdmol
         from . import rdutils
         return rdutils.rdmol_to_smiles(self.rdmol, mapped=mapped)

@@ -32,7 +32,6 @@ setup(
     include_package_data=True,
     setup_requires=[] + pytest_runner,
     install_requires=[
-        'duecredit',
         'msgpack-python',
         'numpy',
         'qcelemental',

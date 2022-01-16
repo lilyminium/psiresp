@@ -200,10 +200,10 @@ class TestMultiRespFast:
 
         # low precision -- generation of conformers can be flaky
         assert_allclose(job_multi.charges[0],
-                        methylammonium_charges, atol=1e-3)
+                        methylammonium_charges, atol=5e-2)
         assert_allclose(job_multi.charges[1],
                         nme2ala2_charges,
-                        atol=1e-3)
+                        atol=5e-2)
 
     def test_run_manual(self, nme2ala2_empty, methylammonium_empty, tmpdir):
         pytest.importorskip("rdkit")
