@@ -15,7 +15,7 @@ multi-molecule fits.
 It is written to correspond closely with existing tools such as the
 [RESP ESP charge Derive (R.E.D.)](https://upjv.q4md-forcefieldtools.org/RED/) tools.
 
-As of now, the following implementations are well-tested:
+As of now, the following implementations are well-tested to reproduce results from existing tools, primarily R.E.D.:
 
 * standard 2-stage RESP (convenience class: psiresp.configs.TwoStageRESP)
 * standard 1-stage RESP (convenience class: psiresp.configs.OneStageRESP)

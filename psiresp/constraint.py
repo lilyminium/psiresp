@@ -15,7 +15,7 @@ def array_ops(func):
         except AttributeError:
             arr = func(self.matrix, other)
         if arr is not None:
-            return type(self)(coefficient_matrix=arr)
+            return type(self)(matrix=arr)
     return wrapper
 
 

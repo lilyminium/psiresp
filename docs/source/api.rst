@@ -26,8 +26,8 @@ constructing and interacting with charge constraints.
 
 .. _preconfigured_classes:
 
-Pre-configured classes
-----------------------
+Pre-configured classes API
+--------------------------
 
 .. autosummary::
    :toctree: _autosummary
