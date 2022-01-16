@@ -10,12 +10,12 @@ from .utils import update_dictionary
 
 __all__ = [
     "ConfiguredJob",
-    "RespA1",
-    "RespA2",
-    "EspA1",
-    "EspA2",
-    "ATBResp",
-    "Resp2"
+    "TwoStageRESP",
+    "OneStageRESP",
+    "ESP",
+    "WeinerESP",
+    "ATBRESP",
+    "RESP2"
 ]
 
 
@@ -38,18 +38,21 @@ class ConfiguredJob(Job):
 @due.dcite(
     Doi("10.1021/j100142a004"),
     description="RESP-A1 model",
-    path="psiresp.configs.RespA1",
+    path="psiresp.configs.TwoStageRESP",
 )
-class RespA1(ConfiguredJob):
-    """RespA1 config"""
+class TwoStageRESP(ConfiguredJob):
+    """Configuration for typical RESP
+
+    This corresponds to RESP-A1 in the R.E.D. server.
+    """
     _configuration: ClassVar[dict] = dict(
         qm_options=dict(method="hf",
                         basis="6-31g*"
                         ),
         grid_options=dict(use_radii="msk"),
-        resp_options=dict(resp_a1=0.0005,
-                          resp_a2=0.001,
-                          resp_b=0.1,
+        resp_options=dict(restraint_height_stage_1=0.0005,
+                          restraint_height_stage_2=0.001,
+                          restraint_slope=0.1,
                           stage_2=True,
                           exclude_hydrogens=True,
                           restrained_fit=True),
@@ -59,17 +62,20 @@ class RespA1(ConfiguredJob):
 @due.dcite(
     Doi("10.1039/c0cp00111b"),
     description="RESP-A2 model",
-    path="psiresp.configs.RespA2",
+    path="psiresp.configs.OneStageRESP",
 )
-class RespA2(ConfiguredJob):
-    """RespA2 config"""
+class OneStageRESP(ConfiguredJob):
+    """Configuration for one-stage RESP
+
+    This corresponds to RESP-A2 in the R.E.D. server.
+    """
     _configuration = dict(qm_options=dict(method="hf",
                                           basis="6-31g*"
                                           ),
                           grid_options=dict(use_radii="msk"),
-                          resp_options=dict(resp_a1=0.01,
-                                            resp_a2=0.0,
-                                            resp_b=0.1,
+                          resp_options=dict(restraint_height_stage_1=0.01,
+                                            restraint_height_stage_2=0.0,
+                                            restraint_slope=0.1,
                                             stage_2=False,
                                             exclude_hydrogens=True,
                                             restrained_fit=True),
@@ -79,17 +85,20 @@ class RespA2(ConfiguredJob):
 @due.dcite(
     Doi("10.1002/jcc.540050204"),
     description="ESP-A1 multimolecule model",
-    path="psiresp.configs.EspA1",
+    path="psiresp.configs.ESP",
 )
-class EspA1(ConfiguredJob):
-    """EspA1 config"""
+class ESP(ConfiguredJob):
+    """Configuration for typical unrestrained ESP
+
+    This corresponds to ESP-A1 in the R.E.D. server.
+    """
     _configuration = dict(qm_options=dict(method="hf",
                                           basis="6-31g*"
                                           ),
                           grid_options=dict(use_radii="msk"),
-                          resp_options=dict(resp_a1=0.0,
-                                            resp_a2=0.0,
-                                            resp_b=0.1,
+                          resp_options=dict(restraint_height_stage_1=0.0,
+                                            restraint_height_stage_2=0.0,
+                                            restraint_slope=0.1,
                                             stage_2=False,
                                             exclude_hydrogens=True,
                                             restrained_fit=False),
@@ -100,18 +109,23 @@ class EspA1(ConfiguredJob):
     Doi("10.1002/jcc.540050204"),
     Doi("10.1039/c0cp00111b"),
     description="ESP-A2 model",
-    path="psiresp.configs.EspA2",
+    path="psiresp.configs.WeinerESP",
 )
-class EspA2(ConfiguredJob):
-    """EspA2 config"""
+class WeinerESP(ConfiguredJob):
+    """
+    Configuration for the unrestrained ESP fit
+    used in the Weiner et al. AMBER force field.
+
+    This corresponds to ESP-A2 in the R.E.D. server.
+    """
 
     _configuration = dict(qm_options=dict(method="hf",
                                           basis="sto-3g"
                                           ),
                           grid_options=dict(use_radii="msk"),
-                          resp_options=dict(resp_a1=0.0,
-                                            resp_a2=0.0,
-                                            resp_b=0.1,
+                          resp_options=dict(restraint_height_stage_1=0.0,
+                                            restraint_height_stage_2=0.0,
+                                            restraint_slope=0.1,
                                             stage_2=False,
                                             exclude_hydrogens=True,
                                             restrained_fit=False),
@@ -121,19 +135,19 @@ class EspA2(ConfiguredJob):
 @due.dcite(
     Doi("10.1021/ct200196m"),
     description="ATB model",
-    path="psiresp.configs.ATBResp",
+    path="psiresp.configs.ATBRESP",
 )
-class ATBResp(ConfiguredJob):
-    """ATB Resp config"""
+class ATBRESP(ConfiguredJob):
+    """Configuration used by the AutomatedTopologyBuilder"""
     _configuration = dict(qm_options=dict(method="b3lyp",
                                           basis="6-31g*",
                                           pcm_options=dict(
                                               solvent="water"
                                           )),
                           grid_options=dict(use_radii="msk"),
-                          resp_options=dict(resp_a1=0.0,
-                                            resp_a2=0.0,
-                                            resp_b=0.1,
+                          resp_options=dict(restraint_height_stage_1=0.0,
+                                            restraint_height_stage_2=0.0,
+                                            restraint_slope=0.1,
                                             stage_2=False,
                                             exclude_hydrogens=False,
                                             restrained_fit=False),
@@ -145,8 +159,13 @@ class ATBResp(ConfiguredJob):
     description="RESP2",
     path="psiresp.resp2",
 )
-class Resp2(base.Model):
-    """Class to manage Resp2 jobs"""
+class RESP2(base.Model):
+    """Class to manage RESP2 jobs
+
+    This is based off the method Schauperl et al. 2021,
+    which uses a much higher level of theory and
+    interpolates charges between the gas and aqueous phases.
+    """
     molecules: List[molecule.Molecule] = Field(
         default_factory=list,
         description="Molecules to use for the RESP job"

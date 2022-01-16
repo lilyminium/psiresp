@@ -110,5 +110,5 @@ class TestMoleculeChargeConstraints:
         ref_a = np.loadtxt(DMSO_STAGE_2_A)
         ref_b = np.loadtxt(DMSO_STAGE_2_B)
 
-        assert_allclose(matrix.a.toarray(), ref_a)
-        assert_allclose(matrix.b, ref_b)
+        assert_allclose(matrix.coefficient_matrix.toarray(), ref_a)
+        assert_allclose(matrix.constant_vector, ref_b)

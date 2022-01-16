@@ -17,14 +17,14 @@ It is written to correspond closely with existing tools such as the
 
 As of now, the following implementations are well-tested to reproduce results from existing tools, primarily R.E.D.:
 
-* standard 2-stage RESP (convenience class: `RespA1`)
-* standard 1-stage RESP (convenience class: `RespA2`)
-* standard unrestrained ESP (convenience class: `EspA1`)
+* standard 2-stage RESP (convenience class: psiresp.configs.TwoStageRESP)
+* standard 1-stage RESP (convenience class: psiresp.configs.OneStageRESP)
+* standard unrestrained ESP (convenience class: psiresp.configs.ESP)
 
-These implementations are strongly tested to reproduce results from comparable tools:
-* ESP using HF/STO-3G (convenience class: `EspA2`) -- Psi4 seems to minimize to a relatively different geometry than GAMESS with STO-3G.
-* psiresp.configs.ATBResp, mimicking the method used by the [Automated Topology Builder](https://atb.uq.edu.au/) is not tested at all. The published methods do not indicate the point density, moreover, the results generated seem to have changed since the original paper. **Use at your own risk.**
-* psiresp.configs.Resp2, as the methods are expensive
+These implementations are not as well-tested:
+* ESP using HF/STO-3G (convenience class: psiresp.configs.WeinerESP) -- Psi4 seems to minimize to a relatively different geometry than GAMESS with STO-3G.
+* psiresp.configs.ATBRESP, mimicking the method used by the [Automated Topology Builder](https://atb.uq.edu.au/) is not tested at all. The published methods do not indicate the point density, moreover, the results generated seem to have changed since the original paper. **Use at your own risk.**
+* psiresp.configs.RESP2, as the methods are expensive
 
 ### Installation
 
@@ -91,8 +91,8 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
       molecules=[dmso],
       resp_options=psiresp.RespOptions(
          stage_2=True,  # run 2-stage RESP
-         resp_a1=0.0005,  # hyperbola restraints for stage 1
-         resp_a2=0.001,  # hyperbola restraints for stage 2
+         restraint_height_stage_1=0.0005,  # hyperbola restraints for stage 1
+         restraint_height_stage_2=0.001,  # hyperbola restraints for stage 2
          restrained_fit=True,  # restrain ESP fit
       ),
       qm_optimization_options=psiresp.QMGeometryOptimizationOptions(
@@ -109,13 +109,13 @@ For example, running a standard 2-stage restrained electrostatic potential fit (
    charges = job.run(client=client)
 
 ```
-Alternatively, use the preconfigured RespA1 class in ``psiresp.configs``.
+Alternatively, use the preconfigured TwoStageRESP class in ``psiresp.configs``.
 This sets up the `grid_options`, `resp_options`,
 `qm_optimization_options`, and `qm_esp_options`
 
 ```python
 
-   job = psiresp.RespA1(molecules=[dmso])
+   job = psiresp.TwoStageRESP(molecules=[dmso])
    # constrain S and O atoms to sum to -0.19617
    so_atoms = dmso.get_atoms_from_smarts("S=O")[0]
    job.charge_constraints.add_charge_sum_constraint(charge=-0.19617, atoms=so_atoms)
@@ -141,10 +141,10 @@ Pre-configured models and reorientation algorithm are written to directly match 
 [RESP ESP charge Derive (R.E.D.)](https://upjv.q4md-forcefieldtools.org/RED/).
 Dupradeau, F.-Y. et al. The R.E.D. tools: advances in RESP and ESP charge derivation and force field library building. Phys. Chem. Chem. Phys. 12, 7821 (2010).
 
-ATBResp tries to match results from [Automated Topology Builder (A.T.B.)](https://atb.uq.edu.au/).
+ATBRESP tries to match results from [Automated Topology Builder (A.T.B.)](https://atb.uq.edu.au/).
 Malde, A. K. et al. An Automated Force Field Topology Builder (ATB) and Repository: Version 1.0. J. Chem. Theory Comput. 7, 4026–4037 (2011).
 
-Resp2 tries to match results from [RESP2](https://github.com/MSchauperl/RESP2).
+RESP2 tries to match results from [RESP2](https://github.com/MSchauperl/RESP2).
 Schauperl, M. et al. Non-bonded force field model with advanced restrained electrostatic potential charges (RESP2). Commun Chem 3, 1–11 (2020).
 
 Some tests compare results to output from [resp](https://github.com/cdsgroup/resp), the current RESP plugin 

@@ -32,12 +32,12 @@ Pre-configured classes API
 .. autosummary::
    :toctree: _autosummary
    
-   psiresp.configs.RespA1
-   psiresp.configs.RespA2
-   psiresp.configs.EspA1
-   psiresp.configs.EspA2
-   psiresp.configs.ATBResp
-   psiresp.configs.Resp2
+   psiresp.configs.TwoStageRESP
+   psiresp.configs.OneStageRESP
+   psiresp.configs.ESP
+   psiresp.configs.WeinerESP
+   psiresp.configs.ATBRESP
+   psiresp.configs.RESP2
    
 
 .. _option_classes:

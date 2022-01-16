@@ -81,6 +81,6 @@ class Orientation(BaseMolecule):
         a = np.einsum("ij, ik->jk", r_inv, r_inv)
         b = np.einsum("i, ij->j", self.esp, r_inv)
 
-        matrix = ESPSurfaceConstraintMatrix.from_a_and_b(a, b)
+        matrix = ESPSurfaceConstraintMatrix.from_coefficient_matrix(a, b)
         self._constraint_matrix = matrix
         return matrix

@@ -32,7 +32,7 @@ jobs:
             python-version: 3.9
         include:
           - os: macOS-latest
-            python-version: 3.7
+            python-version: 3.8
             runslow: true
     env:
       CYTHON_TRACE_NOGIL: 1

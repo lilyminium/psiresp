@@ -214,14 +214,14 @@ class Job(base.Model):
             )
             for mol in self.molecules
         ]
-        a_mol = scipy.linalg.block_diag(*[mat.a for mat in matrices])
-        a_row = scipy.linalg.block_diag(*[np.ones(mat.b.shape[0]) for mat in matrices])
+        a_mol = scipy.linalg.block_diag(*[mat.coefficient_matrix for mat in matrices])
+        a_row = scipy.linalg.block_diag(*[np.ones(mat.constant_vector.shape[0]) for mat in matrices])
         a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
         a_block = np.bmat([[a_mol, a_row.T], [a_row, a_zeros]])
 
-        b_block = np.concatenate([mat.b for mat in matrices]
+        b_block = np.concatenate([mat.constant_vector for mat in matrices]
                                  + [[mol.charge for mol in self.molecules]])
-        return ESPSurfaceConstraintMatrix.from_a_and_b(a_block, b_block)
+        return ESPSurfaceConstraintMatrix.from_coefficient_matrix(a_block, b_block)
 
     def generate_molecule_charge_constraints(self) -> MoleculeChargeConstraints:
         """
@@ -245,7 +245,7 @@ class Job(base.Model):
 
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
-                                           resp_a=self.resp_options.resp_a1,
+                                           restraint_height=self.resp_options.restraint_height_stage_1,
                                            **self.resp_options._base_kwargs)
         self.stage_1_charges.solve()
 
@@ -253,7 +253,7 @@ class Job(base.Model):
             stage_2_constraints.add_constraints_from_charges(self.stage_1_charges._charges)
             self.stage_2_charges = RespCharges(charge_constraints=stage_2_constraints,
                                                surface_constraints=surface_constraints,
-                                               resp_a=self.resp_options.resp_a2,
+                                               restraint_height=self.resp_options.restraint_height_stage_2,
                                                **self.resp_options._base_kwargs)
             self.stage_2_charges.solve()
 

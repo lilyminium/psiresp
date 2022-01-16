@@ -41,11 +41,11 @@ The hyperbolic restraint has the form:
 
 
 :math:`a` defines the asymptotic limits of the penalty, and corresponds to
-:attr:`~psiresp.resp.RespOptions.resp_a1` and
-:attr:`~psiresp.resp.RespOptions.resp_a2` for the stage 1 and stage 2
+:attr:`~psiresp.resp.RespOptions.restraint_height_stage_1` and
+:attr:`~psiresp.resp.RespOptions.restraint_height_stage_2` for the stage 1 and stage 2
 fits, respectively.
 :math:`b` defines the width of the penalty, and corresponds to
-:attr:`~psiresp.resp.RespOptions.resp_b`.
+:attr:`~psiresp.resp.RespOptions.restraint_slope`.
 
 If you only want a one-stage fit, the process stops here.
 In a two-stage fit, the typical charge model in AMBER and CHARMM
@@ -119,8 +119,8 @@ Penalty coefficients
 --------------------
 
 The hyperbolic restraint used in a restrained fit is controlled by
-two parameters: ``resp_a`` (in a two-stage fit, ``resp_a1`` and ``resp_a2``
-for the first and second stages respectively) and ``resp_b``.
+two parameters: ``restraint_height`` (in a two-stage fit, ``restraint_height_stage_1`` and ``restraint_height_stage_2``
+for the first and second stages respectively) and ``restraint_slope``.
 Below is an explanation of how these parameters control the
 penalty applied to the matrix of linear equations to be solved.
 
@@ -158,20 +158,20 @@ term updates iteratively depending on the charge :math:`x_{i}`,
 until the calculated charges converge within a user-specified threshold.
 
 The graphs below illustrate how the penalty added to each term
-changes with different ``resp_a`` and ``resp_b``.
-``resp_a`` controls the height of the curve, or the maximum
+changes with different ``restraint_height`` and ``restraint_slope``.
+``restraint_height`` controls the height of the curve, or the maximum
 penalty possible no matter how great the charge.
 
-.. image:: images/penalty_graph_a.png
-    :alt: change in penalty over resp_a
+.. image:: images/penalty_graph_restraint_height.png
+    :alt: change in penalty over restraint_height
     :width: 400px
     :align: center
 
-``resp_b`` controls the steepness of the curve, or how slowly
+``restraint_slope`` controls the steepness of the curve, or how slowly
 the penalty changes with the magnitude of charge.
 
-.. image:: images/penalty_graph_b.png
-    :alt: change in penalty over resp_b
+.. image:: images/penalty_graph_restraint_slope.png
+    :alt: change in penalty over restraint_slope
     :width: 400px
     :align: center
 
@@ -183,30 +183,30 @@ Pre-configured classes
 The table below gives a broad overview of the pre-configured classes.
 
 .. table:: Overview of pre-configured RESP classes
-    :widths: 30 50 20
+    :widths: 40 40 20
 
-    +----------------------------------+------------------------------------+-------------------------+
-    | Class                            | Description                        | Reference               |
-    +==================================+====================================+=========================+
-    | :class:`psiresp.configs.RespA1`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
-    |                                  | in the gas phase at hf/6-31g*      | :cite:t:`cornell1993`,  |
-    |                                  |                                    | :cite:t:`cieplak1995`   |
-    +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.RespA2`  | A 1-stage restrained fit           |                         |
-    |                                  | in the gas phase at hf/6-31g*      |                         |
-    +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.EspA1`   | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
-    |                                  | in the gas phase at hf/6-31g*      |                         |
-    +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.EspA2`   | A 1-stage unrestrained fit         |                         |
-    |                                  | in the gas phase at hf/sto-3g      |                         |
-    +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.ATBResp` | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
-    |                                  | implicit water at b3lyp/6-31g*     |                         |
-    +----------------------------------+------------------------------------+-------------------------+
-    | :class:`psiresp.configs.Resp2`   | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
-    |                                  | at pw6b95/aug-cc-pV(D+d)Z,         |                         |
-    |                                  | in both vacuum and implicit water. |                         |
-    |                                  | Charges are interpolated           |                         |
-    |                                  | between the two phases.            |                         |
-    +----------------------------------+------------------------------------+-------------------------+
+    +----------------------------------------+------------------------------------+-------------------------+
+    | Class                                  | Description                        | Reference               |
+    +========================================+====================================+=========================+
+    | :class:`psiresp.configs.TwoStageRESP`  | A 2-stage restrained fit           | :cite:t:`bayly1993`,    |
+    |                                        | in the gas phase at hf/6-31g*      | :cite:t:`cornell1993`,  |
+    |                                        |                                    | :cite:t:`cieplak1995`   |
+    +----------------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.OneStageRESP`  | A 1-stage restrained fit           |                         |
+    |                                        | in the gas phase at hf/6-31g*      |                         |
+    +----------------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.ESP`           | A 1-stage unrestrained fit         | :cite:t:`singh1984`     |
+    |                                        | in the gas phase at hf/6-31g*      |                         |
+    +----------------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.WeinerESP`     | A 1-stage unrestrained fit         |                         |
+    |                                        | in the gas phase at hf/sto-3g      |                         |
+    +----------------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.ATBRESP`       | A 2-stage restrained fit in        | :cite:t:`malde2011`     |
+    |                                        | implicit water at b3lyp/6-31g*     |                         |
+    +----------------------------------------+------------------------------------+-------------------------+
+    | :class:`psiresp.configs.RESP2`         | A 2-stage restrained fit           | :cite:t:`schauperl2020` |
+    |                                        | at pw6b95/aug-cc-pV(D+d)Z,         |                         |
+    |                                        | in both vacuum and implicit water. |                         |
+    |                                        | Charges are interpolated           |                         |
+    |                                        | between the two phases.            |                         |
+    +----------------------------------------+------------------------------------+-------------------------+
