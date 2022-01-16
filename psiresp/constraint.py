@@ -32,7 +32,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
     Users should not need to use this class directly.
     """
 
-    coefficient_matrix: np.ndarray
+    matrix: np.ndarray
 
     __add__ = array_ops(np.ndarray.__add__)
     __sub__ = array_ops(np.ndarray.__sub__)
@@ -48,7 +48,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
 
     @classmethod
     def with_n_dim(cls, n_dim: int):
-        return cls(coefficient_matrix=np.zeros((n_dim + 1, n_dim)))
+        return cls(matrix=np.zeros((n_dim + 1, n_dim)))
 
     @classmethod
     def from_orientations(cls, orientations=[],
@@ -79,7 +79,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
                 msg = f"`constant_vector` must have shape ({n_dim},)"
                 raise ValueError(msg)
         placeholder = np.empty((n_dim + 1, n_dim))
-        matrix = cls(coefficient_matrix=placeholder)
+        matrix = cls(matrix=placeholder)
         matrix.coefficient_matrix = coefficient_matrix
         matrix.constant_vector = constant_vector
 
@@ -90,19 +90,19 @@ class ESPSurfaceConstraintMatrix(base.Model):
         return self.matrix.shape[1]
 
     @property
-    def a(self):
+    def coefficient_matrix(self):
         return self.matrix[:-1]
 
-    @a.setter
-    def a(self, value):
+    @coefficient_matrix.setter
+    def coefficient_matrix(self, value):
         self.matrix[:-1] = value
 
     @property
-    def b(self):
+    def constant_vector(self):
         return self.matrix[-1]
 
-    @b.setter
-    def b(self, value):
+    @constant_vector.setter
+    def constant_vector(self, value):
         self.matrix[-1] = value
 
 
