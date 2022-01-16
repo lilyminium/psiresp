@@ -16,6 +16,7 @@ def array_ops(func):
             arr = func(self.matrix, other)
         if arr is not None:
             return type(self)(matrix=arr)
+
     return wrapper
 
 
@@ -51,8 +52,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
         return cls(matrix=np.zeros((n_dim + 1, n_dim)))
 
     @classmethod
-    def from_orientations(cls, orientations=[],
-                          temperature: float = 298.15):
+    def from_orientations(cls, orientations=[], temperature: float = 298.15):
 
         if not len(orientations):
             raise ValueError("At least one Orientation must be provided")
@@ -67,8 +67,7 @@ class ESPSurfaceConstraintMatrix(base.Model):
         return matrix
 
     @classmethod
-    def from_coefficient_matrix(cls, coefficient_matrix,
-                                constant_vector=None):
+    def from_coefficient_matrix(cls, coefficient_matrix, constant_vector=None):
         n_dim = coefficient_matrix.shape[0]
         if constant_vector is None:
             constant_vector = np.zeros(n_dim)
@@ -108,8 +107,8 @@ class ESPSurfaceConstraintMatrix(base.Model):
 
 class SparseGlobalConstraintMatrix(base.Model):
 
-    a: scipy.sparse.csr_matrix
-    b: np.ndarray
+    coefficient_matrix: scipy.sparse.csr_matrix
+    constant_vector: np.ndarray
     n_structure_array: Optional[np.ndarray] = None
     mask: Optional[np.ndarray] = None
 
@@ -121,9 +120,12 @@ class SparseGlobalConstraintMatrix(base.Model):
     _array_indices: Optional[np.ndarray] = None
 
     @classmethod
-    def from_constraints(cls, surface_constraints,
-                         charge_constraints,
-                         exclude_hydrogens=True):
+    def from_constraints(
+        cls,
+        surface_constraints,
+        charge_constraints,
+        exclude_hydrogens: bool = True,
+    ):
         a = scipy.sparse.csr_matrix(surface_constraints.coefficient_matrix)
         b = surface_constraints.constant_vector
 
@@ -134,28 +136,31 @@ class SparseGlobalConstraintMatrix(base.Model):
             ])
             b_block_ = charge_constraints.to_b_constraints()
             a = scipy.sparse.bmat(
-                [[a, a_block],
-                 [a_block.transpose(), None]],
+                [[a, a_block], [a_block.transpose(), None]],
                 format="csr",
             )
             b_block = np.zeros(a_block.shape[1])
-            b_block[:len(b_block_)] = b_block_
+            b_block[: len(b_block_)] = b_block_
             b = np.r_[b, b_block]
 
-        n_structure_array = np.concatenate(
-            [[mol.n_orientations] * mol.n_atoms
-             for mol in charge_constraints.molecules]
-        )
+        n_structure_array = np.concatenate([
+            [mol.n_orientations] * mol.n_atoms
+            for mol in charge_constraints.molecules
+        ])
 
         symbols = np.concatenate(
-            [mol.qcmol.symbols
-             for mol in charge_constraints.molecules]
+            [mol.qcmol.symbols for mol in charge_constraints.molecules]
         )
         mask = np.ones_like(symbols, dtype=bool)
         if exclude_hydrogens:
             mask[np.where(symbols == "H")[0]] = False
 
-        return cls(a=a, b=b, n_structure_array=n_structure_array, mask=mask)
+        return cls(
+            coefficient_matrix=a,
+            constant_vector=b,
+            n_structure_array=n_structure_array,
+            mask=mask,
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -167,15 +172,21 @@ class SparseGlobalConstraintMatrix(base.Model):
             self.mask = np.ones(self._n_atoms, dtype=bool)
         self._array_indices = np.where(self.mask)[0]
         diag_indices = np.diag_indices(self._n_atoms)
-        self._array_mask = (diag_indices[0][self._array_indices],
-                            diag_indices[1][self._array_indices])
-        self._original_coefficient_matrix = copy.deepcopy(self.coefficient_matrix)
+        self._array_mask = (
+            diag_indices[0][self._array_indices],
+            diag_indices[1][self._array_indices],
+        )
+        self._original_coefficient_matrix = copy.deepcopy(
+            self.coefficient_matrix
+        )
 
     @property
     def charge_difference(self):
         if self._previous_charges is None or self._charges is None:
             return np.inf
-        return np.max(np.abs(self._charges - self._previous_charges)[:self._n_atoms])
+        return np.max(
+            np.abs(self._charges - self._previous_charges)[: self._n_atoms]
+        )
 
     @property
     def charges(self):
@@ -186,16 +197,24 @@ class SparseGlobalConstraintMatrix(base.Model):
     def _solve(self):
         self._previous_charges = copy.deepcopy(self._charges)
         try:
-            self._charges = scipy.sparse.linalg.spsolve(self.coefficient_matrix, self.constant_vector)
+            self._charges = scipy.sparse.linalg.spsolve(
+                self.coefficient_matrix, self.constant_vector
+            )
         except RuntimeError as e:  # TODO: this could be slow?
-            self._charges = scipy.sparse.linalg.lsmr(self.coefficient_matrix, self.constant_vector)[0]
+            self._charges = scipy.sparse.linalg.lsmr(
+                self.coefficient_matrix, self.constant_vector
+            )[0]
         else:
             if np.isnan(self._charges[0]):
-                self._charges = scipy.sparse.linalg.lsmr(self.coefficient_matrix, self.constant_vector)[0]
+                self._charges = scipy.sparse.linalg.lsmr(
+                    self.coefficient_matrix, self.constant_vector
+                )[0]
 
     def _iter_solve(self, restraint_scale, restraint_steepness, b2):
         hyp_a = (restraint_scale * self.n_structure_array)[self._array_indices]
-        increment = hyp_a / np.sqrt(self._charges[self._array_indices] ** 2 + b2)
+        increment = hyp_a / np.sqrt(
+            self._charges[self._array_indices] ** 2 + b2
+        )
         self.coefficient_matrix = self._original_coefficient_matrix.copy()
 
         a_shape = self.coefficient_matrix[self._array_mask].shape
