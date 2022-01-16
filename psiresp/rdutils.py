@@ -88,6 +88,10 @@ def rdmol_to_qcelemental(rdmol, multiplicity=1, random_seed=-1):
     if not rdmol.GetNumConformers():
         Chem.rdDistGeom.EmbedMolecule(rdmol, useRandomCoords=True,
                                       randomSeed=random_seed)
+        try:
+            minimize_conformer_geometries(rdmol)
+        except RuntimeError:
+            pass
 
     connectivity = get_connectivity(rdmol)
 
@@ -371,6 +375,6 @@ def molecule_from_rdkit(rdmol, molecule_cls, random_seed=-1, **kwargs):
     obj = molecule_cls(**kwargs)
     obj._rdmol = rdmol
 
-    for conformer in rdmol.GetConformers():
-        obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
+    # for conformer in rdmol.GetConformers():
+    #     obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
     return obj

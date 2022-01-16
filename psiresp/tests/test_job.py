@@ -126,10 +126,12 @@ class TestMultiRespFast:
             rms_tolerance=0.01,
         )
         nme2ala2 = psiresp.Molecule.from_smiles("CC(=O)NC(C)(C)C(NC)=O",
+                                                random_seed=0,
                                                 optimize_geometry=False,
                                                 conformer_generation_options=conformer_options)
         assert nme2ala2._rdmol is not None
         methylammonium = psiresp.Molecule.from_smiles("C[NH3+]",
+                                                      random_seed=0,
                                                       optimize_geometry=False,
                                                       conformer_generation_options=conformer_options)
         assert methylammonium._rdmol is not None
