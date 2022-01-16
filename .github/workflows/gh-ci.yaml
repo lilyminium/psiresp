@@ -28,12 +28,12 @@ jobs:
         exclude:
           # Tests hang. Not sure why
           - os: ubuntu-latest
-            python-version: 3.7
-          # - os: ubuntu-latest
-          #   python-version: 3.9
-        include:
+            python-version: 3.8
           - os: ubuntu-latest
             python-version: 3.9
+        include:
+          - os: ubuntu-latest
+            python-version: 3.8
             runslow: true
             environment: test_env
           - os: macOS-latest
@@ -41,7 +41,7 @@ jobs:
             runslow: true
             environment: test_env
           - os: ubuntu-latest
-            python-version: 3.7
+            python-version: 3.9
             environment: minimal_test_env
             runslow: false
 
