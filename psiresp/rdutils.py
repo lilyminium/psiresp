@@ -30,10 +30,17 @@ logger = logging.getLogger(__name__)
 OFF_SMILES_ATTRIBUTE = "canonical_isomeric_explicit_hydrogen_mapped_smiles"
 
 
-def rdmol_from_smiles(smiles):
+def rdmol_from_smiles(smiles, order_by_map_number: bool = False):
     smiles_parser = Chem.rdmolfiles.SmilesParserParams()
     smiles_parser.removeHs = False
-    rdmol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+    rdmol = Chem.AddHs(Chem.MolFromSmiles(smiles, smiles_parser))
+    if order_by_map_number:
+        map_numbers = [atom.GetAtomMapNum() for atom in rdmol.GetAtoms()]
+        if 0 not in map_numbers:
+            new_order = tuple(np.argsort(map_numbers))
+            rdmol = Chem.RenumberAtoms(new_order)
+            for atom in rdmol.GetAtoms():
+                atom.SetAtomMapNum(0)
     return rdmol
 
 
@@ -335,3 +342,35 @@ def get_sp3_ch_indices(rdmol):
         if len(c_partners) == 4:
             groups[i] = c_partners[symbols[c_partners] == "H"]
     return groups
+
+
+def molecule_to_rdkit(molecule):
+    if molecule._rdmol is None:
+        rdmol = rdmol_from_qcelemental(molecule.qcmol,
+                                       guess_connectivity=True)
+    else:
+        rdmol = Chem.Mol(molecule._rdmol)
+
+    for conformer in molecule.conformers:
+        add_conformer_from_coordinates(rdmol, conformer.coordinates)
+
+    charges = molecule.charges
+    if charges is not None:
+        for charge, atom in zip(charges, rdmol.GetAtoms()):
+            atom.SetDoubleProp("PartialCharge", charge)
+        Chem.CreateAtomDoublePropertyList(rdmol, "PartialCharge")
+    rdmol.UpdatePropertyCache(strict=False)
+    return Chem.Mol(rdmol)
+
+
+def molecule_from_rdkit(rdmol, molecule_cls, random_seed=-1, **kwargs):
+    rdmol = Chem.AddHs(rdmol)
+    qcmol = rdmol_to_qcelemental(rdmol, random_seed=random_seed)
+    kwargs = dict(**kwargs)
+    kwargs["qcmol"] = qcmol
+    obj = molecule_cls(**kwargs)
+    obj._rdmol = rdmol
+
+    for conformer in rdmol.GetConformers():
+        obj.add_conformer_with_coordinates(np.array(conformer.GetPositions()))
+    return obj
