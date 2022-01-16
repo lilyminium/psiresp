@@ -279,7 +279,6 @@ class Molecule(BaseMolecule):
             c_bonds = bonds[contains_index & single_bonds][:, :2].astype(int)
             c_partners = c_bonds[c_bonds != i]
             if len(c_partners) == 4:
-                print(groups, i, c_partners, symbols)
                 groups[i] = c_partners[symbols[c_partners] == "H"]
         return groups
 
