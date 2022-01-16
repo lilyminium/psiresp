@@ -103,12 +103,28 @@ class Molecule(BaseMolecule):
     @classmethod
     def from_rdkit(cls, molecule, random_seed=-1, **kwargs):
         from . import rdutils
-        qcmol = rdutils.rdmol_to_qcelemental(molecule, random_seed=random_seed)
-        kwargs = dict(**kwargs)
-        kwargs["qcmol"] = qcmol
-        obj = cls(**kwargs)
-        obj._rdmol = molecule
-        return obj
+        return rdutils.molecule_from_rdkit(molecule, cls,
+                                           random_seed=random_seed,
+                                           **kwargs)
+
+    def to_rdkit(self):
+        from .rdutils import molecule_to_rdkit
+        return molecule_to_rdkit(self)
+
+    def to_mdanalysis(self):
+        from .mdautils import molecule_to_mdanalysis
+        return molecule_to_mdanalysis(self)
+
+    @property
+    def charges(self):
+        for charge_prop in [
+            self.stage_2_restrained_charges,
+            self.stage_2_unrestrained_charges,
+            self.stage_1_restrained_charges,
+            self.stage_1_unrestrained_charges,
+        ]:
+            if charge_prop is not None:
+                return charge_prop
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
