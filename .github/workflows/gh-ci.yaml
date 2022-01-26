@@ -23,20 +23,20 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
         python-version: [3.7, 3.8, 3.9]
         codecov: [true]
-        runslow: [false]
-        environment: [test_env]
+        runslow: [true]
+        environment: [no_qcfractal_test_env]
         include:
           - os: macOS-latest
             python-version: 3.8
-            runslow: true
+            runslow: false
             environment: test_env
+          - os: ubuntu-latest
+            python-version: 3.7
+            environment: test_env
+            runslow: false
           - os: ubuntu-latest
             python-version: 3.9
             environment: minimal_test_env
-            runslow: false
-          - os: ubuntu-latest
-            python-version: 3.8
-            environment: no_qcfractal_test_env
             runslow: false
 
     env:
