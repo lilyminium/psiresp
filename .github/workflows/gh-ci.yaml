@@ -21,17 +21,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        python-version: [3.7, 3.9]
+        python-version: [3.7, 3.8]
         codecov: [true]
         runslow: [true]
         environment: [no_qcfractal_test_env]
         include:
           - os: macOS-latest
-            python-version: 3.8
-            runslow: true
+            python-version: 3.9
+            runslow: false
             environment: test_env
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             environment: test_env
             runslow: true
           - os: ubuntu-latest
