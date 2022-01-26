@@ -18,8 +18,8 @@ dependencies:
 
   # qcstack
   - postgresql >= 13.0
-  - qcelemental
-  - qcengine
+  - qcelemental == 0.24.0
+  - qcengine == 0.21
   - qcfractal == 0.15.7
   - requests
 

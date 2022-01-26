@@ -72,8 +72,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
-          # channel-priority: flexible
-          # channels: defaults, conda-forge
+          channel-priority: flexible
+          channels: defaults, conda-forge, psi4
           add-pip-as-python-dependency: true
           mamba-version: "*"
           architecture: x64
