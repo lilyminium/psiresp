@@ -25,6 +25,7 @@ class TestQMEnergyOptions:
         assert record.status == "INCOMPLETE"
         assert record.get_molecule() == dmso_qcmol
 
+    @pytest.mark.skip("ubuntu seems to hang here")
     @pytest.mark.slow
     def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()
