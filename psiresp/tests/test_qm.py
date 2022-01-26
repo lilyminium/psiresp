@@ -13,6 +13,7 @@ class TestQMEnergyOptions:
     def cheap_options(self):
         return QMEnergyOptions(basis="sto-3g", method="b3lyp")
 
+    @pytest.mark.skip("seems to hang")
     def test_add_compute(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()
         records = empty_client.query_molecules(molecule_hash=[molhash])
@@ -25,6 +26,7 @@ class TestQMEnergyOptions:
         assert record.status == "INCOMPLETE"
         assert record.get_molecule() == dmso_qcmol
 
+    @pytest.mark.skip("seems to hang")
     @pytest.mark.slow
     def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()
