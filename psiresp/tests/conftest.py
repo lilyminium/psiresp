@@ -24,6 +24,7 @@ pytest_plugins = [
 
 @pytest.fixture(scope="session")
 def fractal_client():
+    pytest.importorskip("polytop")
     pytest.importorskip("qcfractal.postgres_harness")
     from qcfractal import FractalSnowflake, interface as ptl
     from psiresp.testing import TemporaryPostgres
