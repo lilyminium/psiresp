@@ -17,7 +17,6 @@ jobs:
   main_tests:
     if: "github.repository == 'lilyminium/psiresp'"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
