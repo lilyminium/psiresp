@@ -1,8 +1,9 @@
 # PsiRESP
 😪-RESP
 
-| **Latest release** | [![PyPI version](https://badge.fury.io/py/psiresp.svg)](https://badge.fury.io/py/psiresp) [![Documentation Status](https://readthedocs.org/projects/psiresp/badge/?version=latest)](https://psiresp.readthedocs.io/en/latest/?badge=latest)|
+| **Latest release** | [![Last release tag](https://img.shields.io/github/release-pre/lilyminium/psiresp.svg)](https://github.com/lilyminium/psiresp/releases) ![GitHub commits since latest release (by date) for a branch](https://img.shields.io/github/commits-since/lilyminium/psiresp/latest)  [![Documentation Status](https://readthedocs.org/projects/psiresp/badge/?version=latest)](https://psiresp.readthedocs.io/en/latest/?badge=latest)|
 | :------ | :------- |
+| **Installation** | ![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/psiresp) ![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/psiresp.svg) [![PyPI version](https://badge.fury.io/py/psiresp.svg)](https://badge.fury.io/py/psiresp) ![PyPI - Downloads](https://img.shields.io/pypi/dm/psiresp) |
 | **Status** | [![GH Actions Status](https://github.com/lilyminium/psiresp/actions/workflows/gh-ci.yaml/badge.svg)](https://github.com/lilyminium/psiresp/actions?query=branch%3Amaster+workflow%3Agh-ci) [![codecov](https://codecov.io/gh/lilyminium/psiresp/branch/master/graph/badge.svg)](https://codecov.io/gh/lilyminium/psiresp/branch/master) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/lilyminium/psiresp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/lilyminium/psiresp/context:python) |
 | **Community** | [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0) |
 
@@ -28,23 +29,46 @@ These implementations are not as well-tested:
 
 ### Installation
 
-Create a new conda environment with dependencies. In general, installing the dependencies required will be difficult without `conda`, as both Psi4 and RDKit are most easily distributed through conda.
+The recommended way to install PsiRESP is via [anaconda](https://anaconda.org/anaconda/python),
+as the required dependencies are most easily installed distributed through ``conda``.
+
+For the fully featured version, install:
 
 ```
-conda env create -f devtools/conda-envs/environment.yaml
-conda activate psiresp
+conda install -c conda-forge -c psi4 psiresp psi4
 ```
-To install the latest release:
+
+This will pull in all dependencies necessary for full functionality, including
+[RDKit](https://www.rdkit.org/), [Psi4](https://psicode.org/) and
+[QCFractal](https://docs.qcarchive.molssi.org/projects/qcfractal/en/latest/).
+
+For minimal functionality, install:
+
+```
+conda install -c conda-forge psiresp-base
+```
+
+`psiresp-base` installs the package with minimal dependencies, so that
+only functionality that does not depend on RDKit, Psi4,or QCFractal is available.
+
+The library can also be installed with minimal dependencies via Pypi:
 
 ```
 pip install psiresp
 ```
 
-Alternatively, to build from source, clone this repository and install the package.
+
+Alternatively, to build from source: 
+
+* clone this repository
+* create a new environment with dependencies
+* build the package
 
 ```
 git clone https://github.com/lilyminium/psiresp.git
 cd psiresp
+conda env create -f devtools/conda-envs/environment.yaml
+conda activate psiresp
 python setup.py install
 ```
 
