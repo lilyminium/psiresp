@@ -33,11 +33,11 @@ def fractal_client(postgres_server):
     from qcfractal import FractalSnowflake, interface as ptl
 
     with FractalSnowflake(
-        # max_workers=1,
+        max_workers=1,
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
-        # start_server=False,
+        start_server=False,
     ) as server:
         yield ptl.FractalClient(server)
 

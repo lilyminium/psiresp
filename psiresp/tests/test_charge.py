@@ -79,7 +79,6 @@ def test_options_setup():
 
 class TestMoleculeChargeConstraints:
 
-    # @pytest.mark.slow
     def test_add_constraints_from_charges(self, dmso, fractal_client):
         pytest.importorskip("psi4")
 

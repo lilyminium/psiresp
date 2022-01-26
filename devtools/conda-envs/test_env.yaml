@@ -34,7 +34,7 @@ dependencies:
 
   - pytest >= 4.6.4
   - pytest-cov
-  # - pytest-xdist
+  - pytest-xdist
 
   # Pip-only installs
   - pip:
