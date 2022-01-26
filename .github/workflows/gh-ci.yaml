@@ -28,12 +28,12 @@ jobs:
         include:
           - os: macOS-latest
             python-version: 3.7
-            runslow: false
+            runslow: true
             environment: test_env
           - os: ubuntu-latest
             python-version: 3.7
             environment: test_env
-            runslow: false
+            runslow: true
           - os: ubuntu-latest
             python-version: "3.10"
             environment: minimal_test_env
