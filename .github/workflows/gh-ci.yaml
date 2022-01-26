@@ -28,16 +28,16 @@ jobs:
         include:
           - os: macOS-latest
             python-version: 3.8
-            runslow: false
+            runslow: true
             environment: test_env
           - os: ubuntu-latest
             python-version: 3.7
             environment: test_env
-            runslow: false
+            runslow: true
           - os: ubuntu-latest
             python-version: 3.9
             environment: minimal_test_env
-            runslow: false
+            runslow: true
 
     env:
       CYTHON_TRACE_NOGIL: 1
@@ -96,7 +96,7 @@ jobs:
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
           pytest -m "not slow" psiresp/tests $PYTEST_FLAGS
 
-      - name: run_slow_tests
+      - name: run_all_tests
         if: ${{ matrix.runslow == true }}
         run: |
           PYTEST_FLAGS=" --disable-pytest-warnings --durations=50 --cov=psiresp --cov-report=xml"
