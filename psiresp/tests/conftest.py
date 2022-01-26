@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
+from .utils import requires_qcfractal
 
 pytest_plugins = [
     "psiresp.tests.fixtures.qcmols",
@@ -14,6 +15,7 @@ pytest_plugins = [
 ]
 
 
+@requires_qcfractal
 @pytest.fixture(scope="session")
 def postgres_server():
     pytest.importorskip("qcfractal.postgres_harness")
@@ -24,6 +26,7 @@ def postgres_server():
     storage.stop()
 
 
+@requires_qcfractal
 @pytest.fixture(scope="session")
 def fractal_client(postgres_server):
     pytest.importorskip("qcfractal.postgres_harness")
@@ -39,6 +42,7 @@ def fractal_client(postgres_server):
         yield ptl.FractalClient(server)
 
 
+@requires_qcfractal
 @pytest.fixture(scope="function")
 def empty_client():
     pytest.importorskip("qcfractal.snowflake")

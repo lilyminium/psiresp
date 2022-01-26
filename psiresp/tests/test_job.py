@@ -21,15 +21,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 
 pytest.importorskip("psi4")
 
-try:
-    import qcfractal.interface
-except ImportError:
-    qcfractal_is_installed = False
-else:
-    qcfractal_is_installed = True
 
-
-@pytest.mark.skipif(not qcfractal_is_installed, reason="requires QCFractal")
 class TestSingleResp:
     def test_unrestrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=False)
@@ -171,9 +163,8 @@ class TestMultiRespWithoutClient:
             assert_allclose(job.charges[1], nme2ala2_charges, atol=1e-6)
 
 
-@pytest.mark.skipif(not qcfractal_is_installed, reason="requires QCFractal")
+@pytest.mark.slow
 class TestMultiResp:
-    @pytest.mark.slow
     @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
@@ -208,7 +199,6 @@ class TestMultiResp:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
-    @pytest.mark.slow
     def test_run_with_empty(self, empty_client):
         conformer_options = psiresp.ConformerGenerationOptions(
             n_max_conformers=2,
