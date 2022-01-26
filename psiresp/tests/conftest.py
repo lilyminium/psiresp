@@ -31,13 +31,14 @@ def fractal_client():
     storage = TemporaryPostgres(database_name="test_psiresp")
     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
     postgres_server = storage.psql
-    server = FractalSnowflake(
+    with FractalSnowflake(
         max_workers=1,
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
-        start_server=False)
-    return ptl.FractalClient(server)
+        start_server=False,
+    ) as server:
+        yield ptl.FractalClient(server)
 
 
 @pytest.fixture(scope="function")
@@ -46,8 +47,8 @@ def empty_client():
     import qcfractal.interface as ptl
     from qcfractal import FractalSnowflake
 
-    server = FractalSnowflake()
-    return ptl.FractalClient(server)
+    with FractalSnowflake() as server:
+        yield ptl.FractalClient(server)
 
 
 # @pytest.fixture(scope="session")
