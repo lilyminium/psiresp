@@ -13,15 +13,12 @@ dependencies:
   # qm
   - dftd3
   - psi4 >= 1.3.0
-  - intel-openmp == 2021.4.0
+  - intel-openmp!=2019.5
   - geometric
 
   # qcstack
   - postgresql >= 13.0
-  - qcelemental
-  - qcengine
-  - qcfractal
-  - qcfractal-core
+  - qcelemental == 0.24.0
   - requests
 
   # deps

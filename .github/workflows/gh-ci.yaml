@@ -40,6 +40,10 @@ jobs:
             python-version: 3.9
             environment: minimal_test_env
             runslow: false
+          - os: ubuntu-latest
+            python-version: 3.8
+            environment: no_qcfractal_test_env
+            runslow: false
 
     env:
       CYTHON_TRACE_NOGIL: 1
