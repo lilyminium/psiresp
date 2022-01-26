@@ -49,24 +49,6 @@ def empty_client():
         yield ptl.FractalClient(server)
 
 
-# @pytest.fixture(scope="session")
-# def fractal_client(postgres_server):
-#     with FractalSnowflake(
-#         max_workers=1,
-#         storage_project_name="test_psiresp",
-#         storage_uri=postgres_server.database_uri(),
-#         reset_database=False,
-#         start_server=False,
-#     ) as server:
-#         yield ptl.FractalClient(server)
-
-
-# @pytest.fixture(scope="function")
-# def empty_client():
-#     with FractalSnowflake() as server:
-#         yield ptl.FractalClient(server)
-
-
 @pytest.fixture
 def reference_esp(request):
     return np.loadtxt(request.param, comments='!')[:, 0]
