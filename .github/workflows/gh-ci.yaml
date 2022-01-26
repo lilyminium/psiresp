@@ -25,6 +25,10 @@ jobs:
         codecov: [true]
         runslow: [true]
         environment: [no_qcfractal_test_env]
+        exclude:
+          # ubuntu 3.7 is tested below
+          - os: ubuntu-latest
+            python-version: 3.7
         include:
           - os: macOS-latest
             python-version: 3.8
