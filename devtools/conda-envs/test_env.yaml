@@ -18,9 +18,9 @@ dependencies:
 
   # qcstack
   - postgresql >= 13.0
-  - qcelemental == 0.24.0
-  - qcengine == 0.21
-  - qcfractal
+  - qcelemental
+  - qcengine
+  - qcfractal == 0.15.7
   - requests
 
   # deps

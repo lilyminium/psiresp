@@ -21,7 +21,15 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 
 pytest.importorskip("psi4")
 
+try:
+    import qcfractal.interface
+except ImportError:
+    qcfractal_is_installed = False
+else:
+    qcfractal_is_installed = True
 
+
+@pytest.mark.skipif(not qcfractal_is_installed, reason="requires QCFractal")
 class TestSingleResp:
     def test_unrestrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=False)
@@ -54,7 +62,7 @@ class TestSingleResp:
         assert_allclose(job.stage_2_charges.restrained_charges, resp_2, atol=1e-5)
 
 
-class TestMultiRespFast:
+class TestMultiRespWithoutClient:
     @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
         (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
@@ -85,6 +93,86 @@ class TestMultiRespFast:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
+    def test_run_manual(self, nme2ala2_empty, methylammonium_empty, tmpdir):
+        pytest.importorskip("rdkit")
+
+        nme2ala2_empty.optimize_geometry = True
+        methylammonium_empty.optimize_geometry = True
+        assert len(nme2ala2_empty.conformers) == 2
+        assert len(methylammonium_empty.conformers) == 1
+        job = Job(molecules=[methylammonium_empty, nme2ala2_empty])
+
+        data_wkdir = pathlib.Path(MANUAL_JOBS_WKDIR)
+
+        with tmpdir.as_cwd():
+
+            # OPTIMIZATION
+            assert not job.working_directory.exists()
+            with pytest.raises(SystemExit, match="Exiting to allow running"):
+                job.run()
+
+            assert job.working_directory.exists()
+
+            # check run file contents
+            runfile = job.qm_optimization_options.get_run_file(job.working_directory)
+            assert str(runfile) == "psiresp_working_directory/optimization/run_optimization.sh"
+            with runfile.open() as f:
+                optlines = [x.strip() for x in f.readlines()]
+            assert len(optlines) == 4
+
+            # check existence and copy completed files in
+            opt_filenames = glob.glob(str(data_wkdir / "optimization/*"))
+            assert len(opt_filenames) == 4
+            for file in opt_filenames:
+                path = pathlib.Path(file.split("manual_jobs/")[1])
+                assert path.exists()
+
+                if file.endswith("msgpack"):
+                    assert f"psi4 --qcschema {path.name}" in optlines
+                shutil.copyfile(file, path)
+
+            assert all(not conf.is_optimized for conf in job.iter_conformers())
+
+            # SINGLE POINT
+            assert not job.qm_esp_options.get_working_directory(job.working_directory).exists()
+            with pytest.raises(SystemExit, match="Exiting to allow running"):
+                job.run()
+
+            assert all(conf.is_optimized for conf in job.iter_conformers())
+
+            # check run file contents
+            runfile = job.qm_esp_options.get_run_file(job.working_directory)
+            assert str(runfile) == "psiresp_working_directory/single_point/run_single_point.sh"
+            with runfile.open() as f:
+                splines = [x.strip() for x in f.readlines()]
+            assert len(splines) == 11
+
+            # check existence and copy completed files in
+            opt_filenames = glob.glob(str(data_wkdir / "single_point/*"))
+            assert len(opt_filenames) == 11
+            for file in opt_filenames:
+                path = pathlib.Path(file.split("manual_jobs/")[1])
+                assert path.exists()
+
+                if file.endswith("msgpack"):
+                    assert f"psi4 --qcschema {path.name}" in splines
+                shutil.copyfile(file, path)
+
+            job.run()
+            methylammonium_charges = [-0.281849,  0.174016,  0.174016,  0.174016,
+                                      -0.528287,  0.215501, 0.857086,  0.215501]
+            nme2ala2_charges = [4.653798, -1.174226, -1.1742263, -1.1742263, -1.2224316,
+                                0.1732717, -3.9707787, 0.8309516, 8.291471, 4.749616,
+                                -1.870866, -1.870866, -1.870866, 2.275405, -1.3199896,
+                                -1.3199896, -1.3199896, 1.6195477, -1.5787892, -14.898019,
+                                2.9755072, 30.303230, -7.035844, -7.035844, -7.035844]
+
+            assert_allclose(job.charges[0], methylammonium_charges, atol=1e-6)
+            assert_allclose(job.charges[1], nme2ala2_charges, atol=1e-6)
+
+
+@pytest.mark.skipif(not qcfractal_is_installed, reason="requires QCFractal")
+class TestMultiResp:
     @pytest.mark.slow
     @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
@@ -204,80 +292,3 @@ class TestMultiRespFast:
         assert_allclose(job_multi.charges[1],
                         nme2ala2_charges,
                         atol=5e-2)
-
-    def test_run_manual(self, nme2ala2_empty, methylammonium_empty, tmpdir):
-        pytest.importorskip("rdkit")
-
-        nme2ala2_empty.optimize_geometry = True
-        methylammonium_empty.optimize_geometry = True
-        assert len(nme2ala2_empty.conformers) == 2
-        assert len(methylammonium_empty.conformers) == 1
-        job = Job(molecules=[methylammonium_empty, nme2ala2_empty])
-
-        data_wkdir = pathlib.Path(MANUAL_JOBS_WKDIR)
-
-        with tmpdir.as_cwd():
-
-            # OPTIMIZATION
-            assert not job.working_directory.exists()
-            with pytest.raises(SystemExit, match="Exiting to allow running"):
-                job.run()
-
-            assert job.working_directory.exists()
-
-            # check run file contents
-            runfile = job.qm_optimization_options.get_run_file(job.working_directory)
-            assert str(runfile) == "psiresp_working_directory/optimization/run_optimization.sh"
-            with runfile.open() as f:
-                optlines = [x.strip() for x in f.readlines()]
-            assert len(optlines) == 4
-
-            # check existence and copy completed files in
-            opt_filenames = glob.glob(str(data_wkdir / "optimization/*"))
-            assert len(opt_filenames) == 4
-            for file in opt_filenames:
-                path = pathlib.Path(file.split("manual_jobs/")[1])
-                assert path.exists()
-
-                if file.endswith("msgpack"):
-                    assert f"psi4 --qcschema {path.name}" in optlines
-                shutil.copyfile(file, path)
-
-            assert all(not conf.is_optimized for conf in job.iter_conformers())
-
-            # SINGLE POINT
-            assert not job.qm_esp_options.get_working_directory(job.working_directory).exists()
-            with pytest.raises(SystemExit, match="Exiting to allow running"):
-                job.run()
-
-            assert all(conf.is_optimized for conf in job.iter_conformers())
-
-            # check run file contents
-            runfile = job.qm_esp_options.get_run_file(job.working_directory)
-            assert str(runfile) == "psiresp_working_directory/single_point/run_single_point.sh"
-            with runfile.open() as f:
-                splines = [x.strip() for x in f.readlines()]
-            assert len(splines) == 11
-
-            # check existence and copy completed files in
-            opt_filenames = glob.glob(str(data_wkdir / "single_point/*"))
-            assert len(opt_filenames) == 11
-            for file in opt_filenames:
-                path = pathlib.Path(file.split("manual_jobs/")[1])
-                assert path.exists()
-
-                if file.endswith("msgpack"):
-                    assert f"psi4 --qcschema {path.name}" in splines
-                shutil.copyfile(file, path)
-
-            job.run()
-            methylammonium_charges = [-0.281849,  0.174016,  0.174016,  0.174016,
-                                      -0.528287,  0.215501, 0.857086,  0.215501]
-            nme2ala2_charges = [4.653798, -1.174226, -1.1742263, -1.1742263, -1.2224316,
-                                0.1732717, -3.9707787, 0.8309516, 8.291471, 4.749616,
-                                -1.870866, -1.870866, -1.870866, 2.275405, -1.3199896,
-                                -1.3199896, -1.3199896, 1.6195477, -1.5787892, -14.898019,
-                                2.9755072, 30.303230, -7.035844, -7.035844, -7.035844]
-
-            assert_allclose(job.charges[0], methylammonium_charges, atol=1e-6)
-            assert_allclose(job.charges[1], nme2ala2_charges, atol=1e-6)
