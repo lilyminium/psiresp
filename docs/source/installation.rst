@@ -1,8 +1,7 @@
 Installation
 ============
 
-Much of the functionality in PsiRESP depends on `RDKit`_, `Psi4`_,
-and `QCFractal`_. These packages are easiest distributed through
+Much of the functionality in PsiRESP depends on `RDKit`_, `Psi4`_, and `QCFractal`_. These packages are easiest distributed through
 `Anaconda`_, so it is **highly recommended** to install PsiRESP
 through ``conda``.
 
