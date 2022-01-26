@@ -23,11 +23,11 @@ pytest.importorskip("psi4")
 
 
 class TestSingleResp:
-    def test_unrestrained(self, dmso, fractal_client):
+    def test_unrestrained(self, dmso, empty_client):
         options = RespOptions(stage_2=True, restrained_fit=False)
         job = Job(molecules=[dmso],
                   resp_options=options)
-        job.run(client=fractal_client)
+        job.run(client=empty_client)
 
         esp_1 = [[-0.43877469, 0.14814998, 0.17996033, 0.18716814, 0.35743529,
                  -0.5085439, -0.46067469, 0.19091725, 0.15500465, 0.18935764]]
@@ -40,11 +40,11 @@ class TestSingleResp:
        -0.46067,  0.19092,  0.155  ,  0.18936])], restrained_charges=None>"""
         assert repr(job.stage_1_charges) == chgrepr
 
-    def test_restrained(self, dmso, fractal_client):
+    def test_restrained(self, dmso, empty_client):
         options = RespOptions(stage_2=True, restrained_fit=True)
         job = Job(molecules=[dmso],
                   resp_options=options)
-        job.run(client=fractal_client)
+        job.run(client=empty_client)
 
         resp_1 = [[-0.31436216, 0.11376836, 0.14389443, 0.15583112, 0.30951582,
                   -0.50568553, -0.33670393, 0.15982115, 0.12029174, 0.153629]]
@@ -173,13 +173,13 @@ class TestMultiResp:
     def test_calculated_esps(self, nme2ala2_empty, methylammonium_empty,
                              methylammonium_nme2ala2_charge_constraints,
                              stage_2, restraint_height, red_charges,
-                             fractal_client, job_esps, job_grids):
+                             empty_client, job_esps, job_grids):
 
         resp_options = RespOptions(stage_2=stage_2, restraint_height_stage_1=restraint_height)
         job = Job(molecules=[methylammonium_empty, nme2ala2_empty],
                   charge_constraints=methylammonium_nme2ala2_charge_constraints,
                   resp_options=resp_options)
-        job.compute_orientation_energies(client=fractal_client)
+        job.compute_orientation_energies(client=empty_client)
         job.compute_esps()
         for mol in job.molecules:
             for conf in mol.conformers:
