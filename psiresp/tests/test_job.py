@@ -163,7 +163,7 @@ class TestMultiRespWithoutClient:
             assert_allclose(job.charges[1], nme2ala2_charges, atol=1e-6)
 
 
-@pytest.mark.slow
+# @pytest.mark.slow
 class TestMultiResp:
     @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
         (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
