@@ -11,7 +11,7 @@ from numpy.testing import assert_allclose
 import psiresp
 from psiresp.job import Job
 from psiresp.resp import RespOptions
-
+from .utils import requires_qcfractal
 
 from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA2_CHARGES,
@@ -163,6 +163,7 @@ class TestMultiRespWithoutClient:
             assert_allclose(job.charges[1], nme2ala2_charges, atol=1e-6)
 
 
+@requires_qcfractal
 @pytest.mark.slow
 class TestMultiResp:
     @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
