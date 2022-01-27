@@ -13,12 +13,12 @@ class TestQMEnergyOptions:
     def cheap_options(self):
         return QMEnergyOptions(basis="sto-3g", method="b3lyp")
 
-    def test_add_compute(self, cheap_options, dmso_qcmol, fractal_client):
+    def test_add_compute(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()
-        records = fractal_client.query_molecules(molecule_hash=[molhash])
+        records = empty_client.query_molecules(molecule_hash=[molhash])
         assert len(records) == 0
-        response = cheap_options.add_compute(fractal_client, qcmols=[dmso_qcmol])
-        records = fractal_client.query_results(id=response.submitted)
+        response = cheap_options.add_compute(empty_client, qcmols=[dmso_qcmol])
+        records = empty_client.query_results(id=response.submitted)
         assert len(records) == 1
         record = records[0]
 
@@ -26,11 +26,11 @@ class TestQMEnergyOptions:
         assert record.get_molecule() == dmso_qcmol
 
     # @pytest.mark.slow
-    def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, fractal_client):
+    def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, empty_client):
         molhash = dmso_qcmol.get_hash()
-        records = fractal_client.query_molecules(molecule_hash=[molhash])
+        records = empty_client.query_molecules(molecule_hash=[molhash])
         assert len(records) == 0
-        records = cheap_options.add_compute_and_wait(fractal_client, qcmols=[dmso_qcmol])
+        records = cheap_options.add_compute_and_wait(empty_client, qcmols=[dmso_qcmol])
         assert len(records) == 1
 
         record = records[0]
