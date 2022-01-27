@@ -252,6 +252,12 @@ class TestMultiResp:
         assert len(h_atoms) == 3
         constraints.add_charge_equivalence_constraint(atoms=h_atoms)
 
+        constraints.add_charge_sum_constraint_for_molecule(
+            methylammonium,
+            charge=-0.433807,
+            indices=[0]
+        )
+
         geometry_options = psiresp.QMGeometryOptimizationOptions(
             method="b3lyp", basis="sto-3g",
         )
@@ -276,9 +282,9 @@ class TestMultiResp:
                             0.07438, 0.07438, 0.07438, 0.07438, 0.07438,
                             0.07438, 0.13245, 0.14861, 0.14861, 0.14861]
 
+        methylammonium_job, nme2ala2_job = job_multi.charges
+        assert_allclose(methylammonium_job[-1], methylammonium_job[-3])
+        assert_allclose(nme2ala2_job[-1], nme2ala2_job[-3])
         # low precision -- generation of conformers can be flaky
-        assert_allclose(job_multi.charges[0],
-                        methylammonium_charges, atol=5e-2)
-        assert_allclose(job_multi.charges[1],
-                        nme2ala2_charges,
-                        atol=5e-2)
+        assert_allclose(methylammonium_job, methylammonium_charges, atol=5e-2)
+        assert_allclose(nme2ala2_job, nme2ala2_charges, atol=5e-2)
