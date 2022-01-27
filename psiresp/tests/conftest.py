@@ -15,7 +15,6 @@ pytest_plugins = [
 ]
 
 
-@requires_qcfractal
 @pytest.fixture(scope="session")
 def postgres_server():
     pytest.importorskip("qcfractal.postgres_harness")
@@ -26,7 +25,6 @@ def postgres_server():
     storage.stop()
 
 
-@requires_qcfractal
 @pytest.fixture(scope="session")
 def fractal_client(postgres_server):
     pytest.importorskip("qcfractal.postgres_harness")
@@ -42,10 +40,9 @@ def fractal_client(postgres_server):
         yield ptl.FractalClient(server)
 
 
-@requires_qcfractal
 @pytest.fixture(scope="function")
 def empty_client():
-    # pytest.importorskip("qcfractal.interface")
+    pytest.importorskip("qcfractal.interface")
     import qcfractal.interface as ptl
     from qcfractal import FractalSnowflake
 
