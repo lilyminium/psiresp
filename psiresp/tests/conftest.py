@@ -29,7 +29,6 @@ def postgres_server():
 @requires_qcfractal
 @pytest.fixture(scope="session")
 def fractal_client(postgres_server):
-    pytest.importorskip("polytop")
     pytest.importorskip("qcfractal.postgres_harness")
     from qcfractal import FractalSnowflake, interface as ptl
 
