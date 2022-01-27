@@ -25,17 +25,15 @@ class TestQMEnergyOptions:
         assert record.status == "INCOMPLETE"
         assert record.get_molecule() == dmso_qcmol
 
-    @pytest.mark.skip("hangs in CI with empty client, "
-                      "and could cause problems in parallel execution")
-    def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, fractal_client):
-        # molhash = dmso_qcmol.get_hash()
-        # records = fractal_client.query_molecules(molecule_hash=[molhash])
-        # assert len(records) == 0
-        records = cheap_options.add_compute_and_wait(fractal_client, qcmols=[dmso_qcmol])
-        assert len(records) == 1
+    # def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, fractal_client):
+    #     # molhash = dmso_qcmol.get_hash()
+    #     # records = fractal_client.query_molecules(molecule_hash=[molhash])
+    #     # assert len(records) == 0
+    #     records = cheap_options.add_compute_and_wait(fractal_client, qcmols=[dmso_qcmol])
+    #     assert len(records) == 1
 
-        record = records[0]
-        assert record.status == "COMPLETE"
-        assert record.get_molecule() == dmso_qcmol
-        assert record.wavefunction is not None
-        assert_allclose(record.properties.return_energy, -546.68015604292)
+    #     record = records[0]
+    #     assert record.status == "COMPLETE"
+    #     assert record.get_molecule() == dmso_qcmol
+    #     assert record.wavefunction is not None
+    #     assert_allclose(record.properties.return_energy, -546.68015604292)
