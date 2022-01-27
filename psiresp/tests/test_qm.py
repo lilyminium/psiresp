@@ -13,7 +13,6 @@ class TestQMEnergyOptions:
     def cheap_options(self):
         return QMEnergyOptions(basis="sto-3g", method="b3lyp")
 
-    @pytest.mark.skip("this hangs in CI")
     def test_add_compute(self, cheap_options, dmso_qcmol, fractal_client):
         molhash = dmso_qcmol.get_hash()
         records = fractal_client.query_molecules(molecule_hash=[molhash])
@@ -26,7 +25,8 @@ class TestQMEnergyOptions:
         assert record.status == "INCOMPLETE"
         assert record.get_molecule() == dmso_qcmol
 
-    # @pytest.mark.slow
+    @pytest.mark.skip("hangs in CI with empty client, "
+                      "and could cause problems in parallel execution")
     def test_add_compute_and_wait(self, cheap_options, dmso_qcmol, fractal_client):
         # molhash = dmso_qcmol.get_hash()
         # records = fractal_client.query_molecules(molecule_hash=[molhash])
