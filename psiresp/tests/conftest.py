@@ -45,7 +45,7 @@ def fractal_client(postgres_server):
 @requires_qcfractal
 @pytest.fixture(scope="function")
 def empty_client():
-    pytest.importorskip("qcfractal.snowflake")
+    pytest.importorskip("qcfractal.interface")
     import qcfractal.interface as ptl
     from qcfractal import FractalSnowflake
 
