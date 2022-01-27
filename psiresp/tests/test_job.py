@@ -22,6 +22,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
 pytest.importorskip("psi4")
 
 
+@requires_qcfractal
 class TestSingleResp:
     def test_unrestrained(self, dmso, fractal_client):
         options = RespOptions(stage_2=True, restrained_fit=False)
