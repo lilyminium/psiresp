@@ -23,7 +23,7 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
     (psiresp.configs.OneStageRESP, DMSO_RESPA2_CHARGES),
 
 ], indirect=['red_charges'])
-def test_config_resp(config_class, red_charges, empty_client, dmso):
+def test_config_resp(config_class, red_charges, fractal_client, dmso):
     pytest.importorskip("psi4")
 
     qcdmso = qcel.models.Molecule.from_file(DMSO_O1, fix_com=True,
@@ -54,7 +54,7 @@ def test_config_resp(config_class, red_charges, empty_client, dmso):
     assert len(job.molecules[0].conformers) == 1
     assert len(job.molecules[0].conformers[0].orientations) == 2
 
-    job.compute_orientation_energies(client=empty_client)
+    job.compute_orientation_energies(client=fractal_client)
     job.compute_esps()
     job.compute_charges()
     assert_allclose(job.charges, red_charges, atol=1e-3)
@@ -90,7 +90,7 @@ def test_config_multiresp(nme2ala2, methylammonium,
         assert_allclose(calculated, reference, atol=1e-3)
 
 
-def test_resp2(empty_client):
+def test_resp2(fractal_client):
     pytest.importorskip("psi4")
 
     # generate molecule
@@ -105,7 +105,7 @@ def test_resp2(empty_client):
     assert mol.n_orientations == 0
 
     job = psiresp.RESP2(molecules=[mol])
-    job.run(client=empty_client)
+    job.run(client=fractal_client)
 
     assert job.vacuum.n_conformers == 2
     assert job.vacuum.n_orientations == 2

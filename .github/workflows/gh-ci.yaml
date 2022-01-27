@@ -26,10 +26,10 @@ jobs:
         runslow: [true]
         environment: [no_qcfractal_test_env]
         include:
-          - os: macOS-latest
-            python-version: 3.7
-            runslow: true
-            environment: test_env
+          # - os: macOS-latest
+          #   python-version: 3.7
+          #   runslow: true
+          #   environment: test_env
           - os: ubuntu-latest
             python-version: 3.7
             environment: test_env
