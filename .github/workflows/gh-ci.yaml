@@ -29,6 +29,10 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.7
         include:
+          - os: macOS-latest
+            python-version: 3.7
+            environment: test_env
+            runslow: true
           - os: ubuntu-latest
             python-version: 3.7
             environment: test_env
