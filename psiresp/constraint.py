@@ -196,19 +196,9 @@ class SparseGlobalConstraintMatrix(base.Model):
 
     def _solve(self):
         self._previous_charges = copy.deepcopy(self._charges)
-        try:
-            self._charges = scipy.sparse.linalg.spsolve(
-                self.coefficient_matrix, self.constant_vector
-            )
-        except RuntimeError as e:  # TODO: this could be slow?
-            self._charges = scipy.sparse.linalg.lsmr(
-                self.coefficient_matrix, self.constant_vector
-            )[0]
-        else:
-            if np.isnan(self._charges[0]):
-                self._charges = scipy.sparse.linalg.lsmr(
-                    self.coefficient_matrix, self.constant_vector
-                )[0]
+        self._charges = scipy.sparse.linalg.lsmr(
+            self.coefficient_matrix, self.constant_vector
+        )[0]
 
     def _iter_solve(self, restraint_height, restraint_slope, b2):
         hyp_a = (restraint_height * self.n_structure_array)[self._array_indices]
