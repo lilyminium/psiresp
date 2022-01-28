@@ -86,6 +86,7 @@ class TestMultiRespWithoutClient:
         for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
             assert_allclose(calculated, reference, atol=1e-3)
 
+    @requires_qcfractal
     def test_run_manual(self, nme2ala2_empty, methylammonium_empty, tmpdir):
         pytest.importorskip("rdkit")
 
