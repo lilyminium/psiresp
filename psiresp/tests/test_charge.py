@@ -83,6 +83,7 @@ def test_options_setup():
 class TestMoleculeChargeConstraints:
 
     def test_add_constraints_from_charges(self):
+        pytest.importorskip("psi4")
 
         job = Job.parse_file(DMSO_JOB_WITH_ORIENTATION_ENERGIES)
         charge_options = job.charge_constraints
