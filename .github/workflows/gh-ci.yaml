@@ -13,6 +13,10 @@ defaults:
   run:
     shell: bash -l {0}
 
+concurrency:
+  group: "${{ github.ref }}-${{ github.head_ref }}"
+  cancel-in-progress: true
+
 jobs:
   main_tests:
     if: "github.repository == 'lilyminium/psiresp'"
