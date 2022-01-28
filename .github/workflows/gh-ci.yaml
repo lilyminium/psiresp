@@ -26,7 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
         python-version: [3.7, 3.8, 3.9]
-        codecov: [true]
+        codecov: [false]
         runslow: [true]
         environment: [no_qcfractal_test_env]
         exclude:
@@ -39,10 +39,12 @@ jobs:
             python-version: 3.7
             environment: test_env
             runslow: true
+            codecov: true
           - os: ubuntu-latest
             python-version: "3.10"
             environment: minimal_test_env
             runslow: true
+            codecov: false
 
     env:
       CYTHON_TRACE_NOGIL: 1
@@ -109,6 +111,7 @@ jobs:
         
       - name: codecov
         uses: codecov/codecov-action@v1
+        if: ${{ matrix.codecov == true }}
         with:
           file: coverage.xml
           fail_ci_if_error: True
