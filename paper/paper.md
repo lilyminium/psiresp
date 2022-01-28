@@ -69,7 +69,7 @@ Intra-molecular charge constraints allow for equivalent charges between symmetri
 
 Inter-molecular charge constraints are particularly useful for computing the charges of multiple novel components of a molecule. For example, a polymer can be comprised of multiple monomer species. In order to calculate suitable charges for each monomer, their surrounding environment (the adjacent monomers) must be taken into account. Without charge constraints, the charges calculated for the same monomer in two different environments might differ. Inter-molecular charge constraints can be applied to constrain the charges of a particular monomer across all environments to be equivalent, ensuring that the derived charges can be used transferrably.
 
-The ability to serialize and deserialize a job or molecule to or from JSON also enables easy transferrability between machines, as well as documentation of the parameters used to generate charges. The multiple converters to other libraries (currently supported packages are MDAnalysis [@michaud-agrawal2011; @gowers2016] and an OpenForceField toolkit-compatible [@openff-toolkit] RDKit [@rdkit] molecule) allow for further work, or additional options to write to different formats.
+The ability to serialize and deserialize a job or molecule to or from JSON also enables easy transferrability between machines, as well as documentation of the parameters used to generate charges. The multiple converters to other libraries (currently supported outputs are an MDAnalysis universe [@michaud-agrawal2011; @gowers2016] and an OpenForceField toolkit-compatible [@openff-toolkit] RDKit [@rdkit] molecule) allow for further work, or additional options to write to different formats.
 
 # Functionality
 
