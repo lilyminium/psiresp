@@ -12,7 +12,10 @@ from psiresp.molecule import Atom
 from psiresp.job import Job
 from psiresp.constraint import SparseGlobalConstraintMatrix
 
-from psiresp.tests.datafiles import DMSO_STAGE_2_A, DMSO_STAGE_2_B
+from psiresp.tests.datafiles import (
+    DMSO_STAGE_2_A, DMSO_STAGE_2_B,
+    DMSO_JOB_WITH_ORIENTATION_ENERGIES,
+)
 
 
 def test_charge_sum_constraint(dmso):
@@ -79,19 +82,11 @@ def test_options_setup():
 
 class TestMoleculeChargeConstraints:
 
-    # @pytest.mark.slow
-    def test_add_constraints_from_charges(self, dmso, fractal_client):
+    def test_add_constraints_from_charges(self):
         pytest.importorskip("psi4")
 
-        charge_options = ChargeConstraintOptions(symmetric_methyls=True,
-                                                 symmetric_methylenes=True)
-        job = Job(molecules=[dmso],
-                  charge_constraints=charge_options
-                  )
-        job.generate_conformers()
-        job.generate_orientations()
-        job.compute_orientation_energies(client=fractal_client)
-        job.compute_esps()
+        job = Job.parse_file(DMSO_JOB_WITH_ORIENTATION_ENERGIES)
+        charge_options = job.charge_constraints
 
         assert len(charge_options.charge_sum_constraints) == 0
         assert len(charge_options.charge_equivalence_constraints) == 0

@@ -270,7 +270,7 @@ class Molecule(BaseMolecule):
         symbols = self.qcmol.symbols
         bonds = get_connectivity(self)
         if bonds is None:
-            bonds = np.empty(0, 3)
+            bonds = np.empty((0, 3))
         bonds = np.asarray(bonds)
         single_bonds = np.isclose(bonds[:, 2], np.ones_like(bonds[:, 2]))
         groups = {}
