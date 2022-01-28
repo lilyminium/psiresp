@@ -24,20 +24,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [macOS-latest]
         python-version: [3.7, 3.8, 3.9]
         codecov: [false]
         runslow: [true]
         environment: [no_qcfractal_test_env]
-        exclude:
-          - os: ubuntu-latest
-            python-version: 3.7
         include:
           - os: ubuntu-latest
             python-version: 3.7
             environment: test_env
             runslow: true
             codecov: true
+          - os: ubuntu-latest
+            python-version: 3.8
+            environment: test_env
+            runslow: true
+            codecov: false
           - os: ubuntu-latest
             python-version: "3.10"
             environment: minimal_test_env
