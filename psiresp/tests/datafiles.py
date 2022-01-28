@@ -55,3 +55,5 @@ ETHANOL_RESP2_C1 = datapath("molecules/ethanol_resp2_opt_c1.xyz")
 ETHANOL_RESP2_C2 = datapath("molecules/ethanol_resp2_opt_c2.xyz")
 
 ETHANE_JSON = datapath("molecules/ethane.json")
+
+DMSO_JOB_WITH_ORIENTATION_ENERGIES = datapath("dmso_job_with_orientation_energies.json")

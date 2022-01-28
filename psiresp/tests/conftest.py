@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 from psiresp.tests.datafiles import POSTGRES_SERVER_BACKUP, ESP_PATH, GRID_PATH
+from .utils import requires_qcfractal
 
 pytest_plugins = [
     "psiresp.tests.fixtures.qcmols",
@@ -14,58 +15,40 @@ pytest_plugins = [
 ]
 
 
-# @pytest.fixture(scope="session")
-# def postgres_server():
-#     storage = TemporaryPostgres(database_name="test_psiresp")
-#     storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
-#     return storage.psql
-#     storage.stop()
+@pytest.fixture(scope="session")
+def postgres_server():
+    pytest.importorskip("qcfractal.postgres_harness")
+    from psiresp.testing import TemporaryPostgres
+    storage = TemporaryPostgres(database_name="test_psiresp")
+    storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
+    yield storage.psql
+    storage.stop()
 
 
 @pytest.fixture(scope="session")
-def fractal_client():
+def fractal_client(postgres_server):
     pytest.importorskip("qcfractal.postgres_harness")
     from qcfractal import FractalSnowflake, interface as ptl
-    from psiresp.testing import TemporaryPostgres
 
-    storage = TemporaryPostgres(database_name="test_psiresp")
-    storage.psql.restore_database(POSTGRES_SERVER_BACKUP)
-    postgres_server = storage.psql
-    server = FractalSnowflake(
+    with FractalSnowflake(
         max_workers=1,
         storage_project_name="test_psiresp",
         storage_uri=postgres_server.database_uri(),
         reset_database=False,
-        start_server=False)
-    return ptl.FractalClient(server)
+        start_server=False,
+    ) as server:
+        yield ptl.FractalClient(server)
 
 
+@pytest.mark.skip("hangs in CI")
 @pytest.fixture(scope="function")
 def empty_client():
-    pytest.importorskip("qcfractal.snowflake")
+    pytest.importorskip("qcfractal.interface")
     import qcfractal.interface as ptl
     from qcfractal import FractalSnowflake
 
-    server = FractalSnowflake()
-    return ptl.FractalClient(server)
-
-
-# @pytest.fixture(scope="session")
-# def fractal_client(postgres_server):
-#     with FractalSnowflake(
-#         max_workers=1,
-#         storage_project_name="test_psiresp",
-#         storage_uri=postgres_server.database_uri(),
-#         reset_database=False,
-#         start_server=False,
-#     ) as server:
-#         yield ptl.FractalClient(server)
-
-
-# @pytest.fixture(scope="function")
-# def empty_client():
-#     with FractalSnowflake() as server:
-#         yield ptl.FractalClient(server)
+    with FractalSnowflake() as server:
+        yield ptl.FractalClient(server)
 
 
 @pytest.fixture
