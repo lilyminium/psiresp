@@ -30,9 +30,9 @@ copyright = ("2020, Lily Wang. Project structure based on the "
 author = 'Lily Wang'
 
 # The short X.Y version
-version = '0.1'
+version = psiresp.__version__
 # The full version, including alpha/beta/rc tags
-release = '0.1-unstable'
+release = version
 
 # -- General configuration ---------------------------------------------------
 
