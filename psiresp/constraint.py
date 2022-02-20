@@ -195,7 +195,10 @@ class SparseGlobalConstraintMatrix(base.Model):
         return self._charges[self._array_indices]
 
     def _solve(self):
-        from scipy.sparse.linalg.dsolve import _superlu
+        try:
+            from scipy.sparse.linalg.dsolve import _superlu
+        except ImportError:
+            from scipy.sparse.linalg._dsolve import _superlu
 
         self._previous_charges = copy.deepcopy(self._charges)
 
