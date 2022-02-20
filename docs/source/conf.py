@@ -29,10 +29,11 @@ copyright = ("2020, Lily Wang. Project structure based on the "
              "Computational Molecular Science Python Cookiecutter version 1.2")
 author = 'Lily Wang'
 
-# The short X.Y version
-version = psiresp.__version__
 # The full version, including alpha/beta/rc tags
-release = version
+release = psiresp.__version__
+# The short X.Y version
+version = ".".join(release.split(".")[:2])
+
 
 # -- General configuration ---------------------------------------------------
 
