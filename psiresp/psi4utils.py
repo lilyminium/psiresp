@@ -3,7 +3,7 @@ from typing import List, Dict
 try:
     import psi4
 except ImportError:
-    raise ImportError("Psi4 is a core dependency of PsiRESP. "
+    raise ImportError("Psi4 necessary for this functionality. "
                       "Please install it with "
                       "`conda install -c psi4 psi4`")
 import numpy as np

@@ -57,3 +57,11 @@ ETHANOL_RESP2_C2 = datapath("molecules/ethanol_resp2_opt_c2.xyz")
 ETHANE_JSON = datapath("molecules/ethane.json")
 
 DMSO_JOB_WITH_ORIENTATION_ENERGIES = datapath("dmso_job_with_orientation_energies.json")
+
+
+NME2ALA2_OPT_C1_GRID = datapath("esps/9ee96ceb2aec1b0d4b5c53ad3ae9e61d546f6717_grid.dat")
+NME2ALA2_OPT_C1_ESP = datapath("esps/9ee96ceb2aec1b0d4b5c53ad3ae9e61d546f6717_esp.dat")
+METHYLAMMONIUM_O1_GRID = datapath("esps/27c00e84078b824244612107da714196f49424cd_grid.dat")
+METHYLAMMONIUM_O1_ESP = datapath("esps/27c00e84078b824244612107da714196f49424cd_esp.dat")
+METHYLAMMONIUM_O2_GRID = datapath("esps/8776ca97115f78967cccc3dbc89c5530891000db_grid.dat")
+METHYLAMMONIUM_O2_ESP = datapath("esps/8776ca97115f78967cccc3dbc89c5530891000db_esp.dat")
