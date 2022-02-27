@@ -7,6 +7,7 @@ import numpy as np
 from typing_extensions import Literal
 import qcelemental as qcel
 from pydantic import Field, ValidationError
+import tqdm
 
 from .base import Model
 from .qcutils import QCWaveFunction
@@ -417,7 +418,9 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
         results = wait(client, response_ids=response_ids,
                        query_interval=self.query_interval,
                        query_target="procedures",
-                       working_directory=working_directory)
+                       working_directory=working_directory,
+                       description="geometry-optimization"
+                       )
         return results
 
     def _postprocess_result(self, result):
@@ -433,7 +436,8 @@ class QMEnergyOptions(BaseQMOptions):
     def wait_for_results(self, client, response_ids=[]):
         results = wait(client, response_ids=response_ids,
                        query_interval=self.query_interval,
-                       query_target="results")
+                       query_target="results",
+                       description="computing-psi4-wavefunction")
         return results
 
     def _postprocess_result(self, result):
@@ -443,10 +447,12 @@ class QMEnergyOptions(BaseQMOptions):
         return QCWaveFunction.from_qcrecord(record)
 
 
-def wait(client, response_ids=[], query_interval=20, query_target="results",
-         working_directory=None):
+def wait(client, response_ids=[], query_interval=5, query_target="results",
+         working_directory=None, description=None):
     query = getattr(client, f"query_{query_target}")
     n_incomplete = len(response_ids)
+
+    progressbar = tqdm.tqdm(total=len(response_ids), desc=description)
     while(n_incomplete):
         time.sleep(query_interval)
         results = query(id=response_ids)
@@ -465,6 +471,9 @@ def wait(client, response_ids=[], query_interval=20, query_target="results",
         logger.debug(f"{n_incomplete} incomplete, "
                      f"{n_error} errored, "
                      f"{n_complete} complete {query_target} out of {len(response_ids)}")
+
+        progressbar.n = n_complete
+        progressbar.update(0)
 
         if working_directory:
             for i in np.where(status == "COMPLETE")[0]:
