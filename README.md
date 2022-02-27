@@ -76,28 +76,29 @@ Please see [the Installation docs](https://psiresp.readthedocs.io/en/latest/inst
 
 ### Example
 
-Please see the [examples](https://psiresp.readthedocs.io/en/latest/examples/README.html)
-and [documentation](https://psiresp.readthedocs.io/en/latest/) for detailed examples.
+Examples for PsiRESP are provided as tutorials both [online](https://psiresp.readthedocs.io/en/latest/examples/README.html)
+and as downloadable Jupyter notebooks in the
+[examples folder](https://github.com/lilyminium/psiresp/tree/review-updates/docs/source/examples).
+More information can also be found in the [documentation](https://psiresp.readthedocs.io/en/latest/).
 
 A minimal example is provided below, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993).
 This requires the full installation of `psiresp`, instead of the minimal `psiresp-base`.
 
 ```python
-   import psiresp
-   from psiresp.testing import FractalSnowflake
-   import qcfractal.interface as ptl
+import psiresp
+from psiresp.testing import FractalSnowflake
+import qcfractal.interface as ptl
 
-   # set up server and client
-   server = FractalSnowflake()
-   client = ptl.FractalClient(server)
+# set up server and client
+server = FractalSnowflake()
+client = ptl.FractalClient(server)
 
-   # set up molecule
-   dmso = psiresp.Molecule.from_smiles("CS(=O)C")
-   
-   # set up job
-   job = psiresp.Job(molecules=[dmso])
-   charges = job.run(client=client)
+# set up molecule
+dmso = psiresp.Molecule.from_smiles("CS(=O)C")
 
+# set up job
+job = psiresp.Job(molecules=[dmso])
+charges = job.run(client=client)
 ```
 
 ### Contributing
