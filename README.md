@@ -82,7 +82,8 @@ and as downloadable Jupyter notebooks in the
 More information can also be found in the [documentation](https://psiresp.readthedocs.io/en/latest/).
 
 A minimal example is provided below, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993).
-This requires the full installation of `psiresp`, instead of the minimal `psiresp-base`.
+This requires the full installation of `psiresp`, instead of the minimal `psiresp-base`,
+as it makes use of RDKit, Psi4 and QCFractal.
 
 ```python
 import psiresp
@@ -103,7 +104,7 @@ charges = job.run(client=client)
 
 ### Contributing
 
-All contributions are welcomed, such as sharing bug reports, bug fixes, requesting or adding new features, or improving the documentation.
+All contributions are welcomed! This can include sharing bug reports, bug fixes, requesting or adding new features, or improving the documentation.
 If you notice any issues or have feature requests, please open an issue on the [Issue tracker](https://github.com/lilyminium/psiresp/issues).
 Otherwise, please check out the [Contributing](https://psiresp.readthedocs.io/en/latest/contributing.html) page in the documentation.
 
