@@ -116,7 +116,7 @@ class Job(base.Model):
 
     def generate_orientations(self):
         """Generate orientations for every conformer of every molecule"""
-        for mol in self.molecules:
+        for mol in tqdm.tqdm(self.molecules, desc="generating-orientations"):
             clear = not mol.keep_original_orientation
             mol.generate_orientations(clear_existing_orientations=clear)
 
@@ -126,6 +126,9 @@ class Job(base.Model):
                       for mol in self.molecules
                       for conformer in mol.conformers
                       if mol.optimize_geometry and not conformer.is_optimized]
+        if not conformers:
+            return
+
         qcmols = [conf.qcmol for conf in conformers]
 
         results = self.qm_optimization_options.run(client=client,
