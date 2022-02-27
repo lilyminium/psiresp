@@ -253,6 +253,9 @@ class Molecule(BaseMolecule):
         indices = self.get_smarts_matches(smiles)
         return [Atom.from_molecule(self, indices=ix) for ix in indices]
 
+    def get_atoms(self, indices: List[int]):
+        return Atom.from_molecule(self, indices=indices)
+
     def get_sp3_ch_indices(self) -> Dict[int, List[int]]:
         get_connectivity = None
         if self._rdmol:
