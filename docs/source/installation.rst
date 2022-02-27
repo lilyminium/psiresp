@@ -11,8 +11,13 @@ through ``conda``.
 
   conda install -c conda-forge psiresp
 
-The above dependencies can be difficult to install and unnecessary for
-PsiRESP's core functionality. Therefore, a version with minimal
+It is generally recommended to install this fully-featured
+version, as typical usage involving Psi4 and SMILES will require
+all dependencies. However, you may have already pre-computed
+molecule geometries, grids, and electrostatic potentials.
+(An example of using PsiRESP in this minimal way is provided in the example tutorials).
+Alternatively, you may only want to install a subset of the above dependencies,
+which are quite heavy. Therefore, a version with minimal
 dependencies is provided on both conda-forge and PyPI. Via conda,
 it can be installed with:
 

@@ -10,7 +10,7 @@ try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
 except ImportError:
-    raise ImportError("rdkit is a core dependency of PsiRESP. "
+    raise ImportError("rdkit is necessary for this functionality. "
                       "Please install it with "
                       "`conda install -c conda-forge rdkit`")
 
