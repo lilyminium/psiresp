@@ -76,82 +76,29 @@ Please see [the Installation docs](https://psiresp.readthedocs.io/en/latest/inst
 
 ### Example
 
-For example, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993) as standard in AMBER 
-(implemented as RESP-A1 in R.E.D.):
+Please see the [examples](https://psiresp.readthedocs.io/en/latest/examples/README.html)
+and [documentation](https://psiresp.readthedocs.io/en/latest/) for detailed examples.
+
+A minimal example is provided below, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993).
+This requires the full installation of `psiresp`, instead of the minimal `psiresp-base`.
 
 ```python
    import psiresp
-   from psiresp.testing import FractalSnowflake  # if using Jupyter, use FractalSnowflakeHandler below
-   # from qcfractal import FractalSnowflakeHandler
+   from psiresp.testing import FractalSnowflake
    import qcfractal.interface as ptl
 
    # set up server and client
    server = FractalSnowflake()
    client = ptl.FractalClient(server)
 
-   # set up conformer generation options
-   conformer_options = psiresp.ConformerGenerationOptions(n_max_conformers=2)  # generate at most 2 conformers
-   
    # set up molecule
-   dmso = psiresp.Molecule.from_smiles("CS(=O)C", charge=0, multiplicity=1,
-                                       optimize_geometry=True,  # optimize conformers
-                                       conformer_generation_options=conformer_options
-                                       )
-      
-   # set up charge constraints
-   charge_constraints = psiresp.ChargeConstraintOptions(
-      symmetric_methyls=True,  # make methyl Hs around carbons the same charge
-      symmetric_methylenes=True,  # make methylene Hs around carbons the same charge
-   )
-   # constrain S and O atoms to sum to -0.19617
-   so_atoms = dmso.get_atoms_from_smarts("S=O")[0]
-   charge_constraints.add_charge_sum_constraint(charge=-0.19617, atoms=so_atoms)
-   # constrain two C atoms to have the same charge
-   cc_atoms = dmso.get_atoms_from_smarts("[C:1]S(=O)[C:2]")[0]
-   charge_constraints.add_charge_equivalence_constraint(atoms=cc_atoms)
+   dmso = psiresp.Molecule.from_smiles("CS(=O)C")
    
    # set up job
-   job = psiresp.Job(
-      molecules=[dmso],
-      resp_options=psiresp.RespOptions(
-         stage_2=True,  # run 2-stage RESP
-         restraint_height_stage_1=0.0005,  # hyperbola restraints for stage 1
-         restraint_height_stage_2=0.001,  # hyperbola restraints for stage 2
-         restrained_fit=True,  # restrain ESP fit
-      ),
-      qm_optimization_options=psiresp.QMGeometryOptimizationOptions(
-         basis="6-31g*",
-         method="hf",
-      ),
-      qm_esp_options=psiresp.QMEnergyOptions(
-         basis="6-31g*",
-         method="hf",
-      ),
-      charge_constraints=charge_constraints,
-   )
-
+   job = psiresp.Job(molecules=[dmso])
    charges = job.run(client=client)
 
 ```
-Alternatively, use the preconfigured TwoStageRESP class in ``psiresp.configs``.
-This sets up the `grid_options`, `resp_options`,
-`qm_optimization_options`, and `qm_esp_options`
-
-```python
-
-   job = psiresp.TwoStageRESP(molecules=[dmso])
-   # constrain S and O atoms to sum to -0.19617
-   so_atoms = dmso.get_atoms_from_smarts("S=O")[0]
-   job.charge_constraints.add_charge_sum_constraint(charge=-0.19617, atoms=so_atoms)
-   # constrain two C atoms to have the same charge
-   cc_atoms = dmso.get_atoms_from_smarts("[C:1]S(=O)[C:2]")[0]
-   job.charge_constraints.add_charge_equivalence_constraint(atoms=cc_atoms)
-
-   charges = job.run()
-```
-
-Please see the [examples](https://psiresp.readthedocs.io/en/latest/examples/README.html) and [documentation](https://psiresp.readthedocs.io/en/latest/) for more.
-
 
 ### Contributing
 
