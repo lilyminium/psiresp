@@ -215,8 +215,9 @@ class BaseChargeConstraintOptions(base.Model):
 
         1. Join charge equivalence constraints with overlapping atoms
         2. Remove atoms from charge equivalences if they are constrained
-        to different charges, and remove charge equivalence constraints
-        if all atoms are constrained to the same charge (so it is redundant)
+            to different charges, and remove charge equivalence constraints
+            if all atoms are constrained to the same charge (so it is redundant)
+
         """
         self._unite_overlapping_equivalences()
         self._remove_incompatible_and_redundant_equivalent_atoms()
