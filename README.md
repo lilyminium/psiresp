@@ -109,14 +109,6 @@ If you notice any issues or have feature requests, please open an issue on the [
 Otherwise, please check out the [Contributing](https://psiresp.readthedocs.io/en/latest/contributing.html) page in the documentation.
 
 
-
-### Contributing
-
-All contributions are welcomed, such as sharing bug reports, bug fixes, requesting or adding new features, or improving the documentation.
-If you notice any issues or have feature requests, please open an issue on the [Issue tracker](https://github.com/lilyminium/psiresp/issues).
-Otherwise, please check out the [Contributing](https://psiresp.readthedocs.io/en/latest/contributing.html) page in the documentation.
-
-
 ### Copyright
 
 Copyright (c) 2020, Lily Wang
