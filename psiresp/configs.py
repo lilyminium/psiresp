@@ -23,7 +23,7 @@ class ConfiguredJob(Job):
 
     _configuration: ClassVar[dict] = {}
 
-    def __init__(self, *args, **kwargs):
+    def __pre_init__(self, *args, **kwargs):
         obj = Job(*args, **kwargs)
         objdct = obj.dict()
         for option_name, option_config in self._configuration.items():
@@ -32,7 +32,7 @@ class ConfiguredJob(Job):
                 if field.startswith(prefix):
                     for name, value in option_config.items():
                         update_dictionary(objdct[field], name, value)
-        super().__init__(**objdct)
+        return super().__pre_init__(**objdct)
 
 
 @due.dcite(
@@ -228,8 +228,8 @@ class RESP2(base.Model):
     vacuum: Optional[Job] = None
     solvated: Optional[Job] = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         vacuum_opt = self.solvent_qm_optimization_options.copy(deep=True)
         vacuum_opt.pcm_options = None
         vacuum_esp = self.solvent_qm_esp_options.copy(deep=True)

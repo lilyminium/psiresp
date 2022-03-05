@@ -1,4 +1,5 @@
 import inspect
+import functools
 import hashlib
 from typing import Any, Optional, Union, no_type_check
 
@@ -22,6 +23,7 @@ def _to_immutable(obj):
     return obj
 
 
+
 class Model(BaseModel):
     """Base class that all classes should subclass.
     """
@@ -35,6 +37,17 @@ class Model(BaseModel):
     @property
     def _clsname(self):
         return type(self).__name__
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        __pydantic_self__.__pre_init__(**data)
+        super().__init__(**data)
+        __pydantic_self__.__post_init__(**data)
+
+    def __pre_init__(self, **kwargs):
+        pass
+
+    def __post_init__(self, **kwargs):
+        pass
 
     def __setattr__(self, attr, value):
         try:

@@ -73,8 +73,8 @@ class RespCharges(BaseRespOptions):
                           f"restrained_charges={self.restrained_charges}")
         return f"<{self._clsname}({respstr}) with {constr}; {chgstr}>"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         self._matrix = SparseGlobalConstraintMatrix.from_constraints(
             surface_constraints=self.surface_constraints,
             charge_constraints=self.charge_constraints,

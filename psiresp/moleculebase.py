@@ -13,8 +13,8 @@ class BaseMolecule(base.Model):
     qcmol: qcel.models.Molecule
     _rdmol: Optional["rdkit.Chem.Mol"] = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         try:
             from . import rdutils
         except ImportError:
