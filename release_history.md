@@ -4,6 +4,7 @@ Releases follow the `major.minor.micro` format of [PEP440](https://www.python.or
 
 ## Current development
 
+- Add function signatures back in (#79)
 - Add progress bars (#75)
 - Add tutorial for using psiresp-base (#74)
 - Add additional tutorial for RESP without QCFractal server (#70)
