@@ -23,7 +23,7 @@ class ConfiguredJob(Job):
 
     _configuration: ClassVar[dict] = {}
 
-    def __init__(__pydantic_self__, **data: Any) -> None:
+    def __init__(__pydantic_self__, **data: Any) -> None:  # lgtm[py/not-named-self]
         obj = Job(**data)
         objdct = obj.dict()
         for option_name, option_config in __pydantic_self__._configuration.items():
