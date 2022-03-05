@@ -1,4 +1,5 @@
-# import pytest
+from ast import keyword
+import pytest
 
 # from numpy.testing import assert_allclose
 
@@ -6,6 +7,15 @@
 
 # pytest.importorskip("psi4")
 
+from psiresp.qm import QMEnergyOptions, QMGeometryOptimizationOptions
+
+
+@pytest.mark.parametrize("qm_options", [QMEnergyOptions, QMGeometryOptimizationOptions])
+@pytest.mark.parametrize("keywords", [{}, {"maxiter": 300}])
+def test_pass_in_keywords(qm_options, keywords):
+    options = qm_options(keywords=keywords).generate_keywords()
+    for k, v in keywords.items():
+        assert options[k] == v
 
 # @pytest.mark.skip("hangs in CI")
 # class TestQMEnergyOptions:

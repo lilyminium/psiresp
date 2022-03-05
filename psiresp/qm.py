@@ -1,3 +1,4 @@
+from copy import deepcopy
 import time
 import pathlib
 import logging
@@ -112,9 +113,13 @@ class BaseQMOptions(Model):
         default={"wavefunction": "orbitals_and_eigenvalues"},
         description="Wavefunction protocols"
     )
+    keywords: Dict[str, Any] = Field(
+        default={},
+        description="Custom arguments to pass to Psi4"
+    )
 
     def _generate_keywords(self):
-        return {}
+        return deepcopy(self.keywords)
 
     @property
     def solvent(self):
@@ -407,11 +412,13 @@ class QMGeometryOptimizationOptions(BaseQMOptions):
         return response
 
     def generate_keywords(self):
-        return {
+        keywords = deepcopy(self.keywords)
+        keywords.update({
             "geom_maxiter": self.max_iter,
             "full_hess_every": self.full_hess_every,
             "g_convergence": self.g_convergence
-        }
+        })
+        return keywords
 
     def wait_for_results(self, client, response_ids=[],
                          working_directory=None):
