@@ -1,5 +1,5 @@
 import pathlib
-from typing import List, Optional, ClassVar
+from typing import Any, List, Optional, ClassVar
 
 from pydantic import Field
 
@@ -23,16 +23,16 @@ class ConfiguredJob(Job):
 
     _configuration: ClassVar[dict] = {}
 
-    def __pre_init__(self, *args, **kwargs):
-        obj = Job(*args, **kwargs)
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        obj = Job(**data)
         objdct = obj.dict()
-        for option_name, option_config in self._configuration.items():
+        for option_name, option_config in __pydantic_self__._configuration.items():
             prefix = option_name.split("_")[0] + "_"
             for field in objdct.keys():
                 if field.startswith(prefix):
                     for name, value in option_config.items():
                         update_dictionary(objdct[field], name, value)
-        return super().__pre_init__(**objdct)
+        super().__init__(**objdct)
 
 
 @due.dcite(
