@@ -1,5 +1,5 @@
 import pathlib
-from typing import List, Optional, ClassVar
+from typing import Any, List, Optional, ClassVar
 
 from pydantic import Field
 
@@ -23,10 +23,10 @@ class ConfiguredJob(Job):
 
     _configuration: ClassVar[dict] = {}
 
-    def __init__(self, *args, **kwargs):
-        obj = Job(*args, **kwargs)
+    def __init__(__pydantic_self__, **data: Any) -> None:  # lgtm[py/not-named-self]
+        obj = Job(**data)
         objdct = obj.dict()
-        for option_name, option_config in self._configuration.items():
+        for option_name, option_config in __pydantic_self__._configuration.items():
             prefix = option_name.split("_")[0] + "_"
             for field in objdct.keys():
                 if field.startswith(prefix):
@@ -228,8 +228,8 @@ class RESP2(base.Model):
     vacuum: Optional[Job] = None
     solvated: Optional[Job] = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         vacuum_opt = self.solvent_qm_optimization_options.copy(deep=True)
         vacuum_opt.pcm_options = None
         vacuum_esp = self.solvent_qm_esp_options.copy(deep=True)

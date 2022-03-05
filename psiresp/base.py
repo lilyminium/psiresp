@@ -36,6 +36,17 @@ class Model(BaseModel):
     def _clsname(self):
         return type(self).__name__
 
+    def __init__(__pydantic_self__, **data: Any) -> None:  # lgtm[py/not-named-self]
+        __pydantic_self__.__pre_init__(**data)  # lgtm[py/init-calls-subclass]
+        super().__init__(**data)
+        __pydantic_self__.__post_init__(**data)  # lgtm[py/init-calls-subclass]
+
+    def __pre_init__(self, **kwargs):
+        pass
+
+    def __post_init__(self, **kwargs):
+        pass
+
     def __setattr__(self, attr, value):
         try:
             super().__setattr__(attr, value)

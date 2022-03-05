@@ -252,8 +252,8 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     _molecule_increments: Dict[int, int]
     _edges: List[Tuple[int, int]]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         self.clean_charge_sum_constraints()
         self.clean_charge_equivalence_constraints()
 

@@ -126,8 +126,8 @@ class Molecule(BaseMolecule):
             if charge_prop is not None:
                 return charge_prop
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
         if self.charge is None:
             self.charge = self.qcmol.molecular_charge
         else:

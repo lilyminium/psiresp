@@ -162,8 +162,8 @@ class SparseGlobalConstraintMatrix(base.Model):
             mask=mask,
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self, **kwargs):
+        super().__post_init__(**kwargs)
 
         self._n_atoms = len(self.constant_vector)
         if self.n_structure_array is None:
