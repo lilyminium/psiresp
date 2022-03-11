@@ -1,5 +1,6 @@
 
 from typing import Optional, List
+from typing_extensions import Literal
 from pydantic import Field
 
 import numpy as np
@@ -59,6 +60,11 @@ class ConformerGenerationOptions(base.Model):
     keep_original_conformer: bool = Field(
         default=True,
         description="Whether to keep the original conformer in the molecule"
+    )
+
+    minimize: bool = Field(
+        default=False,
+        description="Whether to minimize geometries with UFF force field"
     )
 
     def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:

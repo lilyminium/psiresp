@@ -1,7 +1,7 @@
 
 import itertools
 import logging
-from typing import TYPE_CHECKING, Set, Tuple
+from typing import TYPE_CHECKING, Set, Tuple, Optional
 
 from typing_extensions import Literal
 import numpy as np
@@ -246,7 +246,9 @@ def add_conformer_from_coordinates(rdmol: "rdkit.Chem.Mol",
 def generate_conformers(rdmol: "rdkit.Chem.Mol",
                         n_conformers: int = 0,
                         rms_tolerance: float = 1.5,
-                        random_seed=-1):
+                        random_seed=-1,
+                        minimize: bool = True,
+                        ):
     """Generate conformers for an RDKit molecule.
 
     This does not clear existing conformers.
@@ -267,6 +269,9 @@ def generate_conformers(rdmol: "rdkit.Chem.Mol",
                                clearConfs=False,
                                randomSeed=random_seed,
                                ignoreSmoothingFailures=True)
+    if minimize:
+        minimize_conformer_geometries(rdmol)
+
 
 
 def minimize_conformer_geometries(rdmol: "rdkit.Chem.Mol",
@@ -408,6 +413,7 @@ def generate_diverse_conformer_coordinates(molecule,
                                            energy_window: float = 30,
                                            n_max_conformers: int = 10,
                                            rms_tolerance: float = 0.05,
+                                           minimize: bool = False,
                                            ):
     if not isinstance(molecule, Chem.Mol):
         molecule = rdmol_from_qcelemental(molecule)
@@ -415,7 +421,9 @@ def generate_diverse_conformer_coordinates(molecule,
         molecule = Chem.RWMol(molecule)
 
     generate_conformers(molecule, n_conformers=n_conformer_pool,
-                        rms_tolerance=rms_tolerance)
+                        rms_tolerance=rms_tolerance,
+                        minimize=minimize,
+                        )
     return select_elf_conformer_coordinates(molecule,
                                             energy_window=energy_window,
                                             limit=n_max_conformers,
