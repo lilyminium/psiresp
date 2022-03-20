@@ -91,12 +91,20 @@ class Job(base.Model):
         return self.stage_2_charges.charges
 
     @property
+    def conformers(self):
+        return list(self.iter_conformers())
+
+    @property
     def n_conformers(self):
         return sum(mol.n_conformers for mol in self.molecules)
 
     @property
     def n_orientations(self):
         return sum(mol.n_orientations for mol in self.molecules)
+
+    @property
+    def orientations(self):
+        return list(self.iter_orientations())
 
     def iter_conformers(self):
         for mol in self.molecules:

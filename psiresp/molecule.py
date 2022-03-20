@@ -3,7 +3,7 @@ import functools
 import logging
 
 import numpy as np
-from pydantic import Field
+from pydantic import Field, validator
 
 from . import base, orutils
 from .conformer import Conformer, ConformerGenerationOptions
@@ -93,6 +93,19 @@ class Molecule(BaseMolecule):
                                                                "x-axis, and the third atom defines a plane parallel to the"
                                                                "xy plane. This is indexed from 0.")
                                                   )
+
+
+    @validator(
+        "stage_1_unrestrained_charges",
+        "stage_1_restrained_charges",
+        "stage_2_unrestrained_charges",
+        "stage_2_restrained_charges",
+        pre=True
+    )
+    def validate_charges(v):
+        if v is not None:
+            v = np.asarray(v)
+        return v
 
     @classmethod
     def from_smiles(cls, smiles, **kwargs):

@@ -121,4 +121,7 @@ class RespCharges(BaseRespOptions):
 
     @property
     def charges(self):
+        charges_ = self._charges
+        if charges_ is None:
+            return
         return self.charge_constraints._index_array(self._charges)

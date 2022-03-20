@@ -4,6 +4,7 @@ Releases follow the `major.minor.micro` format of [PEP440](https://www.python.or
 
 ## Current development
 
+- Add minimization option for conformer generation (#83)
 - Add custom Psi4 options to QM classes (#82)
 - Add function signatures back in (#79)
 - Add progress bars (#75)
