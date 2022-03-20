@@ -1,5 +1,6 @@
 import pytest
-from numpy.testing import assert_equal
+import numpy as np
+from numpy.testing import assert_equal, assert_allclose
 
 import psiresp
 from psiresp.molecule import Molecule
@@ -72,7 +73,35 @@ def test_smarts_unlabeled():
                                "-[H:25])-[H:22])=[O:11])-[H:15])(-[H:12])"
                                "(-[H:13])-[H:14]"))
 ])
-def to_smiles(insmiles, outsmiles):
+def test_to_smiles(insmiles, outsmiles):
     pytest.importorskip("rdkit")
     mol = psiresp.Molecule.from_smiles(insmiles)
     assert mol.to_smiles() == outsmiles
+
+
+def test_minimize_conformers():
+
+    def create_molecule(minimize):
+        mol = psiresp.Molecule.from_smiles(
+            "BCC",
+            conformer_generation_options=ConformerGenerationOptions(
+                n_max_conformers=1,
+                keep_original_conformer=False,
+                minimize=minimize,
+            ),
+        )
+        mol.generate_conformers()
+        return mol
+
+    original = create_molecule(None)
+    assert_allclose(original.coordinates, original.conformers[0].coordinates)
+
+    # MMFF shouldn't support boron yet
+    with pytest.warns(UserWarning, match="MMFF charges could not be computed"):
+        mmff = create_molecule("mmff94")
+
+    assert_allclose(mmff.coordinates, mmff.conformers[0].coordinates)
+
+    uff = create_molecule("uff")
+    diff = np.abs(uff.coordinates - uff.conformers[0].coordinates).sum()
+    assert diff > 1

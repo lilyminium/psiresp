@@ -2,6 +2,7 @@
 import itertools
 import logging
 from typing import TYPE_CHECKING, Set, Tuple, Optional
+import warnings
 
 from typing_extensions import Literal
 import numpy as np
@@ -27,6 +28,7 @@ BONDTYPES = {
 
 logger = logging.getLogger(__name__)
 
+OPT_FF_NAMES = Literal["uff", "mmff94"]
 OFF_SMILES_ATTRIBUTE = "canonical_isomeric_explicit_hydrogen_mapped_smiles"
 
 
@@ -246,8 +248,8 @@ def add_conformer_from_coordinates(rdmol: "rdkit.Chem.Mol",
 def generate_conformers(rdmol: "rdkit.Chem.Mol",
                         n_conformers: int = 0,
                         rms_tolerance: float = 1.5,
-                        random_seed=-1,
-                        minimize: bool = True,
+                        random_seed=1,
+                        minimize: Optional[OPT_FF_NAMES] = None,
                         ):
     """Generate conformers for an RDKit molecule.
 
@@ -270,11 +272,11 @@ def generate_conformers(rdmol: "rdkit.Chem.Mol",
                                randomSeed=random_seed,
                                ignoreSmoothingFailures=True)
     if minimize:
-        minimize_conformer_geometries(rdmol)
-
+        minimize_conformer_geometries(rdmol, forcefield=minimize)
 
 
 def minimize_conformer_geometries(rdmol: "rdkit.Chem.Mol",
+                                  forcefield: OPT_FF_NAMES = "mmff94",
                                   minimize_max_iter: int = 2000):
     """Minimize conformer geometries of an RDKit molecule
 
@@ -283,10 +285,20 @@ def minimize_conformer_geometries(rdmol: "rdkit.Chem.Mol",
     minimize_max_iter: int (optional)
         Maximum number of iterations for minimization
     """
+    # TODO: make this more customizable
 
-    # TODO: is UFF good?
-    AllChem.UFFOptimizeMoleculeConfs(rdmol, numThreads=0,
-                                     maxIters=minimize_max_iter)
+    forcefield = forcefield.lower()
+    if forcefield == "uff":
+        AllChem.UFFOptimizeMoleculeConfs(rdmol, numThreads=0,
+                                         maxIters=minimize_max_iter)
+    elif forcefield == "mmff94":
+        AllChem.MMFFOptimizeMoleculeConfs(rdmol, numThreads=0,
+                                          maxIters=minimize_max_iter)
+    else:
+        raise ValueError(
+            f"Force field {forcefield} not supported. "
+            f"Please use one of {OPT_FF_NAMES}"
+        )
 
 
 def compute_mmff_charges(rdmol: "rdkit.Chem.Mol",
@@ -371,8 +383,13 @@ def select_elf_conformer_ids(rdmol: "rdkit.Chem.Mol",
     if n_conformers == 0:
         return
 
-    energies = compute_electrostatic_energy(rdmol, forcefield="MMFF94")
     all_conformer_ids = [c.GetId() for c in rdmol.GetConformers()]
+
+    try:
+        energies = compute_electrostatic_energy(rdmol, forcefield="MMFF94")
+    except ValueError as e:
+        warnings.warn(str(e))
+        return all_conformer_ids[:limit]
 
     sorting = np.argsort(energies)
     conversion = qcel.constants.conversion_factor(
@@ -413,7 +430,7 @@ def generate_diverse_conformer_coordinates(molecule,
                                            energy_window: float = 30,
                                            n_max_conformers: int = 10,
                                            rms_tolerance: float = 0.05,
-                                           minimize: bool = False,
+                                           minimize: Optional[OPT_FF_NAMES] = None,
                                            ):
     if not isinstance(molecule, Chem.Mol):
         molecule = rdmol_from_qcelemental(molecule)
@@ -464,7 +481,7 @@ def molecule_to_rdkit(molecule):
     return Chem.Mol(rdmol)
 
 
-def molecule_from_rdkit(rdmol, molecule_cls, random_seed=-1, **kwargs):
+def molecule_from_rdkit(rdmol, molecule_cls, random_seed=1, **kwargs):
     rdmol = Chem.AddHs(rdmol)
     qcmol = rdmol_to_qcelemental(rdmol, random_seed=random_seed)
     kwargs = dict(**kwargs)

@@ -62,9 +62,9 @@ class ConformerGenerationOptions(base.Model):
         description="Whether to keep the original conformer in the molecule"
     )
 
-    minimize: bool = Field(
-        default=False,
-        description="Whether to minimize geometries with UFF force field"
+    minimize: Optional[Literal["uff", "mmff94"]] = Field(
+        default=None,
+        description="Whether to minimize geometries with the specified force field"
     )
 
     def generate_coordinates(self, qcmol: qcel.models.Molecule) -> np.ndarray:

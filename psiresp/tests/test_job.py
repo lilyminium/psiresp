@@ -17,9 +17,20 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA2_CHARGES,
                                      AMM_NME_OPT_RESPA1_CHARGES,
                                      MANUAL_JOBS_WKDIR,
+                                     TRIFLUOROETHANOL_JOB,
                                      )
 
 pytest.importorskip("psi4")
+
+
+def test_load_job_from_json():
+    job = Job.parse_file(TRIFLUOROETHANOL_JOB)
+    assert len(job.molecules) == 1
+
+    orientation = job.molecules[0].conformers[0].orientations[0]
+    assert_allclose(orientation.esp[0], 0.0054845008310878)
+    assert_allclose(orientation.esp[-1], 0.0290851723179761)
+    assert job.charges is None
 
 
 @requires_qcfractal
