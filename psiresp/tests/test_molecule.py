@@ -80,6 +80,7 @@ def test_to_smiles(insmiles, outsmiles):
 
 
 def test_minimize_conformers():
+    pytest.importorskip("rdkit")
 
     def create_molecule(minimize):
         mol = psiresp.Molecule.from_smiles(
