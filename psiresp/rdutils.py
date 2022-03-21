@@ -1,7 +1,7 @@
 
 import itertools
 import logging
-from typing import TYPE_CHECKING, Set, Tuple, Optional
+from typing import TYPE_CHECKING, Set, Tuple, Optional, List
 import warnings
 
 from typing_extensions import Literal
@@ -135,7 +135,7 @@ def assign_bond_order_and_charges_from_electrons(rdmol):
         # any residual unpaired electrons are turned into negative charge
         n_unpaired = n_unpaired_e(atom)[0]
         if n_unpaired > 0:
-            atom.SetFormalCharge(-n)
+            atom.SetFormalCharge(-n_unpaired)
             atom.SetNumRadicalElectrons(0)
             rdmol.UpdatePropertyCache(strict=False)
     Chem.Kekulize(rdmol)
@@ -496,3 +496,36 @@ def molecule_from_rdkit(rdmol, molecule_cls, random_seed=1, **kwargs):
 
 def get_connectivity(molecule):
     return get_rdkit_connectivity(molecule._rdmol)
+
+
+def GetSymmetricAtomIndices(
+    mol: Chem.Mol,
+    maxMatches: int = 10000,
+) -> List[Tuple[int, ...]]:
+    """Get atom indices of symmetric atoms
+
+    Returns
+    -------
+    symmetric_indices: List[Tuple[int, ...]]
+        In this list, one item is a sorted tuple of indices,
+        where each index indicates an atom that is symmetric
+        to all the other indices in the tuple.
+    """
+    # take care of resonance
+    matches = [
+        match
+        for resMol in Chem.ResonanceMolSupplier(mol)
+        for match in resMol.GetSubstructMatches(mol, uniquify=False,
+                                                maxMatches=maxMatches)
+    ]
+    atom_symmetries = set(tuple(sorted(set(x))) for x in zip(*matches))
+    return sorted([x for x in atom_symmetries if len(x) > 1])
+
+
+def get_symmetric_atom_indices(molecule):
+    # from psiresp.utils import require_package
+    # require_package("rdkit_utilities")
+
+    # from rdkit_utilities import GetSymmetricAtomIndices
+    rdmol = molecule.to_rdkit()
+    return GetSymmetricAtomIndices(rdmol)

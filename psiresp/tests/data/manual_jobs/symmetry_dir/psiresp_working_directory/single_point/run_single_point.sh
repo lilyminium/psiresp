@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+psi4 --qcschema CHO2_ad28051bdb4b7e18c591adf3027440b6cf42164c_4d9bb6d245f75e8aea535e7b9676614d130d864b.msgpack

@@ -81,6 +81,11 @@ class Job(base.Model):
                      "the number of CPUs.")
     )
 
+    @classmethod
+    def from_smiles(cls, smiles: str, order_by_map_number: bool = False, **kwargs):
+        mol = molecule.Molecule.from_smiles(smiles, order_by_map_number=order_by_map_number)
+        return cls(molecules=[mol], **kwargs)
+
     @property
     def charges(self):
         if self.stage_2_charges is None:
