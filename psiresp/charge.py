@@ -365,6 +365,17 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     def _index_array(self, array):
         return [array[i:j] for i, j in self._edges]
 
+    def get_sp3_equivalences(self, accepted_n_hs: Tuple[int, ...] = (2, 3)):
+        equivalent_atoms = {"H": [], "C": []}
+        for mol in self.molecules:
+            ch_groups = mol.get_sp3_ch_indices()
+            for c, hs in ch_groups.items():
+                if len(hs) in accepted_n_hs:
+                    atoms = [Atom(molecule=mol, index=i) for i in hs]
+                    equivalent_atoms["H"].append(atoms)
+                    equivalent_atoms["C"].append(Atom(molecule=mol, index=c))
+        return equivalent_atoms
+
     def add_sp3_equivalences(self, accepted_n_hs: Tuple[int, ...] = (2, 3)):
         """
         Add ChargeEquivalenceConstraints for the hydrogens attached to sp3 carbons
@@ -377,17 +388,14 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
         accepted_n_hs:
             Number of Hs around a carbon to symmetrize
         """
-        for mol in self.molecules:
-            ch_groups = mol.get_sp3_ch_indices()
-            for c, hs in ch_groups.items():
-                if len(hs) in accepted_n_hs:
-                    atoms = [Atom(molecule=mol, index=i) for i in hs]
-                    self.charge_equivalence_constraints.append(
-                        ChargeEquivalenceConstraint(atoms=atoms)
-                    )
-                    self.unconstrained_atoms.append(
-                        Atom(molecule=mol, index=c)
-                    )
+        equivalent_atoms = self.get_sp3_equivalences(accepted_n_hs=accepted_n_hs)
+        self.charge_equivalence_constraints.extend(
+            [
+                ChargeEquivalenceConstraint(atoms=atoms)
+                for atoms in equivalent_atoms["H"]
+            ]
+        )
+        self.unconstrained_atoms.extend(equivalent_atoms["C"])
 
     def add_symmetry_equivalences(self):
         for mol in self.molecules:
@@ -395,3 +403,26 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                 self.charge_equivalence_constraints.append(
                     ChargeEquivalenceConstraint(atoms=atoms)
                 )
+
+    def prepare_stage_1_constraints(self):
+        # heavy atoms, heavy Hs equivalenced
+        # basically remove any constraints that are only methyls
+        equivalent_hs = self.get_sp3_equivalences()["H"]
+        all_hs = {h for eq in equivalent_hs for h in eq}
+
+        self.charge_equivalence_constraints = [
+            constraint
+            for constraint in self.charge_equivalence_constraints
+            if not set(constraint.atoms).issubset(all_hs)
+        ]
+
+    def prepare_stage_2_constraints(self):
+        # keep only methyl/ene constraints
+        equivalent_hs = self.get_sp3_equivalences()["H"]
+        all_hs = {h for eq in equivalent_hs for h in eq}
+
+        self.charge_equivalence_constraints = [
+            constraint
+            for constraint in self.charge_equivalence_constraints
+            if set(constraint.atoms).issubset(all_hs)
+        ]

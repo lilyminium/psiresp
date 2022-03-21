@@ -266,7 +266,7 @@ class Job(base.Model):
 
         if self.resp_options.stage_2:
             stage_2_constraints = stage_1_constraints.copy(deep=True)
-            stage_1_constraints.charge_equivalence_constraints = []
+            stage_1_constraints.prepare_stage_1_constraints()
 
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,
@@ -275,6 +275,7 @@ class Job(base.Model):
         self.stage_1_charges.solve()
 
         if self.resp_options.stage_2:
+            stage_1_constraints.prepare_stage_2_constraints()
             stage_2_constraints.add_constraints_from_charges(self.stage_1_charges._charges)
             self.stage_2_charges = RespCharges(charge_constraints=stage_2_constraints,
                                                surface_constraints=surface_constraints,
