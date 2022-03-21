@@ -18,6 +18,8 @@ from psiresp.tests.datafiles import (AMM_NME_OPT_ESPA1_CHARGES,
                                      AMM_NME_OPT_RESPA1_CHARGES,
                                      MANUAL_JOBS_WKDIR,
                                      TRIFLUOROETHANOL_JOB,
+                                     FORMIC_ACID_JSON,
+                                     FORMIC_ACID_WKDIR
                                      )
 
 pytest.importorskip("psi4")
@@ -302,3 +304,27 @@ class TestMultiResp:
         # low precision -- generation of conformers can be flaky
         assert_allclose(methylammonium_job, methylammonium_charges, atol=5e-2)
         assert_allclose(nme2ala2_job, nme2ala2_charges, atol=5e-2)
+
+
+def test_symmetric_constraints(tmpdir):
+    pytest.importorskip("rdkit")
+
+    # formic smiles: "[H:4][C:2](=[O:1])[O-:3]"
+    mol = psiresp.Molecule.parse_file(FORMIC_ACID_JSON)
+
+    with tmpdir.as_cwd():
+        shutil.copytree(FORMIC_ACID_WKDIR, "psiresp_working_directory")
+
+        not_equiv = Job(
+            molecules=[mol],
+            charge_constraints=dict(symmetric_atoms_are_equivalent=False)
+        ).run()[0]
+        # 0 and 2 are the oxygens
+        assert not np.allclose(not_equiv[0], not_equiv[2])
+
+        equiv = Job(
+            molecules=[mol],
+            charge_constraints=dict(symmetric_atoms_are_equivalent=True)
+        ).run()[0]
+
+        assert_allclose(equiv[0], equiv[2])

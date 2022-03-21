@@ -67,3 +67,6 @@ METHYLAMMONIUM_O2_GRID = datapath("esps/8776ca97115f78967cccc3dbc89c5530891000db
 METHYLAMMONIUM_O2_ESP = datapath("esps/8776ca97115f78967cccc3dbc89c5530891000db_esp.dat")
 
 TRIFLUOROETHANOL_JOB = datapath("jobs/trifluoroethanol.json")
+
+FORMIC_ACID_JSON = datapath("molecules/formic_acid.json")
+FORMIC_ACID_WKDIR = datapath("manual_jobs/symmetry_dir/psiresp_working_directory")

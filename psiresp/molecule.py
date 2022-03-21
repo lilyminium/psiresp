@@ -93,7 +93,7 @@ class Molecule(BaseMolecule):
                                                                "x-axis, and the third atom defines a plane parallel to the"
                                                                "xy plane. This is indexed from 0.")
                                                   )
-
+    # _atoms: Tuple["Atom"]
 
     @validator(
         "stage_1_unrestrained_charges",
@@ -108,9 +108,9 @@ class Molecule(BaseMolecule):
         return v
 
     @classmethod
-    def from_smiles(cls, smiles, **kwargs):
+    def from_smiles(cls, smiles, order_by_map_number: bool = False, **kwargs):
         from . import rdutils
-        rdmol = rdutils.rdmol_from_smiles(smiles)
+        rdmol = rdutils.rdmol_from_smiles(smiles, order_by_map_number=order_by_map_number)
         return cls.from_rdkit(rdmol, **kwargs)
 
     @classmethod
@@ -149,6 +149,17 @@ class Molecule(BaseMolecule):
             self.multiplicity = self.qcmol.molecular_multiplicity
         else:
             self.qcmol.__dict__["molecular_multiplicity"] = self.multiplicity
+        # self._atoms = tuple(Atom.from_molecule(
+        #     self,
+        #     indices=np.arange(len(self.qcmol.symbols)),
+        # ))
+
+    @property
+    def atoms(self):
+        return Atom.from_molecule(
+            self,
+            indices=np.arange(len(self.qcmol.symbols)),
+        )
 
     def __repr__(self):
         qcmol_repr = self._get_qcmol_repr()
@@ -298,6 +309,32 @@ class Molecule(BaseMolecule):
                 groups[i] = c_partners[symbols[c_partners] == "H"]
         return groups
 
+    def get_symmetric_atom_indices(self) -> List[Tuple[int, ...]]:
+        """Get atom indices that are symmetric to each other
+
+        Returns
+        -------
+        symmetric_atom_indices: List[Tuple[int, ...]]
+            Each item in the list is a tuple of integers, where
+            each atom associated with the index is symmetric to the others
+        """
+        from .rdutils import get_symmetric_atom_indices
+        return get_symmetric_atom_indices(self)
+
+    def get_symmetric_atoms(self) -> List[List["Atom"]]:
+        """Get atoms that are symmetric to each other
+
+        Returns
+        -------
+        symmetric_atoms: List[List[Atom]]
+            Each item in the list is a list of atoms, where
+            each atom is symmetric to the others
+        """
+        return [
+            [self.atoms[i] for i in match]
+            for match in self.get_symmetric_atom_indices()
+        ]
+
 
 @functools.total_ordering
 class Atom(base.Model):
@@ -331,3 +368,7 @@ class Atom(base.Model):
 
     def __lt__(self, other):
         return self.index < other.index
+
+
+Molecule.update_forward_refs()
+Atom.update_forward_refs()

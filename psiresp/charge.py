@@ -1,6 +1,7 @@
 import functools
 from typing import List, Dict, Set, Tuple
 from collections import defaultdict
+import warnings
 
 import numpy as np
 from pydantic import Field
@@ -241,6 +242,22 @@ class ChargeConstraintOptions(BaseChargeConstraintOptions):
         description=("Whether to constrain methylene hydrogens around "
                      "a carbon to equivalent charge")
     )
+    symmetric_atoms_are_equivalent: bool = Field(
+        default=False,
+        description=("Whether to constrain atoms to have equivalent charges "
+                     "if they are symmetric in the graph representation. "
+                     "3D coordinates are *not* taken into account.")
+    )
+
+    def __post_init__(self, **kwargs):
+        warnings.warn(
+            (
+                "`symmetric_atoms_are_equivalent` will be set to False "
+                "by default for now, as it is a new feature. "
+                "It will be set to True by default in the future"
+            ),
+            FutureWarning)
+        return super().__post_init__(**kwargs)
 
 
 class MoleculeChargeConstraints(BaseChargeConstraintOptions):
@@ -291,6 +308,8 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
             accepted.append(2)
         if accepted:
             constraints.add_sp3_equivalences(accepted)
+        if charge_constraints.symmetric_atoms_are_equivalent:
+            constraints.add_symmetry_equivalences()
         return constraints
 
     def to_a_col_constraints(self):
@@ -369,3 +388,10 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                     self.unconstrained_atoms.append(
                         Atom(molecule=mol, index=c)
                     )
+
+    def add_symmetry_equivalences(self):
+        for mol in self.molecules:
+            for atoms in mol.get_symmetric_atoms():
+                self.charge_equivalence_constraints.append(
+                    ChargeEquivalenceConstraint(atoms=atoms)
+                )
