@@ -8,7 +8,6 @@ from pydantic import Field
 
 from . import base
 from .molecule import Atom, Molecule
-from .utils import require_package
 
 
 @functools.total_ordering
