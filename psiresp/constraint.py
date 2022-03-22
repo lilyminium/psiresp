@@ -82,7 +82,10 @@ class ESPSurfaceConstraintMatrix(base.Model):
             try:
                 constant_vector = constant_vector.reshape((n_dim,))
             except ValueError:
-                msg = f"`constant_vector` must have shape ({n_dim},)"
+                msg = (
+                    f"`constant_vector` must have shape ({n_dim},). "
+                    f"Given vector with shape {constant_vector.shape}."
+                )
                 raise ValueError(msg)
         placeholder = np.empty((n_dim + 1, n_dim))
         matrix = cls(matrix=placeholder)
@@ -136,10 +139,11 @@ class SparseGlobalConstraintMatrix(base.Model):
         a = scipy.sparse.csr_matrix(surface_constraints.coefficient_matrix)
         b = surface_constraints.constant_vector
 
-        if charge_constraints.n_constraints:
+        dense_matrices = charge_constraints.to_a_col_constraints()
+        if len(dense_matrices):
             a_block = scipy.sparse.hstack([
                 scipy.sparse.coo_matrix(dense)
-                for dense in charge_constraints.to_a_col_constraints()
+                for dense in dense_matrices
             ])
             b_block_ = charge_constraints.to_b_constraints()
             a = scipy.sparse.bmat(
@@ -152,11 +156,11 @@ class SparseGlobalConstraintMatrix(base.Model):
 
         n_structure_array = np.concatenate([
             [mol.n_orientations] * mol.n_atoms
-            for mol in charge_constraints.molecules
+            for mol in charge_constraints._constraint_conformers
         ])
 
         symbols = np.concatenate(
-            [mol.qcmol.symbols for mol in charge_constraints.molecules]
+            [mol.qcmol.symbols for mol in charge_constraints._constraint_conformers]
         )
         mask = np.ones_like(symbols, dtype=bool)
         if exclude_hydrogens:

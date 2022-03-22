@@ -59,8 +59,8 @@ class BaseChargeConstraint(base.Model):
                                  molecule_increments: Dict[int, int] = {}):
         return self.to_sparse_row_constraint(n_dim, molecule_increments).transpose()
 
-    def get_atom_indices(self, molecule_increments: Dict[int, int] = {}):
-        indices = [atom.index + molecule_increments.get(hash(atom.molecule), 0)
+    def get_atom_indices(self, molecule_increments: Dict[int, List[int]] = {}):
+        indices = [atom.index + molecule_increments.get(hash(atom.molecule), [0])[0]
                    for atom in self.atoms]
         return np.array(sorted(indices), dtype=int)
 
@@ -92,7 +92,7 @@ class ChargeSumConstraint(BaseChargeConstraint):
     #     )
 
     def to_row_constraint(self, n_dim: int,
-                          molecule_increments: Dict[Molecule, int] = {}):
+                          molecule_increments: Dict[int, List[int]] = {}):
         row = np.zeros((1, n_dim))
         indices = self.get_atom_indices(molecule_increments)
         row[0, indices] = 1
@@ -109,23 +109,38 @@ class ChargeEquivalenceConstraint(BaseChargeConstraint):
     """
 
     def to_row_constraint(self, n_dim: int,
-                          molecule_increments: Dict[Molecule, int] = {}):
-        n_items = len(self) - 1
-        rows = np.zeros((n_items, n_dim))
+                          molecule_increments: Dict[int, List[int]] = {}):
         indices = self.get_atom_indices(molecule_increments)
-        for i, (j, k) in enumerate(zip(indices[:-1], indices[1:])):
-            rows[i][j] = -1
-            rows[i][k] = 1
-        return rows
+        return self._convert_indices_to_constraint_rows(n_dim, indices)
 
     @property
     def charge(self):
         return None
 
+    @staticmethod
+    def _convert_indices_to_constraint_rows(n_dim, indices):
+        n_items = len(indices) - 1
+        rows = np.zeros((n_items, n_dim))
+        for i, (j, k) in enumerate(zip(indices[:-1], indices[1:])):
+            rows[i][j] = -1
+            rows[i][k] = 1
+        return rows
+
 
 class BaseChargeConstraintOptions(base.Model):
     charge_sum_constraints: List[ChargeSumConstraint] = []
     charge_equivalence_constraints: List[ChargeEquivalenceConstraint] = []
+    split_conformers: bool = Field(
+        default=False,
+        description="Treat conformers separately, instead of combining the restraint matrices"
+    )
+    constrain_methyl_hydrogens_between_conformers: bool = Field(
+        default=False,
+        description=(
+            "Whether to constrain methyl/ene hydrogens as equivalent between conformers. "
+            "This has no effect if `split_conformers=False`."
+        )
+    )
 
     @property
     def n_constraints(self):
@@ -157,8 +172,17 @@ class BaseChargeConstraintOptions(base.Model):
             for atom in chrequiv.atoms:
                 equivalences[atom] |= chrequiv.atoms
 
-        self.charge_equivalence_constraints = [ChargeEquivalenceConstraint(atoms=x)
-                                               for x in equivalences.values()]
+        unique_sets = []
+        for group in equivalences.values():
+            for existing in unique_sets:
+                if group & existing:
+                    existing |= group
+                    break
+            else:
+                unique_sets.append(group)
+
+        self.charge_equivalence_constraints = [ChargeEquivalenceConstraint(atoms=sorted(x))
+                                               for x in unique_sets]
 
     def _get_single_atom_charge_constraints(self) -> Dict[Atom, float]:
         """Get ChargeConstraints with only one atom as a dict"""
@@ -222,7 +246,11 @@ class BaseChargeConstraintOptions(base.Model):
         """
         self._unite_overlapping_equivalences()
         self._remove_incompatible_and_redundant_equivalent_atoms()
-        constraint_set = set(self.charge_equivalence_constraints)
+        constraint_set = set([
+            constraint
+            for constraint in self.charge_equivalence_constraints
+            if len(constraint.atoms) > 1
+        ])
         self.charge_equivalence_constraints = sorted(constraint_set)
 
     def clean_charge_sum_constraints(self):
@@ -265,23 +293,49 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     unconstrained_atoms: List[Atom] = []
 
     _n_atoms: int
+    _n_total_atoms: int
+    _n_conformers: List[int]
     _n_molecule_atoms: np.ndarray
-    _molecule_increments: Dict[int, int]
+    _molecule_increments: Dict[int, List[int]]
     _edges: List[Tuple[int, int]]
 
     def __post_init__(self, **kwargs):
         super().__post_init__(**kwargs)
+        self._n_atoms = sum([mol.n_atoms for mol in self.molecules])
         self.clean_charge_sum_constraints()
         self.clean_charge_equivalence_constraints()
+        self._generate_molecule_increments()
 
-        n_atoms = [mol.n_atoms for mol in self.molecules]
-        self._n_atoms = sum(n_atoms)
-        self._n_molecule_atoms = np.cumsum(np.r_[0, n_atoms])
+    def _generate_molecule_increments(self):
         self._molecule_increments = {}
-        for mol, i in zip(self.molecules, self._n_molecule_atoms):
-            self._molecule_increments[hash(mol)] = i
-        self._edges = list(zip(self._n_molecule_atoms[:-1],
-                               self._n_molecule_atoms[1:]))
+        increment = 0
+        for mol in self.molecules:
+            n_atoms = mol.n_atoms
+            confs = mol.conformers
+            if not self.split_conformers:
+                confs = confs[:1]
+            inc_list = []
+            for _ in confs:
+                inc_list.append(increment)
+                increment += n_atoms
+            self._molecule_increments[hash(mol)] = inc_list
+        self._n_total_atoms = increment
+        self._generate_edges()
+
+    def _generate_edges(self):
+        increments = list(self._molecule_increments.values())
+        self._n_molecule_atoms = np.array([x[0] for x in increments] + [self._n_total_atoms])
+        self._edges = []
+        for mol in self.molecules:
+            starter = self._molecule_increments[hash(mol)][0]
+            ender = starter + mol.n_atoms
+            self._edges.append((starter, ender))
+
+    @property
+    def _constraint_conformers(self):
+        if self.split_conformers:
+            return [conf for mol in self.molecules for conf in mol.conformers]
+        return self.molecules
 
     @property
     def n_atoms(self):
@@ -297,9 +351,20 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                 for constr in charge_constraints.charge_equivalence_constraints
                 if constr.molecule_set & molecule_set]
 
-        constraints = cls(charge_sum_constraints=sums,
-                          charge_equivalence_constraints=eqvs,
-                          molecules=molecules)
+        dct = {
+            k: getattr(charge_constraints, k)
+            for k in [
+                "split_conformers",
+                "constrain_methyl_hydrogens_between_conformers",
+            ]
+        }
+
+        constraints = cls(
+            charge_sum_constraints=sums,
+            charge_equivalence_constraints=eqvs,
+            molecules=molecules,
+            **dct
+        )
 
         accepted = []
         if charge_constraints.symmetric_methyls:
@@ -312,10 +377,49 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
             constraints.add_symmetry_equivalences()
         return constraints
 
-    def to_a_col_constraints(self):
-        return [constr.to_row_constraint(n_dim=self._n_atoms + len(self.molecules),
-                                         molecule_increments=self._molecule_increments).T
-                for constr in self.iter_constraints()]
+    def to_a_col_constraints(self) -> List[np.ndarray]:
+        n_dim = self._n_total_atoms + len(self._constraint_conformers)
+
+        # include legitimate constraints within a conformer / between conformers
+        constraints = [
+            constr.to_row_constraint(
+                n_dim=n_dim,
+                molecule_increments=self._molecule_increments,
+            ).T
+            for constr in self.iter_constraints()
+        ]
+
+        sum_constraints = defaultdict(set)
+        for constr in self.charge_sum_constraints:
+            for atom in constr.atoms:
+                molhash = hash(atom.molecule)
+                sum_constraints[molhash].add(atom.index)
+
+        # add inter-conformer constraints
+        if self.split_conformers:
+            for mol in self.molecules:
+                molhash = hash(mol)
+                increments = np.array(self._molecule_increments[hash(mol)], dtype=int)
+                indices = list(range(mol.n_atoms))
+                if not self.constrain_methyl_hydrogens_between_conformers:
+                    h_indices = [
+                        i for group in mol.get_sp3_ch_indices().values()
+                        for i in group
+                    ]
+
+                    indices = [
+                        i
+                        for i in indices
+                        if i not in h_indices or i in sum_constraints[molhash]
+                    ]
+
+                for i in indices:
+                    col = ChargeEquivalenceConstraint._convert_indices_to_constraint_rows(
+                        n_dim, increments + i
+                    ).T
+                    if col.shape[1]:
+                        constraints.append(col)
+        return constraints
 
     def to_b_constraints(self):
         b = [constr.charge for constr in self.charge_sum_constraints]
@@ -337,7 +441,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                                for atom in eqv.atoms]
         unconstrained_atoms += self.unconstrained_atoms
 
-        unconstrained_indices = [a.index + self._molecule_increments[hash(a.molecule)]
+        unconstrained_indices = [a.index + self._molecule_increments[hash(a.molecule)][0]
                                  for a in unconstrained_atoms]
 
         indices = np.arange(self.n_atoms)
@@ -407,22 +511,26 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
     def prepare_stage_1_constraints(self):
         # heavy atoms, heavy Hs equivalenced
         # basically remove any constraints that are only methyls
-        equivalent_hs = self.get_sp3_equivalences()["H"]
-        all_hs = {h for eq in equivalent_hs for h in eq}
+        equivalent_atoms = self.get_sp3_equivalences()
+        all_atoms = {h for eq in equivalent_atoms["H"] for h in eq}
+        all_atoms |= set(equivalent_atoms["C"])
 
         self.charge_equivalence_constraints = [
             constraint
             for constraint in self.charge_equivalence_constraints
-            if not set(constraint.atoms).issubset(all_hs)
+            if not set(constraint.atoms).issubset(all_atoms)
         ]
 
     def prepare_stage_2_constraints(self):
         # keep only methyl/ene constraints
-        equivalent_hs = self.get_sp3_equivalences()["H"]
-        all_hs = {h for eq in equivalent_hs for h in eq}
+        return
 
-        self.charge_equivalence_constraints = [
-            constraint
-            for constraint in self.charge_equivalence_constraints
-            if set(constraint.atoms).issubset(all_hs)
-        ]
+        # equivalent_atoms = self.get_sp3_equivalences()
+        # all_atoms = {h for eq in equivalent_atoms["H"] for h in eq}
+        # all_atoms |= set(equivalent_atoms["C"])
+
+        # self.charge_equivalence_constraints = [
+        #     constraint
+        #     for constraint in self.charge_equivalence_constraints
+        #     if set(constraint.atoms).issubset(all_atoms)
+        # ]
