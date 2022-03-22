@@ -285,6 +285,8 @@ class Job(base.Model):
             stage_2_constraints = stage_1_constraints.copy(deep=True)
             stage_2_constraints.constrain_methyl_hydrogens_between_conformers = True
             stage_1_constraints.prepare_stage_1_constraints()
+        else:
+            stage_1_constraints.constrain_methyl_hydrogens_between_conformers = True
 
         self.stage_1_charges = RespCharges(charge_constraints=stage_1_constraints,
                                            surface_constraints=surface_constraints,

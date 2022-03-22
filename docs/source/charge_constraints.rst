@@ -3,6 +3,56 @@
 Charge constraints
 ==================
 
+The charge constraints used to fit charges to the ESPs can have
+a substantial effect on the resulting charges. You can both
+add manual charge constraints yourself (described in the section
+below, "Custom charge constraints") and set general options.
+
+The key options are:
+
+* symmetric_methyls (default: True)
+* symmetric_methylenes (default: True)
+* symmetric_atoms_are_equivalent (default: False)
+* split_conformers (default: False)
+* constrain_methyl_hydrogens_between_conformers (default: False)
+
+The first three options deal with symmetry.
+They constrain methyl hydrogens, methylene hydrogens,
+and symmetric atoms to have the same charge, respectively.
+Symmetric atoms are determined from the graph representation only,
+rather than from 3D coordinates.
+It is generally a good idea to have them all as True, although
+in some cases where the 3D coordinates differentiate symmetric groups,
+you may want to keep `symmetric_atoms_are_equivalent=False`.
+
+`split_conformers` affects how the constraint matrices are constructed.
+When `split_conformers=False` (the default), conformers are treated separately, and
+equivalence constraints ensure that atoms are given the same charge
+across multiple molecules.
+When `split_conformers=True`, all conformers are merged into one matrix
+so that they are essentially averaged, without equivalence constraints needed.
+
+When conformers are split, `constrain_methyl_hydrogens_between_conformers`
+affects whether equivalence constraints are set between conformers for methyl
+and methylene hydrogen atoms, for the first stage of a two-stage fit. All atoms
+are always given equivalence constraints between conformers during
+the last stage of the fit.
+Therefore, this option is only relevant if `split_conformers=True`. Using
+`split_conformers=True, constrain_methyl_hydrogens_between_conformers=False`
+is the approach first proposed by Cornell et al., 1993 in one of the
+original RESP papers, where the charges methyl/ene hydrogens are free to
+vary in the first stage.
+
+However, using `split_conformers=False` generates charges more in line
+with other packages, and for this reason that is the recommended default.
+It also saves considerably on memory because the matrices are smaller.
+
+
+
+-------------------------
+Custom charge constraints
+-------------------------
+
 PsiRESP offers two forms of constraints:
 a :class:`~psiresp.charge.ChargeSumConstraint` and
 a :class:`~psiresp.charge.ChargeEquivalenceConstraint`.
