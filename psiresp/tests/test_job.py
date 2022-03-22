@@ -88,6 +88,39 @@ class TestMultiRespWithoutClient:
                     fname = orient.qcmol.get_hash()
                     orient.esp = job_esps[fname]
                     orient.grid = job_grids[fname]
+        job.charge_constraints.split_conformers = False
+        job.compute_charges()
+        charges = np.concatenate(job.charges)
+
+        assert_allclose(charges[[0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[[27, 28, 29, 30, 31, 32]].sum(), 0, atol=1e-7)
+        assert_allclose(charges[25], 0.6163)
+        assert_allclose(charges[26], -0.5722)
+        assert_allclose(charges[18], charges[22])
+        for calculated, reference in zip(job.charges[::-1], red_charges[::-1]):
+            assert_allclose(calculated, reference, atol=1e-3)
+
+    @pytest.mark.parametrize("stage_2, restraint_height, red_charges", [
+        (False, 0.0, AMM_NME_OPT_ESPA1_CHARGES),
+        (False, 0.01, AMM_NME_OPT_RESPA2_CHARGES),
+        (True, 0.0005, AMM_NME_OPT_RESPA1_CHARGES),
+    ], indirect=['red_charges'])
+    def test_given_esps_split_conf(self, nme2ala2, methylammonium,
+                                   methylammonium_nme2ala2_charge_constraints,
+                                   stage_2, restraint_height, red_charges, job_esps, job_grids):
+
+        resp_options = RespOptions(stage_2=stage_2, restraint_height_stage_1=restraint_height)
+        job = Job(molecules=[methylammonium, nme2ala2],
+                  charge_constraints=methylammonium_nme2ala2_charge_constraints,
+                  resp_options=resp_options)
+        for mol in job.molecules:
+            for conf in mol.conformers:
+                for orient in conf.orientations:
+                    fname = orient.qcmol.get_hash()
+                    orient.esp = job_esps[fname]
+                    orient.grid = job_grids[fname]
+        job.charge_constraints.split_conformers = True
+        job.charge_constraints.constrain_methyl_hydrogens_between_conformers = True
         job.compute_charges()
         charges = np.concatenate(job.charges)
 

@@ -243,7 +243,7 @@ class Molecule(BaseMolecule):
 
     def add_conformer(self, conformer=None, **kwargs):
         if conformer is not None and isinstance(conformer, Conformer):
-            if not np.equals(conformer.qcmol.symbols, self.qcmol.symbols):
+            if not np.equal(conformer.qcmol.symbols, self.qcmol.symbols):
                 raise ValueError("Conformer molecule does not match. "
                                  f"Conformer symbols: {conformer.qcmol.symbols}, "
                                  f"Molecule symbols: {self.qcmol.symbols}")

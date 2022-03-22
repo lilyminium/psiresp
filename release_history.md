@@ -2,7 +2,9 @@
 
 Releases follow the `major.minor.micro` format of [PEP440](https://www.python.org/dev/peps/pep-0440/#final-releases).
 
-## Current development
+## 0.4.1
+- Add user options to `ChargeConstraintOptions` to allow for conformer splitting (#85)
+## 0.4.0
 
 - Add code for automatic charge equivalence constraints for symmetric atoms (#84)
 - Add minimization option for conformer generation (#83)

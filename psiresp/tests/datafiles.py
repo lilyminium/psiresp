@@ -50,6 +50,7 @@ DMSO_O2_RINV = datapath("dmso_opt_c1_o2_r_inv.dat")
 AMM_NME_OPT_RESPA2_CHARGES = datapath("charges/amm_dimethyl_respA2.dat")
 AMM_NME_OPT_RESPA1_CHARGES = datapath("charges/amm_dimethyl_respA1.dat")
 AMM_NME_OPT_ESPA1_CHARGES = datapath("charges/amm_dimethyl_espA1.dat")
+AMM_NME_RESP_JOB = datapath("jobs/amm_nme_resp.json")
 
 ETHANOL_RESP2_C1 = datapath("molecules/ethanol_resp2_opt_c1.xyz")
 ETHANOL_RESP2_C2 = datapath("molecules/ethanol_resp2_opt_c2.xyz")

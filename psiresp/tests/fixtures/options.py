@@ -6,7 +6,11 @@ from psiresp.molecule import Atom
 
 @pytest.fixture()
 def methylammonium_nme2ala2_charge_constraints(methylammonium, nme2ala2):
-    constraints = ChargeConstraintOptions(symmetric_methyls=False)
+    constraints = ChargeConstraintOptions(
+        symmetric_methyls=False,
+        symmetric_atoms_are_equivalent=False,
+        split_conformers=False
+    )
 
     # nmeala2
     nme2ala2_constraints = [(0, [19, 20, 21, 22, 23, 24]),

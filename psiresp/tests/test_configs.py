@@ -77,7 +77,6 @@ def test_config_multiresp(nme2ala2, methylammonium,
         fname = orient.qcmol.get_hash()
         orient.esp = job_esps[fname]
         orient.grid = job_grids[fname]
-
     job.compute_charges()
     charges = np.concatenate(job.charges)
 
