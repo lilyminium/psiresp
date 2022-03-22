@@ -261,8 +261,11 @@ class Job(base.Model):
         a_zeros = np.zeros((a_row.shape[0], a_row.shape[0]))
         a_block = np.bmat([[a_mol, a_row.T], [a_row, a_zeros]])
 
-        b_block = np.concatenate([mat.constant_vector for mat in matrices]
-                                 + [charges])
+        b_vecs = [mat.constant_vector for mat in matrices] + [charges]
+        if len(b_vecs):
+            b_block = np.concatenate(b_vecs)
+        else:
+            b_block = np.zeros((0, 0))
         return ESPSurfaceConstraintMatrix.from_coefficient_matrix(a_block, b_block)
 
     def generate_molecule_charge_constraints(self) -> MoleculeChargeConstraints:

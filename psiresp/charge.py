@@ -190,7 +190,7 @@ class BaseChargeConstraintOptions(base.Model):
         for constr in self.charge_sum_constraints:
             if len(constr.atoms) == 1:
                 atom = list(constr.atoms)[0]
-                if atom in single_charges and not np.allclose(single_charges[atom], constr.charge):
+                if atom in single_charges and not np.allclose(single_charges[atom], constr.charge, atol=1e-4):
                     err = ("Found conflicting charge constraints for "
                            f"atom {atom}, constrained to both "
                            f"{single_charges[atom]} and {constr.charge}")
@@ -227,13 +227,14 @@ class BaseChargeConstraintOptions(base.Model):
 
     def _remove_redundant_charge_constraints(self):
         single_charges = self._get_single_atom_charge_constraints()
+        charge_ids = [hash(x) for x in single_charges]
         redundant = []
         for i, constraint in enumerate(self.charge_sum_constraints):
             if len(constraint.atoms) > 1:
-                if all(atom in single_charges for atom in constraint.atoms):
+                if all(hash(atom) in charge_ids for atom in constraint.atoms):
                     redundant.append(i)
         for i in redundant[::-1]:
-            del self.charge_sum_constraints[i]
+            self.charge_sum_constraints.pop(i)
 
     def clean_charge_equivalence_constraints(self):
         """Clean the ChargeEquivalence constraints.
@@ -254,8 +255,8 @@ class BaseChargeConstraintOptions(base.Model):
         self.charge_equivalence_constraints = sorted(constraint_set)
 
     def clean_charge_sum_constraints(self):
-        self.charge_sum_constraints = sorted(set(self.charge_sum_constraints))
         self._remove_redundant_charge_constraints()
+        self.charge_sum_constraints = sorted(set(self.charge_sum_constraints))
 
 
 class ChargeConstraintOptions(BaseChargeConstraintOptions):
@@ -382,15 +383,36 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
 
         # include legitimate constraints within a conformer / between conformers
         constraints = [
-            constr.to_row_constraint(
+            con.to_row_constraint(
                 n_dim=n_dim,
                 molecule_increments=self._molecule_increments,
             ).T
-            for constr in self.iter_constraints()
+            for con in self.charge_sum_constraints
         ]
+        if self.split_conformers:
+            for constraint in self.charge_sum_constraints:
+                if len(constraint.atoms) == 1:
+                    atom = list(constraint.atoms)[0]
+                    molhash = hash(atom.molecule)
+                    increments = self._molecule_increments[molhash][1:]
+                    for inc in increments:
+                        col = np.zeros((n_dim, 1))
+                        col[atom.index + inc] = 1
+                        constraints.append(col)
+        for constraint in self.charge_equivalence_constraints:
+            constraints.append(
+                constraint.to_row_constraint(
+                    n_dim=n_dim,
+                    molecule_increments=self._molecule_increments,
+                ).T)
 
+        # when treating split conformers,
+        # single-atom pins shouldn't be equivalenced.
+        # makes them weird.
         sum_constraints = defaultdict(set)
         for constr in self.charge_sum_constraints:
+            if len(constr.atoms) > 1:
+                continue
             for atom in constr.atoms:
                 molhash = hash(atom.molecule)
                 sum_constraints[molhash].add(atom.index)
@@ -400,7 +422,10 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
             for mol in self.molecules:
                 molhash = hash(mol)
                 increments = np.array(self._molecule_increments[hash(mol)], dtype=int)
-                indices = list(range(mol.n_atoms))
+                indices = [
+                    i for i in list(range(mol.n_atoms))
+                    if i not in sum_constraints[molhash]
+                ]
                 if not self.constrain_methyl_hydrogens_between_conformers:
                     h_indices = [
                         i for group in mol.get_sp3_ch_indices().values()
@@ -410,7 +435,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
                     indices = [
                         i
                         for i in indices
-                        if i not in h_indices or i in sum_constraints[molhash]
+                        if i not in h_indices
                     ]
 
                 for i in indices:
@@ -423,6 +448,14 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
 
     def to_b_constraints(self):
         b = [constr.charge for constr in self.charge_sum_constraints]
+        if self.split_conformers:
+            for constraint in self.charge_sum_constraints:
+                if len(constraint.atoms) == 1:
+                    atom = list(constraint.atoms)[0]
+                    molhash = hash(atom.molecule)
+                    increments = self._molecule_increments[molhash][1:]
+                    for _ in increments:
+                        b.append(constraint.charge)
         return np.array(b)
 
     def add_constraints_from_charges(self, charges: np.ndarray):
@@ -446,6 +479,7 @@ class MoleculeChargeConstraints(BaseChargeConstraintOptions):
 
         indices = np.arange(self.n_atoms)
         to_constrain = np.where(~np.in1d(indices, unconstrained_indices))[0]
+
         charges = np.asarray(charges)[to_constrain]
         indices = indices[to_constrain]
 
