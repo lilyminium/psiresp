@@ -93,7 +93,7 @@ class BaseQMOptions(Model):
         default="hf",
         description="QM method for optimizing geometry and calculating ESPs",
     )
-    basis: QMBasisSet = Field(
+    basis: str = Field(
         default="6-31g*",
         description="QM basis set for optimizing geometry and calculating ESPs",
     )
