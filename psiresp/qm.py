@@ -329,7 +329,7 @@ class BaseQMOptions(Model):
             content = f.read()
         data = qcel.util.deserialize(content, "msgpack")
         if "model" not in data:  # there's an error
-            raise ValueError(data["model"])
+            raise ValueError(data["error"])
         if data["model"]["basis"] == "":
             data["model"]["basis"] = None
         if "provenance" not in data:
