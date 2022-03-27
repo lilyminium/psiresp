@@ -57,7 +57,7 @@ Then build from source:
 .. code-block:: bash
 
   # build the package
-  python setup.py develop  # or python setup.py install if not creating a development environment
+  pip install -e .  # or pip install . if not creating a development environment
 
 
 To run tests:
