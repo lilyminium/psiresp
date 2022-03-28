@@ -69,7 +69,7 @@ git clone https://github.com/lilyminium/psiresp.git
 cd psiresp
 conda env create -f devtools/conda-envs/environment.yaml
 conda activate psiresp
-python setup.py install
+pip install .
 ```
 
 Please see [the Installation docs](https://psiresp.readthedocs.io/en/latest/installation.html) for more information on installation and dependencies.
