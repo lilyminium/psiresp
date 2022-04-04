@@ -2,6 +2,9 @@
 
 Releases follow the `major.minor.micro` format of [PEP440](https://www.python.org/dev/peps/pep-0440/#final-releases).
 
+## 0.4.2
+- Add error parsing into file reading (#92)
+
 ## 0.4.1
 - Add user options to `ChargeConstraintOptions` to allow for conformer splitting (#85)
 ## 0.4.0
