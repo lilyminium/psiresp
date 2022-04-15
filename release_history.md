@@ -3,6 +3,7 @@
 Releases follow the `major.minor.micro` format of [PEP440](https://www.python.org/dev/peps/pep-0440/#final-releases).
 
 ## 0.4.2
+- Update installation notes (#94) 
 - Add error parsing into file reading (#92)
 
 ## 0.4.1
