@@ -31,16 +31,26 @@ These implementations are not as well-tested:
 
 The recommended way to install PsiRESP is via [anaconda](https://anaconda.org/anaconda/python),
 as the required dependencies are most easily installed distributed through ``conda``.
+We further recommend using ``mamba`` to resolve dependencies.
 
 For the fully featured version, install:
 
 ```
-conda install -c conda-forge -c psi4 psiresp psi4
+# to install mamba if you do not have it already
+conda install -c conda-forge mamba
+# to install psiresp
+mamba install -c conda-forge psiresp
+# to install Psi4 if you need it
+mamba install -c psi4 psi4
 ```
 
+
 This will pull in all dependencies necessary for full functionality, including
-[RDKit](https://www.rdkit.org/), [Psi4](https://psicode.org/) and
+[RDKit](https://www.rdkit.org/) and
 [QCFractal](https://docs.qcarchive.molssi.org/projects/qcfractal/en/latest/).
+[Psi4](https://psicode.org/) is installed separately for now.
+As QCFractal and Psi4 can have finicky dependencies, it is often
+a good idea to create a new environment for PsiRESP instead of adding to another.
 
 For minimal functionality, install:
 

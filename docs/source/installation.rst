@@ -4,16 +4,31 @@ Installation
 Much of the functionality in PsiRESP depends on `RDKit`_, `Psi4`_, and
 `QCFractal`_.
 These packages are easiest distributed through
-`Anaconda`_, so it is **highly recommended** to install PsiRESP
-through ``conda``.
+`Anaconda`_, so it is highly recommended to install PsiRESP
+through ``conda-forge``. You can use normal ``conda`` for this.
+However, you may occasionally encounter errors where ``conda`` hangs or times out,
+or finds conflicting dependencies. Therefore
+the **best way to install PsiRESP is by using mamba**,
+a very good drop-in alternative for ``conda``.
 
-.. code-block:: bash
+You can install ``mamba`` from ``conda-forge`` too::
 
-  conda install -c conda-forge psiresp
+  conda install -c conda-forge mamba
+
+From there, you can use ``mamba`` to install fully-featured PsiRESP::
+
+  mamba install -c conda-forge psiresp
 
 It is generally recommended to install this fully-featured
 version, as typical usage involving Psi4 and SMILES will require
-all dependencies. However, you may have already pre-computed
+all dependencies. Note -- even fully-featured PsiRESP does not install Psi4
+by default, as it is often a good idea to have separate
+environments for a PsiRESP job and the actual (QCFractal-managed)
+Psi4 computation. To install Psi4::
+
+  mamba install -c psi4 psi4
+
+However, you may have already pre-computed
 molecule geometries, grids, and electrostatic potentials.
 (An example of using PsiRESP in this minimal way is provided in the example tutorials).
 Alternatively, you may only want to install a subset of the above dependencies,
@@ -23,7 +38,7 @@ it can be installed with:
 
 .. code-block:: bash
 
-  conda install -c conda-forge psiresp-base
+  mamba install -c conda-forge psiresp-base
 
 
 Only the minimal version is on PyPI:
@@ -32,7 +47,16 @@ Only the minimal version is on PyPI:
 
   pip install psiresp
 
-It is recommended to install additional dependencies via conda.
+
+.. note::
+
+    For versions of PsiRESP older than 0.4.1,
+    using a plain ``conda`` install without ``mamba``
+    may result in very old versions of ``qcfractal``.
+    In that case, please add an extra pin when you install::
+
+      conda install -c conda-forge psiresp==0.3.1 "qcfractal>0.15"
+
 
 --------------------
 Building from source
