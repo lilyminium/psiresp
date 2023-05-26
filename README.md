@@ -88,7 +88,7 @@ Please see [the Installation docs](https://psiresp.readthedocs.io/en/latest/inst
 
 Examples for PsiRESP are provided as tutorials both [online](https://psiresp.readthedocs.io/en/latest/examples/README.html)
 and as downloadable Jupyter notebooks in the
-[examples folder](https://github.com/lilyminium/psiresp/tree/review-updates/docs/source/examples).
+[examples folder](https://github.com/lilyminium/psiresp/tree/master/docs/source/examples).
 More information can also be found in the [documentation](https://psiresp.readthedocs.io/en/latest/).
 
 A minimal example is provided below, running a standard 2-stage restrained electrostatic potential fit (Bayly et al., 1993).
